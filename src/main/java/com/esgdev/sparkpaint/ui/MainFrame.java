@@ -35,7 +35,23 @@ public class MainFrame extends JFrame {
 
         // Add main canvas (at the center)
         canvas = new DrawingCanvas();
-        contentPane.add(canvas, BorderLayout.CENTER);
+        // Create a container panel with GridBagLayout
+        JPanel canvasContainer = new JPanel(new GridBagLayout());
+
+        // Create constraints for the canvas
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 0;  // Don't expand horizontally
+        gbc.weighty = 0;  // Don't expand vertically
+        gbc.anchor = GridBagConstraints.CENTER;  // Center the canvas
+
+        // Add the canvas to the container with constraints
+        canvasContainer.add(canvas, gbc);
+
+        // Add the container to the center of the BorderLayout
+        add(canvasContainer, BorderLayout.CENTER);
+
 
         // Add status bar (at the bottom)
         JPanel statusBar = new JPanel(new BorderLayout());
