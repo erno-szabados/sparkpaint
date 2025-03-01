@@ -117,6 +117,9 @@ public class MainFrame extends JFrame {
         JToggleButton rectangleButton = createRectangleButton();
         toolbar.add(rectangleButton);
 
+        JToggleButton circleButton = createCircleButton();
+        toolbar.add(circleButton);
+
         toolbar.add(createColorButton());
         toolbar.add(createBackgroundColorButton());
         for (Component c : toolbar.getComponents()) {
@@ -172,22 +175,22 @@ public class MainFrame extends JFrame {
     }
 
     private JToggleButton createRectangleButton() {
-        JToggleButton rectangleButton = new JToggleButton();
+        JToggleButton button = new JToggleButton();
         ImageIcon outlineIcon = IconLoader.loadAndScaleIcon("rect-outline.png", IconWidth, IconHeight);
         ImageIcon filledIcon = IconLoader.loadAndScaleIcon("rect-filled.png", IconWidth, IconHeight);
 
-        rectangleButton.setIcon(outlineIcon);
-        rectangleButton.setToolTipText("Rectangle (Outline)");
+        button.setIcon(outlineIcon);
+        button.setToolTipText("Rectangle (Outline)");
 
         // Track the filled state
         final boolean[] isFilled = {false};
 
-        rectangleButton.addActionListener(e -> {
+        button.addActionListener(e -> {
             if (canvas.getCurrentTool() != DrawingCanvas.Tool.RECTANGLE_OUTLINE &&
                     canvas.getCurrentTool() != DrawingCanvas.Tool.RECTANGLE_FILLED) {
                 // First click - just select the tool in outline mode
-                rectangleButton.setIcon(outlineIcon);
-                rectangleButton.setToolTipText("Rectangle (Outline)");
+                button.setIcon(outlineIcon);
+                button.setToolTipText("Rectangle (Outline)");
                 canvas.setCurrentTool(DrawingCanvas.Tool.RECTANGLE_OUTLINE);
                 setStatusMessage("Rectangle (Outline) selected.");
                 isFilled[0] = false;
@@ -195,13 +198,13 @@ public class MainFrame extends JFrame {
                 // Tool is already selected, toggle between modes
                 isFilled[0] = !isFilled[0];
                 if (isFilled[0]) {
-                    rectangleButton.setIcon(filledIcon);
-                    rectangleButton.setToolTipText("Rectangle (Filled)");
+                    button.setIcon(filledIcon);
+                    button.setToolTipText("Rectangle (Filled)");
                     canvas.setCurrentTool(DrawingCanvas.Tool.RECTANGLE_FILLED);
                     setStatusMessage("Rectangle (Filled) selected.");
                 } else {
-                    rectangleButton.setIcon(outlineIcon);
-                    rectangleButton.setToolTipText("Rectangle (Outline)");
+                    button.setIcon(outlineIcon);
+                    button.setToolTipText("Rectangle (Outline)");
                     canvas.setCurrentTool(DrawingCanvas.Tool.RECTANGLE_OUTLINE);
                     setStatusMessage("Rectangle (Outline) selected.");
                 }
@@ -209,7 +212,48 @@ public class MainFrame extends JFrame {
 
         });
 
-        return rectangleButton;
+        return button;
+    }
+
+    private JToggleButton createCircleButton() {
+        JToggleButton button = new JToggleButton();
+        ImageIcon outlineIcon = IconLoader.loadAndScaleIcon("circle-outline.png", IconWidth, IconHeight);
+        ImageIcon filledIcon = IconLoader.loadAndScaleIcon("circle-filled.png", IconWidth, IconHeight);
+
+        button.setIcon(outlineIcon);
+        button.setToolTipText("Center point circle (Outline)");
+
+        // Track the filled state
+        final boolean[] isFilled = {false};
+
+        button.addActionListener(e -> {
+            if (canvas.getCurrentTool() != DrawingCanvas.Tool.CIRCLE_OUTLINE &&
+                    canvas.getCurrentTool() != DrawingCanvas.Tool.CIRCLE_FILLED) {
+                // First click - just select the tool in outline mode
+                button.setIcon(outlineIcon);
+                button.setToolTipText("Center point circle (Outline)");
+                canvas.setCurrentTool(DrawingCanvas.Tool.CIRCLE_OUTLINE);
+                setStatusMessage("Center point circle (Outline) selected.");
+                isFilled[0] = false;
+            } else {
+                // Tool is already selected, toggle between modes
+                isFilled[0] = !isFilled[0];
+                if (isFilled[0]) {
+                    button.setIcon(filledIcon);
+                    button.setToolTipText("Center point circle (Filled)");
+                    canvas.setCurrentTool(DrawingCanvas.Tool.CIRCLE_FILLED);
+                    setStatusMessage("Center point circle (Filled) selected.");
+                } else {
+                    button.setIcon(outlineIcon);
+                    button.setToolTipText("Center point circle (Outline)");
+                    canvas.setCurrentTool(DrawingCanvas.Tool.CIRCLE_OUTLINE);
+                    setStatusMessage("Center point circle (Outline) selected.");
+                }
+            }
+
+        });
+
+        return button;
     }
 
 

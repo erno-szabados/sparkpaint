@@ -19,7 +19,9 @@ public class DrawingCanvas extends JPanel {
         PENCIL,
         LINE,
         RECTANGLE_OUTLINE,
-        RECTANGLE_FILLED
+        RECTANGLE_FILLED,
+        CIRCLE_OUTLINE,
+        CIRCLE_FILLED
     }
 
     private Image image;
@@ -44,7 +46,11 @@ public class DrawingCanvas extends JPanel {
                 }
 
                 // If tool is LINE or RECTANGLE, save the current canvas state
-                if (currentTool == Tool.LINE || currentTool == Tool.RECTANGLE_OUTLINE || currentTool == Tool.RECTANGLE_FILLED) {
+                if (currentTool == Tool.LINE ||
+                    currentTool == Tool.RECTANGLE_OUTLINE ||
+                    currentTool == Tool.RECTANGLE_FILLED ||
+                    currentTool == Tool.CIRCLE_OUTLINE ||
+                    currentTool == Tool.CIRCLE_FILLED) {
                     saveCanvasState();
                 }
             }
@@ -73,8 +79,15 @@ public class DrawingCanvas extends JPanel {
                             int rectY = Math.min(startY, endY);
                             int rectWidth = Math.abs(endX - startX);
                             int rectHeight = Math.abs(endY - startY);
-                            drawRectangle(graphics, rectX, rectY, rectX + rectWidth, rectY + rectHeight);
+                            drawRectangle(graphics, rectX, rectY, rectX + rectWidth, rectY + rectHeight, currentTool == Tool.RECTANGLE_FILLED);
                             repaint();
+                            break;
+                        case CIRCLE_OUTLINE:
+                        case CIRCLE_FILLED:
+                            // Draw the circle on the permanent canvas
+                            drawCircle(graphics, startX, startY, endX, endY, currentTool == Tool.CIRCLE_FILLED);
+                            repaint();
+
                             break;
                         default:
                             break;
@@ -100,25 +113,30 @@ public class DrawingCanvas extends JPanel {
                         startX = x; // Update start point for continuous freehand drawing
                         startY = y;
                     }
-                } else if (currentTool == Tool.LINE || currentTool == Tool.RECTANGLE_OUTLINE || currentTool == Tool.RECTANGLE_FILLED) {
+                } else if (currentTool == Tool.LINE ||
+                        currentTool == Tool.RECTANGLE_OUTLINE ||
+                        currentTool == Tool.RECTANGLE_FILLED ||
+                        currentTool == Tool.CIRCLE_OUTLINE ||
+                        currentTool == Tool.CIRCLE_FILLED) {
                     // Draw a temporary preview of the shape
                     if (tempCanvas != null) {
                         Graphics2D tempGraphics = tempCanvas.createGraphics();
                         tempGraphics.drawImage(image, 0, 0, null); // Restore the original canvas
-
+                        tempGraphics.setColor(drawingColor);
+                        tempGraphics.setStroke(new BasicStroke(2));
                         // Preview the appropriate shape
                         if (currentTool == Tool.LINE) {
-                            tempGraphics.setColor(drawingColor);
-                            tempGraphics.setStroke(new BasicStroke(2));
                             tempGraphics.drawLine(startX, startY, e.getX(), e.getY());
-                        } else if (currentTool == Tool.RECTANGLE_OUTLINE || currentTool == Tool.RECTANGLE_FILLED) {
-                            tempGraphics.setColor(drawingColor);
-                            tempGraphics.setStroke(new BasicStroke(2));
+                        } else if (currentTool == Tool.RECTANGLE_OUTLINE ||
+                                   currentTool == Tool.RECTANGLE_FILLED) {
                             int rectX = Math.min(startX, e.getX());
                             int rectY = Math.min(startY, e.getY());
                             int rectWidth = Math.abs(e.getX() - startX);
                             int rectHeight = Math.abs(e.getY() - startY);
-                            drawRectangle(tempGraphics, rectX, rectY, rectX + rectWidth, rectY + rectHeight);
+                            drawRectangle(tempGraphics, rectX, rectY, rectX + rectWidth, rectY + rectHeight, currentTool == Tool.RECTANGLE_FILLED);
+                        } else if (currentTool == Tool.CIRCLE_OUTLINE ||
+                                   currentTool == Tool.CIRCLE_FILLED) {
+                            drawCircle(tempGraphics, startX, startY, e.getX(), e.getY(), currentTool == Tool.CIRCLE_FILLED);
                         }
 
                         tempGraphics.dispose();
@@ -335,22 +353,38 @@ public class DrawingCanvas extends JPanel {
         return canvasBackground;
     }
 
-    private void drawRectangle(Graphics2D g, int x1, int y1, int x2, int y2) {
+    private void drawRectangle(Graphics2D g, int x1, int y1, int x2, int y2, boolean filled) {
         int x = Math.min(x1, x2);
         int y = Math.min(y1, y2);
         int width = Math.abs(x2 - x1);
         int height = Math.abs(y2 - y1);
 
-        if (currentTool == Tool.RECTANGLE_FILLED) {
+        if (filled) {
             g.setColor(fillColor);
             g.fillRect(x, y, width, height);
-            g.setColor(drawingColor);
-            g.drawRect(x, y, width, height);
-        } else {
-            g.setColor(drawingColor);
-            g.drawRect(x, y, width, height);
         }
+        g.setColor(drawingColor);
+        g.drawRect(x, y, width, height);
     }
 
+    private void drawCircle(Graphics2D g, int x1, int y1, int x2, int y2, boolean filled) {
+
+        // Calculate radius based on the distance to the second point
+        int radius = (int) Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+
+        // Calculate top-left corner and diameter for the circle
+        int centerX = x1;
+        int topLeftX = centerX - radius;
+        int centerY = y1;
+        int topLeftY = centerY - radius;
+        int diameter = radius * 2;
+
+        if (filled) {
+            g.setColor(fillColor);
+            g.fillOval(topLeftX, topLeftY, diameter, diameter);
+        }
+        g.setColor(drawingColor);
+        g.drawOval(topLeftX, topLeftY, diameter, diameter);
+    }
 
 }
