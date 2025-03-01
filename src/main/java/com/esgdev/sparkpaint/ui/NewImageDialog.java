@@ -2,7 +2,6 @@ package com.esgdev.sparkpaint.ui;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
 
 public class NewImageDialog extends JDialog {
     private int imageWidth = 800;

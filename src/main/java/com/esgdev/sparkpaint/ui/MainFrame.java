@@ -81,7 +81,11 @@ public class MainFrame extends JFrame {
 
     }
 
-    // Method to create a basic toolbar
+    public void setStatusMessage(String message) {
+        statusMessage.setText(message);
+    }
+
+// Method to create a basic toolbar
     private JToolBar createToolBar() {
         JToolBar toolbar = new JToolBar(JToolBar.VERTICAL);
         toolbar.setFloatable(false); // Disable floating toolbar

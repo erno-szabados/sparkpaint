@@ -1,12 +1,17 @@
 package com.esgdev.sparkpaint.engine;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 
 public class DrawingCanvas extends JPanel {
+    private String currentFilePath;
+
     public enum Tool {
         PENCIL,
         LINE,
@@ -160,6 +165,77 @@ public class DrawingCanvas extends JPanel {
     }
 
 
+    public void saveToFile(File file) throws IOException {
+        // Get the image from the canvas
+        BufferedImage imageToSave = new BufferedImage(
+                image.getWidth(null),
+                image.getHeight(null),
+                BufferedImage.TYPE_INT_ARGB
+        );
+
+        // Draw the current canvas state to the new image
+        Graphics2D g = imageToSave.createGraphics();
+        g.drawImage(image, 0, 0, null);
+        g.dispose();
+
+        // Get the file extension
+        String fileName = file.getName().toLowerCase();
+        String formatName = "png"; // default format
+
+        if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
+            formatName = "jpeg";
+            // Convert to RGB for JPEG (no alpha channel)
+            BufferedImage rgbImage = new BufferedImage(
+                    imageToSave.getWidth(),
+                    imageToSave.getHeight(),
+                    BufferedImage.TYPE_INT_RGB
+            );
+            Graphics2D rgbGraphics = rgbImage.createGraphics();
+            rgbGraphics.drawImage(imageToSave, 0, 0, Color.WHITE, null);
+            rgbGraphics.dispose();
+            imageToSave = rgbImage;
+        }
+
+        // Save the image
+        if (!ImageIO.write(imageToSave, formatName, file)) {
+            throw new IOException("No appropriate writer found for format: " + formatName);
+        }
+
+        currentFilePath = file.getAbsolutePath();
+    }
+
+    public void loadFromFile(File file) throws IOException {
+        BufferedImage loadedImage = ImageIO.read(file);
+        if (loadedImage == null) {
+            throw new IOException("Failed to load image: Unsupported or corrupted file");
+        }
+
+        // Store current graphics settings before creating new image
+        Color currentColor = graphics != null ? graphics.getColor() : Color.BLACK;
+        Stroke currentStroke = graphics != null ? graphics.getStroke() : new BasicStroke(1);
+
+        // Create a new buffered image with ARGB support
+        image = new BufferedImage(loadedImage.getWidth(), loadedImage.getHeight(),
+                BufferedImage.TYPE_INT_ARGB);
+        graphics = (Graphics2D) image.getGraphics();
+
+        // Restore graphics settings
+        graphics.setColor(currentColor);
+        graphics.setStroke(currentStroke);
+
+        // Draw the loaded image
+        graphics.drawImage(loadedImage, 0, 0, null);
+
+        currentFilePath = file.getAbsolutePath();
+        setPreferredSize(new Dimension(image.getWidth(null), image.getHeight(null)));
+        repaint();
+    }
+
+
+    public String getCurrentFilePath() {
+        return currentFilePath;
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -204,7 +280,6 @@ public class DrawingCanvas extends JPanel {
         } else {
             setCursor(new Cursor(Cursor.DEFAULT_CURSOR)); // Default cursor
         }
-
     }
 
     // Getter for the current tool
