@@ -115,6 +115,51 @@ public class DrawingCanvas extends JPanel {
         });
     }
 
+    public void createNewCanvas(int width, int height, Color backgroundColor) {
+        // Create new buffered images with new dimensions
+        BufferedImage newImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage newTempCanvas = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+
+        // Get graphics context from new image
+        Graphics2D newGraphics = (Graphics2D) newImage.getGraphics();
+
+        // Copy existing graphics settings if they exist
+        if (graphics != null) {
+            newGraphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    graphics.getRenderingHint(RenderingHints.KEY_ANTIALIASING));
+            newGraphics.setColor(graphics.getColor());
+            newGraphics.setStroke(graphics.getStroke());
+        } else {
+            // Initialize default settings for first creation
+            newGraphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON);
+        }
+
+        // Fill with background color
+        newGraphics.setColor(backgroundColor);
+        newGraphics.fillRect(0, 0, width, height);
+
+        // Restore previous drawing color if it exists
+        if (graphics != null) {
+            newGraphics.setColor(graphics.getColor());
+        }
+
+        // Update class fields
+        if (graphics != null) {
+            graphics.dispose(); // Clean up old graphics context
+        }
+
+        image = newImage;
+        graphics = newGraphics;
+        tempCanvas = newTempCanvas;
+
+        // Update panel size
+        setPreferredSize(new Dimension(width, height));
+        revalidate();
+        repaint();
+    }
+
+
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);

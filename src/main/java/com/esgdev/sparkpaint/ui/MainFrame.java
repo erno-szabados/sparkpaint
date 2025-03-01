@@ -24,6 +24,10 @@ public class MainFrame extends JFrame {
         initializeUI();
     }
 
+    public DrawingCanvas getCanvas() {
+        return canvas;
+    }
+
     // Method to initialize the UI components
     private void initializeUI() {
         Container contentPane = getContentPane();
@@ -31,7 +35,8 @@ public class MainFrame extends JFrame {
 
         // Create and set up the menu bar
         JMenuBar menuBar = new JMenuBar();
-        menuBar.add(new FileMenu());  // Add our new FileMenu
+
+        menuBar.add(new FileMenu(this));  // Add our new FileMenu
         setJMenuBar(menuBar);  // Add menubar to the frame
 
         // Add toolbar
@@ -112,6 +117,7 @@ public class MainFrame extends JFrame {
 
         return toolbar;
     }
+
 
     // Add a mouse motion listener to track and update cursor position
     private void addCursorTracking() {
