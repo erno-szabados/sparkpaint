@@ -29,9 +29,14 @@ public class MainFrame extends JFrame {
         Container contentPane = getContentPane();
         contentPane.setLayout(new BorderLayout());
 
-        // Add toolbar (at the top)
+        // Create and set up the menu bar
+        JMenuBar menuBar = new JMenuBar();
+        menuBar.add(new FileMenu());  // Add our new FileMenu
+        setJMenuBar(menuBar);  // Add menubar to the frame
+
+        // Add toolbar
         JToolBar toolbar = createToolBar();
-        contentPane.add(toolbar, BorderLayout.NORTH);
+        contentPane.add(toolbar, BorderLayout.WEST);
 
         // Add main canvas (at the center)
         canvas = new DrawingCanvas();
@@ -73,7 +78,7 @@ public class MainFrame extends JFrame {
 
     // Method to create a basic toolbar
     private JToolBar createToolBar() {
-        JToolBar toolbar = new JToolBar();
+        JToolBar toolbar = new JToolBar(JToolBar.VERTICAL);
         toolbar.setFloatable(false); // Disable floating toolbar
 
         // Load and scale icons
