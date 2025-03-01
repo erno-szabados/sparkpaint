@@ -15,7 +15,8 @@ public class NewImageDialog extends JDialog {
         // Create components
         JTextField widthField = new JTextField(String.valueOf(imageWidth), 5);
         JTextField heightField = new JTextField(String.valueOf(imageHeight), 5);
-        JButton colorButton = new JButton("Choose Color");
+        JButton colorButton = new JButton("Choose Background Color");
+        colorButton.setToolTipText("Select the background color for the new image");
         colorButton.setBackground(backgroundColor);
         
         // Layout

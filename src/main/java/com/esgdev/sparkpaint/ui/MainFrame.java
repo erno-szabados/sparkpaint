@@ -85,7 +85,7 @@ public class MainFrame extends JFrame {
         statusMessage.setText(message);
     }
 
-// Method to create a basic toolbar
+    // Method to create a basic toolbar
     private JToolBar createToolBar() {
         JToolBar toolbar = new JToolBar(JToolBar.VERTICAL);
         toolbar.setFloatable(false); // Disable floating toolbar
@@ -119,7 +119,52 @@ public class MainFrame extends JFrame {
         rectangleButton.addActionListener(e -> statusMessage.setText("Rectangle selected."));
         toolbar.add(rectangleButton);
 
+        JButton colorButton = getColorButton();
+
+        toolbar.add(colorButton);
+
         return toolbar;
+    }
+
+    private JButton getColorButton() {
+        JButton colorButton = new JButton();
+        //colorButton.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        Icon colorIcon = new Icon() {
+            @Override
+            public void paintIcon(Component c, Graphics g, int x, int y) {
+                g.setColor(canvas.getDrawingColor()); // Assuming canvas provides the current color
+                g.fillRect(x, y, IconWidth, IconHeight);
+            }
+
+            @Override
+            public int getIconWidth() {
+                return IconWidth;
+            }
+
+            @Override
+            public int getIconHeight() {
+                return IconHeight;
+            }
+        };
+
+        // Set the icon to the button
+        colorButton.setIcon(colorIcon);
+        //colorButton.setMargin(new Insets(0, 0, 0, 0));
+        colorButton.setBackground(Color.BLACK); // Initial color
+        colorButton.setToolTipText("Choose Drawing Color");
+        colorButton.addActionListener(e -> {
+            Color newColor = JColorChooser.showDialog(this, "Choose Drawing Color",
+                    colorButton.getBackground());
+            if (newColor != null) {
+                colorButton.setBackground(newColor);
+                // Update the hex color label
+                colorButton.setToolTipText(String.format("#%02X%02X%02X",
+                        newColor.getRed(), newColor.getGreen(), newColor.getBlue()));
+                // Update the canvas drawing color
+                canvas.setDrawingColor(newColor);
+            }
+        });
+        return colorButton;
     }
 
 

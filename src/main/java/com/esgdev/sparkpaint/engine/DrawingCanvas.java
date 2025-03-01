@@ -11,6 +11,9 @@ import java.io.IOException;
 
 public class DrawingCanvas extends JPanel {
     private String currentFilePath;
+    private Color drawingColor = Color.BLACK; // Default color
+
+
 
     public enum Tool {
         PENCIL,
@@ -52,6 +55,10 @@ public class DrawingCanvas extends JPanel {
 
                 // Finalize the shape based on the selected tool
                 if (graphics != null) {
+                    // Set the color and stroke for the final shape
+                    graphics.setColor(drawingColor);
+                    graphics.setStroke(new BasicStroke(2));
+
                     switch (currentTool) {
                         case LINE:
                             // Finalize the line
@@ -99,11 +106,11 @@ public class DrawingCanvas extends JPanel {
 
                         // Preview the appropriate shape
                         if (currentTool == Tool.LINE) {
-                            tempGraphics.setColor(Color.BLACK);
+                            tempGraphics.setColor(drawingColor);
                             tempGraphics.setStroke(new BasicStroke(2));
                             tempGraphics.drawLine(startX, startY, e.getX(), e.getY());
                         } else if (currentTool == Tool.RECTANGLE) {
-                            tempGraphics.setColor(Color.BLACK);
+                            tempGraphics.setColor(drawingColor);
                             tempGraphics.setStroke(new BasicStroke(2));
                             int rectX = Math.min(startX, e.getX());
                             int rectY = Math.min(startY, e.getY());
@@ -127,6 +134,7 @@ public class DrawingCanvas extends JPanel {
 
         // Get graphics context from new image
         Graphics2D newGraphics = (Graphics2D) newImage.getGraphics();
+        Color previousDrawingColor = drawingColor;
 
         // Copy existing graphics settings if they exist
         if (graphics != null) {
@@ -157,6 +165,7 @@ public class DrawingCanvas extends JPanel {
         image = newImage;
         graphics = newGraphics;
         tempCanvas = newTempCanvas;
+        currentFilePath = null;
 
         // Update panel size
         setPreferredSize(new Dimension(width, height));
@@ -259,7 +268,7 @@ public class DrawingCanvas extends JPanel {
         // Set initial properties for the graphics object
         graphics.setColor(Color.WHITE);
         graphics.fillRect(0, 0, getWidth(), getHeight());
-        graphics.setColor(Color.BLACK);
+        graphics.setColor(drawingColor);
         graphics.setStroke(new BasicStroke(2));
     }
 
@@ -286,4 +295,16 @@ public class DrawingCanvas extends JPanel {
     public Tool getCurrentTool() {
         return currentTool;
     }
+
+    public void setDrawingColor(Color color) {
+        this.drawingColor = color;
+        if (graphics != null) {
+            graphics.setColor(color);
+        }
+    }
+
+    public Color getDrawingColor() {
+        return drawingColor;
+    }
+
 }
