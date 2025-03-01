@@ -12,6 +12,8 @@ public class MainFrame extends JFrame {
     private DrawingCanvas canvas;
     private JLabel statusMessage;
     private JLabel cursorPositionLabel;
+    private ButtonGroup toolGroup;
+
 
     public MainFrame() {
         // Set up the JFrame properties
@@ -39,14 +41,14 @@ public class MainFrame extends JFrame {
         menuBar.add(new FileMenu(this));  // Add our new FileMenu
         setJMenuBar(menuBar);  // Add menubar to the frame
 
-        // Add toolbar
-        JToolBar toolbar = createToolBar();
-        contentPane.add(toolbar, BorderLayout.WEST);
-
         // Add main canvas (at the center)
         canvas = new DrawingCanvas();
         // Create a container panel with GridBagLayout
         JPanel canvasContainer = new JPanel(new GridBagLayout());
+
+        // Add toolbar
+        JToolBar toolbar = createToolBar();
+        contentPane.add(toolbar, BorderLayout.WEST);
 
         // Create constraints for the canvas
         GridBagConstraints gbc = new GridBagConstraints();
@@ -87,13 +89,13 @@ public class MainFrame extends JFrame {
 
     // Method to create a basic toolbar
     private JToolBar createToolBar() {
+        toolGroup = new ButtonGroup();
         JToolBar toolbar = new JToolBar(JToolBar.VERTICAL);
         toolbar.setFloatable(false); // Disable floating toolbar
 
         // Load and scale icons
         ImageIcon pencilIcon = IconLoader.loadAndScaleIcon("pencil.png", IconWidth, IconHeight);
         ImageIcon lineIcon = IconLoader.loadAndScaleIcon("line.png", IconWidth, IconHeight);
-        ImageIcon rectangleIcon = IconLoader.loadAndScaleIcon("rect-outline.png", IconWidth, IconHeight);
 
         // Create Pencil button
         JButton pencilButton = new JButton();
@@ -112,27 +114,111 @@ public class MainFrame extends JFrame {
         toolbar.add(lineButton);
 
         // Create Rectangle button
-        JButton rectangleButton = new JButton();
-        rectangleButton.setIcon(rectangleIcon);
-        rectangleButton.setToolTipText("Draw a Rectangle");
-        rectangleButton.addActionListener(e -> canvas.setCurrentTool(DrawingCanvas.Tool.RECTANGLE));
-        rectangleButton.addActionListener(e -> statusMessage.setText("Rectangle selected."));
+        JToggleButton rectangleButton = createRectangleButton();
         toolbar.add(rectangleButton);
 
-        JButton colorButton = getColorButton();
-
-        toolbar.add(colorButton);
+        toolbar.add(createColorButton());
+        toolbar.add(createBackgroundColorButton());
+        for (Component c : toolbar.getComponents()) {
+            if (c instanceof JToggleButton) {
+                toolGroup.add((JToggleButton) c);
+            }
+        }
 
         return toolbar;
     }
 
-    private JButton getColorButton() {
+    private JButton createColorButton() {
         JButton colorButton = new JButton();
-        //colorButton.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        Icon colorIcon = new Icon() {
+        Icon colorIcon = getColorIcon(canvas.getDrawingColor());
+
+        // Set the icon to the button
+        colorButton.setIcon(colorIcon);
+        //colorButton.setMargin(new Insets(0, 0, 0, 0));
+        colorButton.setToolTipText("Choose Drawing Color");
+        colorButton.addActionListener(e -> {
+            Color newColor = JColorChooser.showDialog(this, "Choose Drawing Color",
+                    colorButton.getBackground());
+            if (newColor != null) {
+                colorButton.setIcon(getColorIcon(newColor));
+                // Update the hex color label
+                colorButton.setToolTipText(String.format("#%02X%02X%02X",
+                        newColor.getRed(), newColor.getGreen(), newColor.getBlue()));
+                // Update the canvas drawing color
+                canvas.setDrawingColor(newColor);
+            }
+        });
+        return colorButton;
+    }
+
+    private JButton createBackgroundColorButton() {
+        JButton backgroundColorButton = new JButton();
+        backgroundColorButton.setIcon(getColorIcon(canvas.getFillColor()));
+        backgroundColorButton.setToolTipText("Choose Fill Color");
+
+        backgroundColorButton.addActionListener(e -> {
+            Color newColor = JColorChooser.showDialog(
+                    this,
+                    "Choose Fill Color",
+                    canvas.getFillColor()
+            );
+            if (newColor != null) {
+                canvas.setFillColor(newColor);
+                backgroundColorButton.setIcon(getColorIcon(newColor));
+            }
+        });
+
+        return backgroundColorButton;
+    }
+
+    private JToggleButton createRectangleButton() {
+        JToggleButton rectangleButton = new JToggleButton();
+        ImageIcon outlineIcon = IconLoader.loadAndScaleIcon("rect-outline.png", IconWidth, IconHeight);
+        ImageIcon filledIcon = IconLoader.loadAndScaleIcon("rect-filled.png", IconWidth, IconHeight);
+
+        rectangleButton.setIcon(outlineIcon);
+        rectangleButton.setToolTipText("Rectangle (Outline)");
+
+        // Track the filled state
+        final boolean[] isFilled = {false};
+
+        rectangleButton.addActionListener(e -> {
+            if (canvas.getCurrentTool() != DrawingCanvas.Tool.RECTANGLE_OUTLINE &&
+                    canvas.getCurrentTool() != DrawingCanvas.Tool.RECTANGLE_FILLED) {
+                // First click - just select the tool in outline mode
+                rectangleButton.setIcon(outlineIcon);
+                rectangleButton.setToolTipText("Rectangle (Outline)");
+                canvas.setCurrentTool(DrawingCanvas.Tool.RECTANGLE_OUTLINE);
+                setStatusMessage("Rectangle (Outline) selected.");
+                isFilled[0] = false;
+            } else {
+                // Tool is already selected, toggle between modes
+                isFilled[0] = !isFilled[0];
+                if (isFilled[0]) {
+                    rectangleButton.setIcon(filledIcon);
+                    rectangleButton.setToolTipText("Rectangle (Filled)");
+                    canvas.setCurrentTool(DrawingCanvas.Tool.RECTANGLE_FILLED);
+                    setStatusMessage("Rectangle (Filled) selected.");
+                } else {
+                    rectangleButton.setIcon(outlineIcon);
+                    rectangleButton.setToolTipText("Rectangle (Outline)");
+                    canvas.setCurrentTool(DrawingCanvas.Tool.RECTANGLE_OUTLINE);
+                    setStatusMessage("Rectangle (Outline) selected.");
+                }
+            }
+
+        });
+
+        return rectangleButton;
+    }
+
+
+    private Icon getColorIcon(Color color) {
+        // Assuming canvas provides the current color
+        return new Icon() {
             @Override
             public void paintIcon(Component c, Graphics g, int x, int y) {
-                g.setColor(canvas.getDrawingColor()); // Assuming canvas provides the current color
+                g.setColor(color); // Assuming canvas provides the current color
                 g.fillRect(x, y, IconWidth, IconHeight);
             }
 
@@ -146,27 +232,7 @@ public class MainFrame extends JFrame {
                 return IconHeight;
             }
         };
-
-        // Set the icon to the button
-        colorButton.setIcon(colorIcon);
-        //colorButton.setMargin(new Insets(0, 0, 0, 0));
-        colorButton.setBackground(Color.BLACK); // Initial color
-        colorButton.setToolTipText("Choose Drawing Color");
-        colorButton.addActionListener(e -> {
-            Color newColor = JColorChooser.showDialog(this, "Choose Drawing Color",
-                    colorButton.getBackground());
-            if (newColor != null) {
-                colorButton.setBackground(newColor);
-                // Update the hex color label
-                colorButton.setToolTipText(String.format("#%02X%02X%02X",
-                        newColor.getRed(), newColor.getGreen(), newColor.getBlue()));
-                // Update the canvas drawing color
-                canvas.setDrawingColor(newColor);
-            }
-        });
-        return colorButton;
     }
-
 
     // Add a mouse motion listener to track and update cursor position
     private void addCursorTracking() {

@@ -12,13 +12,14 @@ import java.io.IOException;
 public class DrawingCanvas extends JPanel {
     private String currentFilePath;
     private Color drawingColor = Color.BLACK; // Default color
-
-
+    private Color fillColor = Color.WHITE; //
+    private Color canvasBackground = Color.WHITE;
 
     public enum Tool {
         PENCIL,
         LINE,
-        RECTANGLE
+        RECTANGLE_OUTLINE,
+        RECTANGLE_FILLED
     }
 
     private Image image;
@@ -43,7 +44,7 @@ public class DrawingCanvas extends JPanel {
                 }
 
                 // If tool is LINE or RECTANGLE, save the current canvas state
-                if (currentTool == Tool.LINE || currentTool == Tool.RECTANGLE) {
+                if (currentTool == Tool.LINE || currentTool == Tool.RECTANGLE_OUTLINE || currentTool == Tool.RECTANGLE_FILLED) {
                     saveCanvasState();
                 }
             }
@@ -65,13 +66,14 @@ public class DrawingCanvas extends JPanel {
                             graphics.drawLine(startX, startY, endX, endY);
                             repaint();
                             break;
-                        case RECTANGLE:
+                        case RECTANGLE_OUTLINE:
+                        case RECTANGLE_FILLED:
                             // Finalize the rectangle
                             int rectX = Math.min(startX, endX);
                             int rectY = Math.min(startY, endY);
                             int rectWidth = Math.abs(endX - startX);
                             int rectHeight = Math.abs(endY - startY);
-                            graphics.drawRect(rectX, rectY, rectWidth, rectHeight);
+                            drawRectangle(graphics, rectX, rectY, rectX + rectWidth, rectY + rectHeight);
                             repaint();
                             break;
                         default:
@@ -98,7 +100,7 @@ public class DrawingCanvas extends JPanel {
                         startX = x; // Update start point for continuous freehand drawing
                         startY = y;
                     }
-                } else if (currentTool == Tool.LINE || currentTool == Tool.RECTANGLE) {
+                } else if (currentTool == Tool.LINE || currentTool == Tool.RECTANGLE_OUTLINE || currentTool == Tool.RECTANGLE_FILLED) {
                     // Draw a temporary preview of the shape
                     if (tempCanvas != null) {
                         Graphics2D tempGraphics = tempCanvas.createGraphics();
@@ -109,14 +111,14 @@ public class DrawingCanvas extends JPanel {
                             tempGraphics.setColor(drawingColor);
                             tempGraphics.setStroke(new BasicStroke(2));
                             tempGraphics.drawLine(startX, startY, e.getX(), e.getY());
-                        } else if (currentTool == Tool.RECTANGLE) {
+                        } else if (currentTool == Tool.RECTANGLE_OUTLINE || currentTool == Tool.RECTANGLE_FILLED) {
                             tempGraphics.setColor(drawingColor);
                             tempGraphics.setStroke(new BasicStroke(2));
                             int rectX = Math.min(startX, e.getX());
                             int rectY = Math.min(startY, e.getY());
                             int rectWidth = Math.abs(e.getX() - startX);
                             int rectHeight = Math.abs(e.getY() - startY);
-                            tempGraphics.drawRect(rectX, rectY, rectWidth, rectHeight);
+                            drawRectangle(tempGraphics, rectX, rectY, rectX + rectWidth, rectY + rectHeight);
                         }
 
                         tempGraphics.dispose();
@@ -128,6 +130,7 @@ public class DrawingCanvas extends JPanel {
     }
 
     public void createNewCanvas(int width, int height, Color backgroundColor) {
+        this.fillColor = backgroundColor; // Set the background color
         // Create new buffered images with new dimensions
         BufferedImage newImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         BufferedImage newTempCanvas = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
@@ -249,6 +252,11 @@ public class DrawingCanvas extends JPanel {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
+        // Clear the canvas with the background color
+        g.setColor(canvasBackground);
+        g.fillRect(0, 0, getWidth(), getHeight());
+
+
         // Draw the permanent canvas
         if (image != null) {
             g.drawImage(image, 0, 0, null);
@@ -284,7 +292,7 @@ public class DrawingCanvas extends JPanel {
     public void setCurrentTool(Tool tool) {
         this.currentTool = tool;
         // Update the cursor based on the selected tool
-        if (tool == Tool.PENCIL || tool == Tool.LINE || tool == Tool.RECTANGLE) {
+        if (tool == Tool.PENCIL || tool == Tool.LINE || tool == Tool.RECTANGLE_OUTLINE || tool == Tool.RECTANGLE_FILLED) {
             setCursor(new Cursor(Cursor.CROSSHAIR_CURSOR)); // Crosshair cursor for drawing tools
         } else {
             setCursor(new Cursor(Cursor.DEFAULT_CURSOR)); // Default cursor
@@ -306,5 +314,43 @@ public class DrawingCanvas extends JPanel {
     public Color getDrawingColor() {
         return drawingColor;
     }
+
+    // New Method: Set background color
+    public void setFillColor(Color color) {
+        this.fillColor = color; // Update the background color
+        repaint(); // Trigger a repaint to apply the new background color
+    }
+
+    // New Method: Get background color
+    public Color getFillColor() {
+        return fillColor;
+    }
+
+    public void setCanvasBackground(Color color) {
+        this.canvasBackground = color;
+        repaint(); // This should trigger immediate repaint
+    }
+
+    public Color getCanvasBackground() {
+        return canvasBackground;
+    }
+
+    private void drawRectangle(Graphics2D g, int x1, int y1, int x2, int y2) {
+        int x = Math.min(x1, x2);
+        int y = Math.min(y1, y2);
+        int width = Math.abs(x2 - x1);
+        int height = Math.abs(y2 - y1);
+
+        if (currentTool == Tool.RECTANGLE_FILLED) {
+            g.setColor(fillColor);
+            g.fillRect(x, y, width, height);
+            g.setColor(drawingColor);
+            g.drawRect(x, y, width, height);
+        } else {
+            g.setColor(drawingColor);
+            g.drawRect(x, y, width, height);
+        }
+    }
+
 
 }
