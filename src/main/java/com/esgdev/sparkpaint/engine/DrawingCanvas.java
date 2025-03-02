@@ -72,8 +72,7 @@ public class DrawingCanvas extends JPanel {
                 if (graphics != null) {
                     // Set the color and stroke for the final shape
                     graphics.setColor(drawingColor);
-                    graphics.setStroke(new BasicStroke(2));
-
+                    graphics.setStroke(new BasicStroke(lineThickness));
                     switch (currentTool) {
                         case LINE:
                             // Finalize the line
@@ -116,6 +115,7 @@ public class DrawingCanvas extends JPanel {
                     int y = e.getY();
 
                     if (graphics != null) {
+                        graphics.setStroke(new BasicStroke(lineThickness));
                         graphics.drawLine(startX, startY, x, y);
                         repaint();
                         startX = x; // Update start point for continuous freehand drawing
@@ -131,7 +131,7 @@ public class DrawingCanvas extends JPanel {
                         Graphics2D tempGraphics = tempCanvas.createGraphics();
                         tempGraphics.drawImage(image, 0, 0, null); // Restore the original canvas
                         tempGraphics.setColor(drawingColor);
-                        tempGraphics.setStroke(new BasicStroke(2));
+                        tempGraphics.setStroke(new BasicStroke(lineThickness));
                         // Preview the appropriate shape
                         if (currentTool == Tool.LINE) {
                             tempGraphics.drawLine(startX, startY, e.getX(), e.getY());
