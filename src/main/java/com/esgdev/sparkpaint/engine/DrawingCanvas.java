@@ -1,5 +1,7 @@
 package com.esgdev.sparkpaint.engine;
 
+import com.esgdev.sparkpaint.ui.ToolChangeListener;
+
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
@@ -8,6 +10,8 @@ import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DrawingCanvas extends JPanel {
     public static final int MAX_LINE_THICKNESS = 20;
@@ -16,6 +20,8 @@ public class DrawingCanvas extends JPanel {
     private Color fillColor = Color.WHITE; //
     private Color canvasBackground = Color.WHITE;
     private float lineThickness = 2.0f; // Default line thickness
+    private final List<ToolChangeListener> toolChangeListeners = new ArrayList<ToolChangeListener>();
+
 
     public enum Tool {
         PENCIL,
@@ -308,21 +314,6 @@ public class DrawingCanvas extends JPanel {
         tempGraphics.dispose();
     }
 
-    // Setter for the current tool
-    public void setCurrentTool(Tool tool) {
-        this.currentTool = tool;
-        // Update the cursor based on the selected tool
-        if (tool == Tool.PENCIL || tool == Tool.LINE || tool == Tool.RECTANGLE_OUTLINE || tool == Tool.RECTANGLE_FILLED) {
-            setCursor(new Cursor(Cursor.CROSSHAIR_CURSOR)); // Crosshair cursor for drawing tools
-        } else {
-            setCursor(new Cursor(Cursor.DEFAULT_CURSOR)); // Default cursor
-        }
-    }
-
-    // Getter for the current tool
-    public Tool getCurrentTool() {
-        return currentTool;
-    }
 
     public void setDrawingColor(Color color) {
         this.drawingColor = color;
@@ -398,6 +389,32 @@ public class DrawingCanvas extends JPanel {
         }
         g.setColor(drawingColor);
         g.drawOval(topLeftX, topLeftY, diameter, diameter);
+    }
+
+    public void addToolChangeListener(ToolChangeListener listener) {
+        toolChangeListeners.add(listener);
+    }
+
+    public void removeToolChangeListener(ToolChangeListener listener) {
+        toolChangeListeners.remove(listener);
+    }
+
+    // Getter for the current tool
+    public Tool getCurrentTool() {
+        return currentTool;
+    }
+
+    public void setCurrentTool(Tool tool) {
+        this.currentTool = tool;
+        if (tool == Tool.PENCIL || tool == Tool.LINE || tool == Tool.RECTANGLE_OUTLINE || tool == Tool.RECTANGLE_FILLED) {
+            setCursor(new Cursor(Cursor.CROSSHAIR_CURSOR)); // Crosshair cursor for drawing tools
+        } else {
+            setCursor(new Cursor(Cursor.DEFAULT_CURSOR)); // Default cursor
+        }
+        // Notify all listeners
+        for (ToolChangeListener listener : toolChangeListeners) {
+            listener.onToolChanged(tool);
+        }
     }
 
 }

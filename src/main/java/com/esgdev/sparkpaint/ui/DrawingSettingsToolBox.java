@@ -5,27 +5,31 @@ import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import javax.swing.*;
 import java.awt.*;
 
-public class DrawingSettingsToolBox extends javax.swing.Box {
+public class DrawingSettingsToolBox extends javax.swing.Box implements ToolChangeListener {
 
+    public static final int MaxWidth = 200;
+    public static final int MaxHeight = 1000;
     private static final int IconWidth = 24;
     private static final int IconHeight = 24;
     private final DrawingCanvas canvas;
     private final StatusMessageHandler statusMessageHandler;
+    private Box lineThicknessBox;
 
     public DrawingSettingsToolBox(DrawingCanvas canvas, StatusMessageHandler statusMessageHandler) {
         super(BoxLayout.Y_AXIS);
         this.canvas = canvas;
         this.statusMessageHandler = statusMessageHandler;
+        canvas.addToolChangeListener(this);
         initializeToolBox();
     }
 
     private void initializeToolBox() {
-        this.add(createLineThicknessBox());
+        lineThicknessBox = createLineThicknessBox();
+        this.add(lineThicknessBox);
         setPreferredSize(new Dimension(200, 0));
     }
 
     private Box createLineThicknessBox() {
-
         // Create a panel to hold the slider and the line sample
         Box box = Box.createHorizontalBox();
         //CompoundBorder border = BorderFactory.createCompoundBorder(new EmptyBorder(2,14,2,14), new LineBorder(Color.GRAY, 1, true));
@@ -86,4 +90,25 @@ public class DrawingSettingsToolBox extends javax.swing.Box {
             }
         };
     }
+
+    @Override
+    public void onToolChanged(DrawingCanvas.Tool newTool) {
+        updateSettingsForTool(newTool);
+    }
+
+    private void updateSettingsForTool(DrawingCanvas.Tool tool) {
+        // Show/hide relevant settings based on tool
+        switch (tool) {
+            case PENCIL, LINE, RECTANGLE_OUTLINE, RECTANGLE_FILLED, CIRCLE_OUTLINE, CIRCLE_FILLED -> {
+                lineThicknessBox.setVisible(true);
+            }
+            default -> {
+                lineThicknessBox.setVisible(false);
+            }
+        }
+
+        revalidate();
+        repaint();
+    }
+
 }

@@ -4,6 +4,8 @@ import com.esgdev.sparkpaint.engine.DrawingCanvas;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 
 
 public class MainFrame extends JFrame {
@@ -79,6 +81,16 @@ public class MainFrame extends JFrame {
         splitPane.setOneTouchExpandable(true);  // Adds a small button to collapse/expand
         splitPane.setDividerLocation(getWidth() - 200);  // Initial divider location
         splitPane.setResizeWeight(1.0);
+        // Add a ComponentListener to the right component
+        toolBox.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                // Check the size of the right component
+                if (toolBox.getWidth() > DrawingSettingsToolBox.MaxWidth) { // Set to desired maximum width
+                    splitPane.setDividerLocation(splitPane.getWidth() - DrawingSettingsToolBox.MaxWidth); // Maintain the right component's maximum width
+                }
+            }
+        });
 
         // Add the container to the center of the BorderLayout
         add(splitPane, BorderLayout.CENTER);
