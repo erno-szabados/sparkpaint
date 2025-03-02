@@ -2,9 +2,11 @@ com\esgdev\sparkpaint\ui\NewImageDialog.class
 com\esgdev\sparkpaint\ui\DrawingToolbar.class
 com\esgdev\sparkpaint\ui\StatusMessageHandler.class
 com\esgdev\sparkpaint\engine\DrawingCanvas$2.class
+com\esgdev\sparkpaint\ui\CanvasPropertyChangeListener.class
 com\esgdev\sparkpaint\ui\MainFrame.class
 com\esgdev\sparkpaint\ui\MainFrame$3.class
 com\esgdev\sparkpaint\ui\DrawingSettingsToolBox$1.class
+com\esgdev\sparkpaint\ui\DrawingToolbar$2.class
 com\esgdev\sparkpaint\ui\FileMenu.class
 com\esgdev\sparkpaint\ui\ToolChangeListener.class
 com\esgdev\sparkpaint\ui\IconLoader.class

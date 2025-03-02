@@ -13,11 +13,32 @@ public class DrawingToolbar extends JToolBar {
     private ButtonGroup toolGroup;
     private final DrawingCanvas canvas;
 
+    private JButton colorButton;
+    private JButton fillColorButton;
+
     public DrawingToolbar(DrawingCanvas canvas, StatusMessageHandler statusMessageHandler) {
         super(JToolBar.VERTICAL);
         this.canvas = canvas;
         this.statusMessageHandler = statusMessageHandler;
+
         initializeToolbar();
+
+        this.canvas.addCanvasPropertyChangeListener(new CanvasPropertyChangeListener() {
+            @Override
+            public void onDrawingColorChanged(Color newColor) {
+                updateDrawingColorButton(newColor);
+            }
+
+            @Override
+            public void onFillColorChanged(Color newColor) {
+                updateFillColorButton(newColor);
+            }
+
+            @Override
+            public void onBackgroundColorChanged(Color newColor) {
+                // Optional: handle if needed
+            }
+        });
     }
 
     private void initializeToolbar() {
@@ -47,39 +68,45 @@ public class DrawingToolbar extends JToolBar {
 
         this.add(createRectangleButton());
         this.add(createCircleButton());
-        this.add(createColorButton());
-        this.add(createBackgroundColorButton());
+        colorButton = createColorButton();
+        this.add(colorButton);
+        fillColorButton = createFillColorButton();
+        this.add(fillColorButton);
         this.addSeparator();
     }
 
     private JButton createColorButton() {
-        JButton colorButton = new JButton();
+        JButton button = new JButton();
         Icon colorIcon = getColorIcon(canvas.getDrawingColor());
 
         // Set the icon to the button
-        colorButton.setIcon(colorIcon);
-        colorButton.setToolTipText("Choose Drawing Color");
-        colorButton.addActionListener(e -> {
+        Color color = canvas.getDrawingColor();
+        button.setIcon(getColorIcon(color));
+        button.setToolTipText(String.format("#%02X%02X%02X",
+                color.getRed(), color.getGreen(), color.getBlue()));
+        button.addActionListener(e -> {
             Color newColor = JColorChooser.showDialog(this, "Choose Drawing Color",
-                    colorButton.getBackground());
+                    button.getBackground());
             if (newColor != null) {
-                colorButton.setIcon(getColorIcon(newColor));
+                button.setIcon(getColorIcon(newColor));
                 // Update the hex color label
-                colorButton.setToolTipText(String.format("#%02X%02X%02X",
+                button.setToolTipText(String.format("#%02X%02X%02X",
                         newColor.getRed(), newColor.getGreen(), newColor.getBlue()));
                 // Update the canvas drawing color
                 canvas.setDrawingColor(newColor);
             }
         });
-        return colorButton;
+        return button;
     }
 
-    private JButton createBackgroundColorButton() {
-        JButton backgroundColorButton = new JButton();
-        backgroundColorButton.setIcon(getColorIcon(canvas.getFillColor()));
-        backgroundColorButton.setToolTipText("Choose Fill Color");
+    private JButton createFillColorButton() {
+        JButton button = new JButton();
+        Color color = canvas.getFillColor();
+        button.setIcon(getColorIcon(color));
+        button.setToolTipText(String.format("#%02X%02X%02X",
+                color.getRed(), color.getGreen(), color.getBlue()));
 
-        backgroundColorButton.addActionListener(e -> {
+        button.addActionListener(e -> {
             Color newColor = JColorChooser.showDialog(
                     this,
                     "Choose Fill Color",
@@ -87,11 +114,11 @@ public class DrawingToolbar extends JToolBar {
             );
             if (newColor != null) {
                 canvas.setFillColor(newColor);
-                backgroundColorButton.setIcon(getColorIcon(newColor));
+                button.setIcon(getColorIcon(newColor));
             }
         });
 
-        return backgroundColorButton;
+        return button;
     }
 
     private JToggleButton createRectangleButton() {
@@ -196,4 +223,19 @@ public class DrawingToolbar extends JToolBar {
             }
         };
     }
+
+    private void updateDrawingColorButton(Color color) {
+        colorButton.setIcon(getColorIcon(color));
+        colorButton.setToolTipText(String.format("#%02X%02X%02X",
+                color.getRed(), color.getGreen(), color.getBlue()));
+        colorButton.repaint();
+    }
+
+    private void updateFillColorButton(Color color) {
+        fillColorButton.setIcon(getColorIcon(color));
+        fillColorButton.setToolTipText(String.format("#%02X%02X%02X",
+                color.getRed(), color.getGreen(), color.getBlue()));
+        fillColorButton.repaint();
+    }
+
 }

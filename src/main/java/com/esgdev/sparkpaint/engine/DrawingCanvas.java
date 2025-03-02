@@ -1,5 +1,6 @@
 package com.esgdev.sparkpaint.engine;
 
+import com.esgdev.sparkpaint.ui.CanvasPropertyChangeListener;
 import com.esgdev.sparkpaint.ui.ToolChangeListener;
 
 import javax.imageio.ImageIO;
@@ -20,7 +21,8 @@ public class DrawingCanvas extends JPanel {
     private Color fillColor = Color.WHITE; //
     private Color canvasBackground = Color.WHITE;
     private float lineThickness = 2.0f; // Default line thickness
-    private final List<ToolChangeListener> toolChangeListeners = new ArrayList<ToolChangeListener>();
+    private final List<ToolChangeListener> toolChangeListeners = new ArrayList<>();
+    private final List<CanvasPropertyChangeListener> propertyChangeListeners = new ArrayList<>();
 
 
     public enum Tool {
@@ -55,10 +57,10 @@ public class DrawingCanvas extends JPanel {
 
                 // If tool is LINE or RECTANGLE, save the current canvas state
                 if (currentTool == Tool.LINE ||
-                    currentTool == Tool.RECTANGLE_OUTLINE ||
-                    currentTool == Tool.RECTANGLE_FILLED ||
-                    currentTool == Tool.CIRCLE_OUTLINE ||
-                    currentTool == Tool.CIRCLE_FILLED) {
+                        currentTool == Tool.RECTANGLE_OUTLINE ||
+                        currentTool == Tool.RECTANGLE_FILLED ||
+                        currentTool == Tool.CIRCLE_OUTLINE ||
+                        currentTool == Tool.CIRCLE_FILLED) {
                     saveCanvasState();
                 }
             }
@@ -136,14 +138,14 @@ public class DrawingCanvas extends JPanel {
                         if (currentTool == Tool.LINE) {
                             tempGraphics.drawLine(startX, startY, e.getX(), e.getY());
                         } else if (currentTool == Tool.RECTANGLE_OUTLINE ||
-                                   currentTool == Tool.RECTANGLE_FILLED) {
+                                currentTool == Tool.RECTANGLE_FILLED) {
                             int rectX = Math.min(startX, e.getX());
                             int rectY = Math.min(startY, e.getY());
                             int rectWidth = Math.abs(e.getX() - startX);
                             int rectHeight = Math.abs(e.getY() - startY);
                             drawRectangle(tempGraphics, rectX, rectY, rectX + rectWidth, rectY + rectHeight, currentTool == Tool.RECTANGLE_FILLED);
                         } else if (currentTool == Tool.CIRCLE_OUTLINE ||
-                                   currentTool == Tool.CIRCLE_FILLED) {
+                                currentTool == Tool.CIRCLE_FILLED) {
                             drawCircle(tempGraphics, startX, startY, e.getX(), e.getY(), currentTool == Tool.CIRCLE_FILLED);
                         }
 
@@ -156,14 +158,15 @@ public class DrawingCanvas extends JPanel {
     }
 
     public void createNewCanvas(int width, int height, Color backgroundColor) {
-        this.fillColor = backgroundColor; // Set the background color
+        this.canvasBackground = backgroundColor; // Set the background color
+        this.drawingColor = Color.BLACK;
+        this.fillColor = Color.WHITE;
         // Create new buffered images with new dimensions
         BufferedImage newImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         BufferedImage newTempCanvas = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 
         // Get graphics context from new image
         Graphics2D newGraphics = (Graphics2D) newImage.getGraphics();
-        Color previousDrawingColor = drawingColor;
 
         // Copy existing graphics settings if they exist
         if (graphics != null) {
@@ -190,6 +193,10 @@ public class DrawingCanvas extends JPanel {
         if (graphics != null) {
             graphics.dispose(); // Clean up old graphics context
         }
+
+        notifyBackgroundColorChanged();
+        notifyDrawingColorChanged();
+        notifyFillColorChanged();
 
         image = newImage;
         graphics = newGraphics;
@@ -316,7 +323,11 @@ public class DrawingCanvas extends JPanel {
 
 
     public void setDrawingColor(Color color) {
-        this.drawingColor = color;
+        if (color != null && !color.equals(this.drawingColor)) {
+            this.drawingColor = color;
+            notifyDrawingColorChanged();
+        }
+
         if (graphics != null) {
             graphics.setColor(color);
         }
@@ -328,8 +339,12 @@ public class DrawingCanvas extends JPanel {
 
     // New Method: Set background color
     public void setFillColor(Color color) {
-        this.fillColor = color; // Update the background color
-        repaint(); // Trigger a repaint to apply the new background color
+        if (color != null && !color.equals(this.fillColor)) {
+            this.fillColor = color;
+            notifyFillColorChanged();
+        }
+
+        repaint();
     }
 
     // New Method: Get background color
@@ -338,7 +353,11 @@ public class DrawingCanvas extends JPanel {
     }
 
     public void setCanvasBackground(Color color) {
-        this.canvasBackground = color;
+        if (color != null && !color.equals(this.canvasBackground)) {
+            this.canvasBackground = color;
+            notifyBackgroundColorChanged();
+        }
+
         repaint(); // This should trigger immediate repaint
     }
 
@@ -377,10 +396,8 @@ public class DrawingCanvas extends JPanel {
         int radius = (int) Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
 
         // Calculate top-left corner and diameter for the circle
-        int centerX = x1;
-        int topLeftX = centerX - radius;
-        int centerY = y1;
-        int topLeftY = centerY - radius;
+        int topLeftX = x1 - radius;
+        int topLeftY = y1 - radius;
         int diameter = radius * 2;
 
         if (filled) {
@@ -416,5 +433,32 @@ public class DrawingCanvas extends JPanel {
             listener.onToolChanged(tool);
         }
     }
+
+    public void addCanvasPropertyChangeListener(CanvasPropertyChangeListener listener) {
+        propertyChangeListeners.add(listener);
+    }
+
+    public void removeCanvasPropertyChangeListener(CanvasPropertyChangeListener listener) {
+        propertyChangeListeners.remove(listener);
+    }
+
+    private void notifyDrawingColorChanged() {
+        for (CanvasPropertyChangeListener listener : propertyChangeListeners) {
+            listener.onDrawingColorChanged(drawingColor);
+        }
+    }
+
+    private void notifyFillColorChanged() {
+        for (CanvasPropertyChangeListener listener : propertyChangeListeners) {
+            listener.onFillColorChanged(fillColor);
+        }
+    }
+
+    private void notifyBackgroundColorChanged() {
+        for (CanvasPropertyChangeListener listener : propertyChangeListeners) {
+            listener.onBackgroundColorChanged(canvasBackground);
+        }
+    }
+
 
 }
