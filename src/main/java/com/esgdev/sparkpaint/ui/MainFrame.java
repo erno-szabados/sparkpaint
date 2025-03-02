@@ -62,16 +62,27 @@ public class MainFrame extends JFrame {
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 
-        // Add the container to the center of the BorderLayout
-        add(scrollPane, BorderLayout.CENTER);
+
 
         // Add toolbar
         JToolBar toolbar = new DrawingToolbar(canvas, this::setStatusMessage);
         contentPane.add(toolbar, BorderLayout.WEST);
 
         // Add tool settings
-        Box toolSettings = new DrawingSettingsToolBox(canvas, this::setStatusMessage);
-        contentPane.add(toolSettings, BorderLayout.EAST);
+        Box toolBox = new DrawingSettingsToolBox(canvas, this::setStatusMessage);
+        // Create the split pane with your existing components
+        JSplitPane splitPane = new JSplitPane(
+                JSplitPane.HORIZONTAL_SPLIT,
+                scrollPane,                // left component
+                toolBox                    // right component
+        );
+        splitPane.setOneTouchExpandable(true);  // Adds a small button to collapse/expand
+        splitPane.setDividerLocation(getWidth() - 200);  // Initial divider location
+        splitPane.setResizeWeight(1.0);
+
+        // Add the container to the center of the BorderLayout
+        add(splitPane, BorderLayout.CENTER);
+        //contentPane.add(splitPane, BorderLayout.EAST);
 
         // Add status bar (at the bottom)
         JPanel statusBar = new JPanel(new BorderLayout());
