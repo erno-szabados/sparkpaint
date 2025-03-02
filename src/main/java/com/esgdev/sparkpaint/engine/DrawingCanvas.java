@@ -10,10 +10,12 @@ import java.io.File;
 import java.io.IOException;
 
 public class DrawingCanvas extends JPanel {
+    public static final int MAX_LINE_THICKNESS = 20;
     private String currentFilePath;
     private Color drawingColor = Color.BLACK; // Default color
     private Color fillColor = Color.WHITE; //
     private Color canvasBackground = Color.WHITE;
+    private float lineThickness = 2.0f; // Default line thickness
 
     public enum Tool {
         PENCIL,
@@ -351,6 +353,17 @@ public class DrawingCanvas extends JPanel {
 
     public Color getCanvasBackground() {
         return canvasBackground;
+    }
+
+    public void setLineThickness(float thickness) {
+        this.lineThickness = Math.min(thickness, MAX_LINE_THICKNESS);
+        if (graphics != null) {
+            graphics.setStroke(new BasicStroke(thickness));
+        }
+    }
+
+    public float getLineThickness() {
+        return lineThickness;
     }
 
     private void drawRectangle(Graphics2D g, int x1, int y1, int x2, int y2, boolean filled) {
