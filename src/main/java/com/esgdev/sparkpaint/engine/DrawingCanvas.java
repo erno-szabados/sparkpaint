@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Stack;
 
 public class DrawingCanvas extends JPanel {
     public static final int MAX_LINE_THICKNESS = 20;
@@ -24,6 +25,9 @@ public class DrawingCanvas extends JPanel {
     private final List<ToolChangeListener> toolChangeListeners = new ArrayList<>();
     private final List<CanvasPropertyChangeListener> propertyChangeListeners = new ArrayList<>();
 
+    private final Stack<BufferedImage> undoStack = new Stack<>();
+    private final Stack<BufferedImage> redoStack = new Stack<>();
+    private static final int MAX_HISTORY_SIZE = 16;
 
     public enum Tool {
         PENCIL,
@@ -44,117 +48,9 @@ public class DrawingCanvas extends JPanel {
         setPreferredSize(new Dimension(800, 600));
         setBackground(Color.WHITE);
 
-        addMouseListener(new MouseAdapter() {
-            @Override
-            public void mousePressed(MouseEvent e) {
-                startX = e.getX();
-                startY = e.getY();
-
-                // Initialize the canvas if not done already
-                if (graphics == null) {
-                    initializeCanvas();
-                }
-
-                // If tool is LINE or RECTANGLE, save the current canvas state
-                if (currentTool == Tool.LINE ||
-                        currentTool == Tool.RECTANGLE_OUTLINE ||
-                        currentTool == Tool.RECTANGLE_FILLED ||
-                        currentTool == Tool.CIRCLE_OUTLINE ||
-                        currentTool == Tool.CIRCLE_FILLED) {
-                    saveCanvasState();
-                }
-            }
-
-            @Override
-            public void mouseReleased(MouseEvent e) {
-                int endX = e.getX();
-                int endY = e.getY();
-
-                // Finalize the shape based on the selected tool
-                if (graphics != null) {
-                    // Set the color and stroke for the final shape
-                    graphics.setColor(drawingColor);
-                    graphics.setStroke(new BasicStroke(lineThickness));
-                    switch (currentTool) {
-                        case LINE:
-                            // Finalize the line
-                            graphics.drawLine(startX, startY, endX, endY);
-                            repaint();
-                            break;
-                        case RECTANGLE_OUTLINE:
-                        case RECTANGLE_FILLED:
-                            // Finalize the rectangle
-                            int rectX = Math.min(startX, endX);
-                            int rectY = Math.min(startY, endY);
-                            int rectWidth = Math.abs(endX - startX);
-                            int rectHeight = Math.abs(endY - startY);
-                            drawRectangle(graphics, rectX, rectY, rectX + rectWidth, rectY + rectHeight, currentTool == Tool.RECTANGLE_FILLED);
-                            repaint();
-                            break;
-                        case CIRCLE_OUTLINE:
-                        case CIRCLE_FILLED:
-                            // Draw the circle on the permanent canvas
-                            drawCircle(graphics, startX, startY, endX, endY, currentTool == Tool.CIRCLE_FILLED);
-                            repaint();
-
-                            break;
-                        default:
-                            break;
-                    }
-
-                    // Clear the temporary canvas
-                    tempCanvas = null;
-                }
-            }
-        });
-
-        addMouseMotionListener(new MouseAdapter() {
-            @Override
-            public void mouseDragged(MouseEvent e) {
-                if (currentTool == Tool.PENCIL) {
-                    // Pencil drawing
-                    int x = e.getX();
-                    int y = e.getY();
-
-                    if (graphics != null) {
-                        graphics.setStroke(new BasicStroke(lineThickness));
-                        graphics.drawLine(startX, startY, x, y);
-                        repaint();
-                        startX = x; // Update start point for continuous freehand drawing
-                        startY = y;
-                    }
-                } else if (currentTool == Tool.LINE ||
-                        currentTool == Tool.RECTANGLE_OUTLINE ||
-                        currentTool == Tool.RECTANGLE_FILLED ||
-                        currentTool == Tool.CIRCLE_OUTLINE ||
-                        currentTool == Tool.CIRCLE_FILLED) {
-                    // Draw a temporary preview of the shape
-                    if (tempCanvas != null) {
-                        Graphics2D tempGraphics = tempCanvas.createGraphics();
-                        tempGraphics.drawImage(image, 0, 0, null); // Restore the original canvas
-                        tempGraphics.setColor(drawingColor);
-                        tempGraphics.setStroke(new BasicStroke(lineThickness));
-                        // Preview the appropriate shape
-                        if (currentTool == Tool.LINE) {
-                            tempGraphics.drawLine(startX, startY, e.getX(), e.getY());
-                        } else if (currentTool == Tool.RECTANGLE_OUTLINE ||
-                                currentTool == Tool.RECTANGLE_FILLED) {
-                            int rectX = Math.min(startX, e.getX());
-                            int rectY = Math.min(startY, e.getY());
-                            int rectWidth = Math.abs(e.getX() - startX);
-                            int rectHeight = Math.abs(e.getY() - startY);
-                            drawRectangle(tempGraphics, rectX, rectY, rectX + rectWidth, rectY + rectHeight, currentTool == Tool.RECTANGLE_FILLED);
-                        } else if (currentTool == Tool.CIRCLE_OUTLINE ||
-                                currentTool == Tool.CIRCLE_FILLED) {
-                            drawCircle(tempGraphics, startX, startY, e.getX(), e.getY(), currentTool == Tool.CIRCLE_FILLED);
-                        }
-
-                        tempGraphics.dispose();
-                        repaint(); // Update the canvas to show the temporary shape
-                    }
-                }
-            }
-        });
+        ToolMouseAdapter toolMouseAdapter = new ToolMouseAdapter();
+        addMouseListener(toolMouseAdapter);
+        addMouseMotionListener(toolMouseAdapter);
     }
 
     public void createNewCanvas(int width, int height, Color backgroundColor) {
@@ -183,6 +79,7 @@ public class DrawingCanvas extends JPanel {
         // Fill with background color
         newGraphics.setColor(backgroundColor);
         newGraphics.fillRect(0, 0, width, height);
+        notifyBackgroundColorChanged();
 
         // Restore previous drawing color if it exists
         if (graphics != null) {
@@ -194,7 +91,7 @@ public class DrawingCanvas extends JPanel {
             graphics.dispose(); // Clean up old graphics context
         }
 
-        notifyBackgroundColorChanged();
+
         notifyDrawingColorChanged();
         notifyFillColorChanged();
 
@@ -207,6 +104,7 @@ public class DrawingCanvas extends JPanel {
         setPreferredSize(new Dimension(width, height));
         revalidate();
         repaint();
+        clearHistory();
     }
 
 
@@ -252,7 +150,7 @@ public class DrawingCanvas extends JPanel {
     public void loadFromFile(File file) throws IOException {
         BufferedImage loadedImage = ImageIO.read(file);
         if (loadedImage == null) {
-            throw new IOException("Failed to load image: Unsupported or corrupted file");
+            throw new IOException("Failed to load image: " + file.getName());
         }
 
         // Store current graphics settings before creating new image
@@ -274,6 +172,7 @@ public class DrawingCanvas extends JPanel {
         currentFilePath = file.getAbsolutePath();
         setPreferredSize(new Dimension(image.getWidth(null), image.getHeight(null)));
         repaint();
+        clearHistory();
     }
 
 
@@ -311,6 +210,7 @@ public class DrawingCanvas extends JPanel {
         graphics.fillRect(0, 0, getWidth(), getHeight());
         graphics.setColor(drawingColor);
         graphics.setStroke(new BasicStroke(2));
+        clearHistory();
     }
 
     // Save the current canvas state to a temporary buffer
@@ -358,7 +258,7 @@ public class DrawingCanvas extends JPanel {
             notifyBackgroundColorChanged();
         }
 
-        repaint(); // This should trigger immediate repaint
+        repaint();
     }
 
     public Color getCanvasBackground() {
@@ -460,5 +360,180 @@ public class DrawingCanvas extends JPanel {
         }
     }
 
+    private void saveToUndoStack() {
+        if (image != null) {
+            BufferedImage copy = new BufferedImage(image.getWidth(null), image.getHeight(null), BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2d = copy.createGraphics();
+            g2d.drawImage(image, 0, 0, null);
+            g2d.dispose();
 
+            undoStack.push(copy);
+            if (undoStack.size() > MAX_HISTORY_SIZE) {
+                undoStack.removeFirst(); // Keep the stack size within the limit
+            }
+        }
+    }
+
+    public void undo() {
+        if (!undoStack.isEmpty()) {
+            tempCanvas = null;
+            // Save current state to redo stack
+            BufferedImage currentState = new BufferedImage(image.getWidth(null), image.getHeight(null), BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2d = currentState.createGraphics();
+            g2d.drawImage(image, 0, 0, null);
+            g2d.dispose();
+            redoStack.push(currentState);
+
+            // Pop previous state from undo stack and set it as current image
+            image = undoStack.pop();
+            System.out.println("undo stack:" + undoStack.size());
+            graphics = (Graphics2D) image.getGraphics();
+            repaint();
+        }
+    }
+
+    public void redo() {
+        if (!redoStack.isEmpty()) {
+            tempCanvas = null;
+            // Save current state to undo stack
+            BufferedImage currentState = new BufferedImage(image.getWidth(null), image.getHeight(null), BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2d = currentState.createGraphics();
+            g2d.drawImage(image, 0, 0, null);
+            g2d.dispose();
+            undoStack.push(currentState);
+
+            // Pop next state from redo stack and set it as current image
+            image = redoStack.pop();
+            System.out.println("redo stack:" + redoStack.size());
+            graphics = (Graphics2D) image.getGraphics();
+            repaint();
+        }
+    }
+
+    private void clearHistory() {
+        undoStack.clear();
+        redoStack.clear();
+    }
+
+    private class ToolMouseAdapter extends MouseAdapter {
+        @Override
+        public void mousePressed(MouseEvent e) {
+            startX = e.getX();
+            startY = e.getY();
+
+            // Initialize the canvas if not done already
+            if (graphics == null) {
+                initializeCanvas();
+            }
+
+            saveToUndoStack();
+            //If tool is LINE or RECTANGLE, save the current canvas state
+            switch (currentTool) {
+                case PENCIL:
+                    graphics.setColor(drawingColor);
+                    break;
+                case LINE:
+                case RECTANGLE_OUTLINE:
+                case RECTANGLE_FILLED:
+                case CIRCLE_OUTLINE:
+                case CIRCLE_FILLED:
+                    saveCanvasState();
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        @Override
+        public void mouseReleased(MouseEvent e) {
+            int endX = e.getX();
+            int endY = e.getY();
+
+            // Finalize the shape based on the selected tool
+            if (graphics != null) {
+                // Set the color and stroke for the final shape
+                graphics.setColor(drawingColor);
+                graphics.setStroke(new BasicStroke(lineThickness));
+                switch (currentTool) {
+                    case LINE:
+                        // Finalize the line
+                        graphics.drawLine(startX, startY, endX, endY);
+                        repaint();
+                        break;
+                    case RECTANGLE_OUTLINE:
+                    case RECTANGLE_FILLED:
+                        // Finalize the rectangle
+                        int rectX = Math.min(startX, endX);
+                        int rectY = Math.min(startY, endY);
+                        int rectWidth = Math.abs(endX - startX);
+                        int rectHeight = Math.abs(endY - startY);
+                        drawRectangle(graphics, rectX, rectY, rectX + rectWidth, rectY + rectHeight, currentTool == Tool.RECTANGLE_FILLED);
+                        repaint();
+                        break;
+                    case CIRCLE_OUTLINE:
+                    case CIRCLE_FILLED:
+                        // Draw the circle on the permanent canvas
+                        drawCircle(graphics, startX, startY, endX, endY, currentTool == Tool.CIRCLE_FILLED);
+                        repaint();
+
+                        break;
+                    default:
+                        break;
+                }
+
+                // Clear the temporary canvas
+                tempCanvas = null;
+                redoStack.clear();
+            }
+        }
+
+        @Override
+        public void mouseDragged(MouseEvent e) {
+            switch (currentTool) {
+                case PENCIL:// Pencil drawing
+                    int x = e.getX();
+                    int y = e.getY();
+
+                    if (graphics != null) {
+                        graphics.setStroke(new BasicStroke(lineThickness));
+                        graphics.drawLine(startX, startY, x, y);
+                        repaint();
+                        startX = x; // Update start point for continuous freehand drawing
+                        startY = y;
+                    }
+                    break;
+                case LINE:
+                case RECTANGLE_OUTLINE:
+                case RECTANGLE_FILLED:
+                case CIRCLE_OUTLINE:
+                case CIRCLE_FILLED:// Draw a temporary preview of the shape
+                    if (tempCanvas != null) {
+                        Graphics2D tempGraphics = tempCanvas.createGraphics();
+                        tempGraphics.drawImage(image, 0, 0, null); // Restore the original canvas
+                        tempGraphics.setColor(drawingColor);
+                        tempGraphics.setStroke(new BasicStroke(lineThickness));
+                        // Preview the appropriate shape
+                        if (currentTool == Tool.LINE) {
+                            tempGraphics.drawLine(startX, startY, e.getX(), e.getY());
+                        } else if (currentTool == Tool.RECTANGLE_OUTLINE ||
+                                currentTool == Tool.RECTANGLE_FILLED) {
+                            int rectX = Math.min(startX, e.getX());
+                            int rectY = Math.min(startY, e.getY());
+                            int rectWidth = Math.abs(e.getX() - startX);
+                            int rectHeight = Math.abs(e.getY() - startY);
+                            drawRectangle(tempGraphics, rectX, rectY, rectX + rectWidth, rectY + rectHeight, currentTool == Tool.RECTANGLE_FILLED);
+                        } else if (currentTool == Tool.CIRCLE_OUTLINE ||
+                                currentTool == Tool.CIRCLE_FILLED) {
+                            drawCircle(tempGraphics, startX, startY, e.getX(), e.getY(), currentTool == Tool.CIRCLE_FILLED);
+                        }
+
+                        tempGraphics.dispose();
+                        repaint(); // Update the canvas to show the temporary shape
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
 }

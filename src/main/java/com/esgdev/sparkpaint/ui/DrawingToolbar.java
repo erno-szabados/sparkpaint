@@ -42,9 +42,29 @@ public class DrawingToolbar extends JToolBar {
     }
 
     private void initializeToolbar() {
-        //toolGroup = new ButtonGroup();
+        // toolGroup = new ButtonGroup();
         this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         this.setFloatable(false); // Disable floating toolbar
+
+        // Create Undo button
+        JButton undoButton = new JButton();
+        ImageIcon undoIcon = IconLoader.loadAndScaleIcon("undo.png", IconWidth, IconHeight);
+        undoButton.setIcon(undoIcon);
+        undoButton.setToolTipText("Undo");
+        undoButton.addActionListener(e -> canvas.undo());
+        undoButton.addActionListener(e -> statusMessageHandler.setStatusMessage("Undo last drawing operation."));
+        this.add(undoButton);
+
+        // Create Redo button
+        JButton redoButton = new JButton();
+        ImageIcon redoIcon = IconLoader.loadAndScaleIcon("redo.png", IconWidth, IconHeight);
+        redoButton.setIcon(redoIcon);
+        redoButton.setToolTipText("Redo");
+        redoButton.addActionListener(e -> canvas.redo());
+        redoButton.addActionListener(e -> statusMessageHandler.setStatusMessage("Redo last drawing operation."));
+        this.add(redoButton);
+
+        this.addSeparator();
 
         // Load and scale icons
         ImageIcon pencilIcon = IconLoader.loadAndScaleIcon("pencil.png", IconWidth, IconHeight);
@@ -110,8 +130,7 @@ public class DrawingToolbar extends JToolBar {
             Color newColor = JColorChooser.showDialog(
                     this,
                     "Choose Fill Color",
-                    canvas.getFillColor()
-            );
+                    canvas.getFillColor());
             if (newColor != null) {
                 canvas.setFillColor(newColor);
                 button.setIcon(getColorIcon(newColor));
@@ -130,7 +149,7 @@ public class DrawingToolbar extends JToolBar {
         button.setToolTipText("Rectangle (Outline)");
 
         // Track the filled state
-        final boolean[] isFilled = {false};
+        final boolean[] isFilled = { false };
 
         button.addActionListener(e -> {
             if (canvas.getCurrentTool() != DrawingCanvas.Tool.RECTANGLE_OUTLINE &&
@@ -171,7 +190,7 @@ public class DrawingToolbar extends JToolBar {
         button.setToolTipText("Center point circle (Outline)");
 
         // Track the filled state
-        final boolean[] isFilled = {false};
+        final boolean[] isFilled = { false };
 
         button.addActionListener(e -> {
             if (canvas.getCurrentTool() != DrawingCanvas.Tool.CIRCLE_OUTLINE &&
