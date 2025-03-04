@@ -25,6 +25,8 @@ public class DrawingCanvas extends JPanel {
         RECTANGLE_FILLED,
         CIRCLE_OUTLINE,
         CIRCLE_FILLED,
+        ELLIPSE_OUTLINE,
+        ELLIPSE_FILLED,
         SELECTION,
         FILL
     }
@@ -355,7 +357,7 @@ public class DrawingCanvas extends JPanel {
         g.drawRect(x, y, width, height);
     }
 
-    private void drawCircle(Graphics2D g, int x1, int y1, int x2, int y2, boolean filled) {
+    private void drawCircle(Graphics2D g, int x1, int y1, int x2, int y2, boolean isFilled) {
 
         // Calculate radius based on the distance to the second point
         int radius = (int) Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
@@ -365,12 +367,27 @@ public class DrawingCanvas extends JPanel {
         int topLeftY = y1 - radius;
         int diameter = radius * 2;
 
-        if (filled) {
+        if (isFilled) {
             g.setColor(fillColor);
             g.fillOval(topLeftX, topLeftY, diameter, diameter);
         }
         g.setColor(drawingColor);
         g.drawOval(topLeftX, topLeftY, diameter, diameter);
+    }
+
+    private void drawEllipse(Graphics2D g, int startX, int startY, int endX, int endY, boolean isFilled) {
+        // Calculate the top-left corner, width, and height based on opposing corners
+        int x = Math.min(startX, endX);
+        int y = Math.min(startY, endY);
+        int width = Math.abs(endX - startX);
+        int height = Math.abs(endY - startY);
+
+        if (isFilled) {
+            g.setColor(fillColor);
+            g.fillOval(x, y, width, height);
+        }
+        g.setColor(drawingColor);
+        g.drawOval(x, y, width, height);
     }
 
     public void addToolChangeListener(ToolChangeListener listener) {
@@ -619,6 +636,8 @@ public class DrawingCanvas extends JPanel {
                 case RECTANGLE_FILLED:
                 case CIRCLE_OUTLINE:
                 case CIRCLE_FILLED:
+                case ELLIPSE_OUTLINE:
+                case ELLIPSE_FILLED:
                     saveCanvasState();
                     break;
                 case SELECTION:
@@ -681,25 +700,41 @@ public class DrawingCanvas extends JPanel {
                 case RECTANGLE_OUTLINE:
                 case RECTANGLE_FILLED:
                 case CIRCLE_OUTLINE:
-                case CIRCLE_FILLED:// Draw a temporary preview of the shape
+                case CIRCLE_FILLED:
+                case ELLIPSE_OUTLINE:
+                case ELLIPSE_FILLED:// Draw a temporary preview of the shape
                     if (tempCanvas != null) {
                         Graphics2D tempGraphics = tempCanvas.createGraphics();
                         tempGraphics.drawImage(image, 0, 0, null); // Restore the original canvas
                         tempGraphics.setColor(drawingColor);
                         tempGraphics.setStroke(new BasicStroke(lineThickness));
                         // Preview the appropriate shape
-                        if (currentTool == Tool.LINE) {
-                            tempGraphics.drawLine(startX, startY, e.getX(), e.getY());
-                        } else if (currentTool == Tool.RECTANGLE_OUTLINE ||
-                                currentTool == Tool.RECTANGLE_FILLED) {
-                            int rectX = Math.min(startX, e.getX());
-                            int rectY = Math.min(startY, e.getY());
-                            int rectWidth = Math.abs(e.getX() - startX);
-                            int rectHeight = Math.abs(e.getY() - startY);
-                            drawRectangle(tempGraphics, rectX, rectY, rectX + rectWidth, rectY + rectHeight, currentTool == Tool.RECTANGLE_FILLED);
-                        } else if (currentTool == Tool.CIRCLE_OUTLINE ||
-                                currentTool == Tool.CIRCLE_FILLED) {
-                            drawCircle(tempGraphics, startX, startY, e.getX(), e.getY(), currentTool == Tool.CIRCLE_FILLED);
+                        switch (currentTool) {
+                            case PENCIL:
+                                break;
+                            case LINE:
+                                tempGraphics.drawLine(startX, startY, e.getX(), e.getY());
+                                break;
+                            case RECTANGLE_OUTLINE:
+                            case RECTANGLE_FILLED:
+                                int rectX = Math.min(startX, e.getX());
+                                int rectY = Math.min(startY, e.getY());
+                                int rectWidth = Math.abs(e.getX() - startX);
+                                int rectHeight = Math.abs(e.getY() - startY);
+                                drawRectangle(tempGraphics, rectX, rectY, rectX + rectWidth, rectY + rectHeight, currentTool == Tool.RECTANGLE_FILLED);
+                                break;
+                            case CIRCLE_OUTLINE:
+                            case CIRCLE_FILLED:
+                                drawCircle(tempGraphics, startX, startY, e.getX(), e.getY(), currentTool == Tool.CIRCLE_FILLED);
+                                break;
+                            case ELLIPSE_OUTLINE:
+                            case ELLIPSE_FILLED:
+                                drawEllipse(tempGraphics, startX, startY, e.getX(), e.getY(), currentTool == Tool.ELLIPSE_FILLED);
+                                break;
+                            case SELECTION:
+                                break;
+                            case FILL:
+                                break;
                         }
 
                         tempGraphics.dispose();
@@ -791,7 +826,11 @@ public class DrawingCanvas extends JPanel {
                         // Draw the circle on the permanent canvas
                         drawCircle(graphics, startX, startY, endX, endY, currentTool == Tool.CIRCLE_FILLED);
                         repaint();
-
+                        break;
+                    case ELLIPSE_OUTLINE:
+                    case ELLIPSE_FILLED:
+                        drawEllipse(graphics, startX, startY, endX, endY, currentTool == Tool.ELLIPSE_FILLED);
+                        repaint();
                         break;
                     default:
                         break;
