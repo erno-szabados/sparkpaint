@@ -72,6 +72,9 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         JButton lineButton = createLineButton();
         this.add(lineButton);
 
+        JToggleButton floodFillButton = createFillButton();
+        this.add(floodFillButton);
+
         this.add(createRectangleButton());
         this.add(createCircleButton());
         colorButton = createColorButton();
@@ -262,6 +265,20 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
 
         return button;
     }
+
+    private JToggleButton createFillButton() {
+        JToggleButton fillButton = new JToggleButton();
+        fillButton.setIcon(IconLoader.loadAndScaleIcon("floodfill.png", IconWidth, IconHeight));
+        fillButton.setToolTipText("Fill Tool");
+        fillButton.addActionListener(e -> {
+            canvas.setCurrentTool(DrawingCanvas.Tool.FILL);
+            statusMessageHandler.setStatusMessage("Fill tool selected");
+        });
+        //toolGroup.add(fillButton);
+        return fillButton;
+    }
+
+
 
     private Icon getColorIcon(Color color) {
         // Assuming canvas provides the current color

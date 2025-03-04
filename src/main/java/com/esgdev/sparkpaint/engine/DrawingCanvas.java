@@ -25,7 +25,8 @@ public class DrawingCanvas extends JPanel {
         RECTANGLE_FILLED,
         CIRCLE_OUTLINE,
         CIRCLE_FILLED,
-        SELECTION
+        SELECTION,
+        FILL
     }
 
     private Image image;
@@ -35,6 +36,7 @@ public class DrawingCanvas extends JPanel {
     private int startX, startY;
     private Tool currentTool = Tool.PENCIL;
     public static final int MAX_LINE_THICKNESS = 20;
+    private static final int FILL_EPSILON = 30; // Tolerance for color matching (flood fill)
     private String currentFilePath;
     private Color drawingColor = Color.BLACK;
     private Color fillColor = Color.WHITE; //
@@ -394,6 +396,7 @@ public class DrawingCanvas extends JPanel {
             case CIRCLE_OUTLINE:
             case CIRCLE_FILLED:
             case SELECTION:
+            case FILL:
                 setCursor(CROSSHAIR_CURSOR); // Crosshair cursor for drawing tools
                 break;
             default:
@@ -632,6 +635,16 @@ public class DrawingCanvas extends JPanel {
                         selectionRectangle = new Rectangle(startX, startY, 0, 0);
                         isSelecting = true;
                     }
+                case FILL:
+                    saveToUndoStack();
+                    BufferedImage bufferedImage = (BufferedImage) image;
+                    Color targetColor = new Color(bufferedImage.getRGB(startX, startY));
+                    floodFill(startX, startY, targetColor, drawingColor, FILL_EPSILON);
+
+                    // Notify listeners that we've made a change
+                    notifyUndoRedoStateChanged();
+                    repaint();
+                    break;
                 default:
                     break;
             }
@@ -835,6 +848,72 @@ public class DrawingCanvas extends JPanel {
         for (ClipboardChangeListener listener : clipboardChangeListeners) {
             listener.clipboardStateChanged(canCopy, canPaste);
         }
+    }
+
+    public void floodFill(int x, int y, Color targetColor, Color replacementColor, int epsilon) {
+        if (image == null) {
+            return;
+        }
+
+        BufferedImage bufferedImage = (BufferedImage) image;
+        int width = bufferedImage.getWidth();
+        int height = bufferedImage.getHeight();
+
+        if (x < 0 || x >= width || y < 0 || y >= height) {
+            return;
+        }
+
+        int targetRGB = targetColor.getRGB();
+        int replacementRGB = replacementColor.getRGB();
+
+        if (bufferedImage.getRGB(x, y) == replacementRGB) {
+            return; // Avoid infinite loop if fill color is same as target
+        }
+
+
+        Stack<Point> stack = new Stack<>();
+        stack.push(new Point(x, y));
+
+        while (!stack.isEmpty()) {
+            Point p = stack.pop();
+            x = p.x;
+            y = p.y;
+
+            if (x < 0 || x >= width || y < 0 || y >= height || bufferedImage.getRGB(x, y) == replacementRGB) {
+                continue;
+            }
+
+            if (colorDistance(bufferedImage.getRGB(x, y), targetRGB) <= epsilon) {
+
+                bufferedImage.setRGB(x, y, replacementRGB);
+
+                stack.push(new Point(x + 1, y));
+                stack.push(new Point(x - 1, y));
+                stack.push(new Point(x, y + 1));
+                stack.push(new Point(x, y - 1));
+
+            }
+        }
+
+        repaint();
+
+    }
+
+    private double colorDistance(int rgb1, int rgb2) {
+        int r1 = (rgb1 >> 16) & 0xFF;
+        int g1 = (rgb1 >> 8) & 0xFF;
+        int b1 = rgb1 & 0xFF;
+
+        int r2 = (rgb2 >> 16) & 0xFF;
+        int g2 = (rgb2 >> 8) & 0xFF;
+        int b2 = rgb2 & 0xFF;
+
+        double deltaR = r1 - r2;
+        double deltaG = g1 - g2;
+        double deltaB = b1 - b2;
+
+
+        return Math.sqrt(deltaR * deltaR + deltaG * deltaG + deltaB * deltaB);
     }
 
 }
