@@ -496,6 +496,10 @@ public class DrawingCanvas extends JPanel {
     public void pasteSelection() throws IOException, UnsupportedFlavorException {
         BufferedImage pastedImage = ImageSelection.pasteImage();
         if (pastedImage != null) {
+            if (image == null || graphics == null) {
+                createNewCanvas(DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, canvasBackground);
+                saveToUndoStack();
+            }
             // For simplicity, paste at (0,0). Modify as needed for custom positioning.
             graphics.drawImage(pastedImage, 0, 0, null);
             repaint();
