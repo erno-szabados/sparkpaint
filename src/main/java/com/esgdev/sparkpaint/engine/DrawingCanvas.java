@@ -31,6 +31,7 @@ public class DrawingCanvas extends JPanel {
     private Image image;
     private Graphics2D graphics;
     private BufferedImage tempCanvas; // Temporary canvas for drawing previews
+    private BufferedImage selectionContent;
     private int startX, startY;
     private Tool currentTool = Tool.PENCIL;
     public static final int MAX_LINE_THICKNESS = 20;
@@ -52,6 +53,12 @@ public class DrawingCanvas extends JPanel {
 
     private Rectangle selectionRectangle;
     private boolean isSelecting = false;
+    private boolean isDragging = false;
+    private Point originalSelectionLocation;
+    private Point dragOffset = null; // relative mouse position during dragging.
+    private static final Cursor HAND_CURSOR = new Cursor(Cursor.HAND_CURSOR);
+    private static final Cursor DEFAULT_CURSOR = new Cursor(Cursor.DEFAULT_CURSOR);
+    private static final Cursor CROSSHAIR_CURSOR = new Cursor(Cursor.CROSSHAIR_CURSOR);
 
     public DrawingCanvas() {
         setPreferredSize(new Dimension(DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT));
@@ -210,20 +217,50 @@ public class DrawingCanvas extends JPanel {
 
         if (currentTool == Tool.SELECTION && selectionRectangle != null) {
             Graphics2D g2d = (Graphics2D) g;
-            // Draw the dotted border
-            float[] dashPattern = {5, 5}; // Define a pattern: 5px dash, 5px gap
-            BasicStroke dottedStroke = new BasicStroke(
-                    1,                       // Line Width
-                    BasicStroke.CAP_BUTT,    // End-cap style
-                    BasicStroke.JOIN_MITER,  // Join style
-                    10.0f,                   // Miter limit
-                    dashPattern,             // Dash pattern (dotted line)
-                    0                        // Dash phase
-            );
-            g2d.setColor(Color.BLACK);
-            g2d.setStroke(dottedStroke);
-            g2d.drawRect(selectionRectangle.x, selectionRectangle.y, selectionRectangle.width, selectionRectangle.height);
+
+            drawSelectionRectangle(g2d);
+
+            // If dragging, draw the selection content at current position
+            if (isDragging && selectionContent != null) {
+                // Show the background color in the original position
+                g2d.setColor(canvasBackground);
+                g2d.fillRect(
+                        originalSelectionLocation.x,
+                        originalSelectionLocation.y,
+                        selectionRectangle.width,
+                        selectionRectangle.height
+                );
+
+
+                if (selectionContent != null && selectionContent.getWidth() > 0 && selectionContent.getHeight() > 0) {
+                    g2d.drawImage(selectionContent,
+                            selectionRectangle.x,
+                            selectionRectangle.y,
+                            null
+                    );
+                }
+
+                if (selectionRectangle != null && selectionRectangle.width > 0 && selectionRectangle.height > 0) {
+                    drawSelectionRectangle(g2d);
+                }
+            }
         }
+    }
+
+    private void drawSelectionRectangle(Graphics2D g2d) {
+        // Draw the dotted border
+        float[] dashPattern = {5, 5}; // Define a pattern: 5px dash, 5px gap
+        BasicStroke dottedStroke = new BasicStroke(
+                1,                       // Line Width
+                BasicStroke.CAP_BUTT,    // End-cap style
+                BasicStroke.JOIN_MITER,  // Join style
+                10.0f,                   // Miter limit
+                dashPattern,             // Dash pattern (dotted line)
+                0                        // Dash phase
+        );
+        g2d.setColor(Color.BLACK);
+        g2d.setStroke(dottedStroke);
+        g2d.draw(selectionRectangle);
     }
 
     // Initialize the canvas image and graphics object
@@ -357,10 +394,10 @@ public class DrawingCanvas extends JPanel {
             case CIRCLE_OUTLINE:
             case CIRCLE_FILLED:
             case SELECTION:
-                setCursor(new Cursor(Cursor.CROSSHAIR_CURSOR)); // Crosshair cursor for drawing tools
+                setCursor(CROSSHAIR_CURSOR); // Crosshair cursor for drawing tools
                 break;
             default:
-                setCursor(new Cursor(Cursor.DEFAULT_CURSOR)); // Default cursor
+                setCursor(DEFAULT_CURSOR); // Default cursor
 
                 break;
         }
@@ -540,6 +577,20 @@ public class DrawingCanvas extends JPanel {
     }
 
     private class ToolMouseAdapter extends MouseAdapter {
+
+        @Override
+        public void mouseMoved(MouseEvent e) {
+            if (currentTool == Tool.SELECTION && selectionRectangle != null) {
+                // Change to hand cursor when over the selection rectangle
+                if (selectionRectangle.contains(e.getPoint())) {
+                    setCursor(HAND_CURSOR);
+                } else {
+                    setCursor(DEFAULT_CURSOR);
+                }
+            }
+        }
+
+
         @Override
         public void mousePressed(MouseEvent e) {
             startX = e.getX();
@@ -564,60 +615,21 @@ public class DrawingCanvas extends JPanel {
                     saveCanvasState();
                     break;
                 case SELECTION:
-                    selectionRectangle = new Rectangle(startX, startY, 0, 0);
-                    isSelecting = true;
+                    // check if click is inside existing selection
+                    if (selectionRectangle != null && (selectionRectangle.contains(e.getPoint()))) {
+                        isDragging = true;
+                        setCursor(HAND_CURSOR);
+                        dragOffset = new Point(
+                                e.getX() - selectionRectangle.x,
+                                e.getY() - selectionRectangle.y);
+                        // Store the original location when starting drag
+                        originalSelectionLocation = new Point(selectionRectangle.x, selectionRectangle.y);
+                    } else {
+                        selectionRectangle = new Rectangle(startX, startY, 0, 0);
+                        isSelecting = true;
+                    }
                 default:
                     break;
-            }
-        }
-
-        @Override
-        public void mouseReleased(MouseEvent e) {
-            int endX = e.getX();
-            int endY = e.getY();
-
-            // Finalize the shape based on the selected tool
-            if (graphics != null) {
-                // Set the color and stroke for the final shape
-                graphics.setColor(drawingColor);
-                graphics.setStroke(new BasicStroke(lineThickness));
-                switch (currentTool) {
-                    case SELECTION:
-                        if (isSelecting) {
-                            notifyClipboardStateChanged();
-                            isSelecting = false;
-                            repaint();
-                        }
-                        break;
-                    case LINE:
-                        // Finalize the line
-                        graphics.drawLine(startX, startY, endX, endY);
-                        repaint();
-                        break;
-                    case RECTANGLE_OUTLINE:
-                    case RECTANGLE_FILLED:
-                        // Finalize the rectangle
-                        int rectX = Math.min(startX, endX);
-                        int rectY = Math.min(startY, endY);
-                        int rectWidth = Math.abs(endX - startX);
-                        int rectHeight = Math.abs(endY - startY);
-                        drawRectangle(graphics, rectX, rectY, rectX + rectWidth, rectY + rectHeight, currentTool == Tool.RECTANGLE_FILLED);
-                        repaint();
-                        break;
-                    case CIRCLE_OUTLINE:
-                    case CIRCLE_FILLED:
-                        // Draw the circle on the permanent canvas
-                        drawCircle(graphics, startX, startY, endX, endY, currentTool == Tool.CIRCLE_FILLED);
-                        repaint();
-
-                        break;
-                    default:
-                        break;
-                }
-
-                // Clear the temporary canvas
-                tempCanvas = null;
-                redoStack.clear();
             }
         }
 
@@ -625,9 +637,16 @@ public class DrawingCanvas extends JPanel {
         public void mouseDragged(MouseEvent e) {
             switch (currentTool) {
                 case SELECTION:
-                    drawSelection(e);
-
-                    repaint();
+                    if (isDragging) {
+                        // Update selection rectangle position
+                        int newX = e.getX() - dragOffset.x;
+                        int newY = e.getY() - dragOffset.y;
+                        selectionRectangle.setLocation(newX, newY);
+                        repaint();
+                    } else if (isSelecting) {
+                        drawSelection(e);
+                        repaint();
+                    }
                     break;
                 case PENCIL:// Pencil drawing
                     int x = e.getX();
@@ -672,6 +691,98 @@ public class DrawingCanvas extends JPanel {
                     break;
                 default:
                     break;
+            }
+        }
+
+        @Override
+        public void mouseReleased(MouseEvent e) {
+            int endX = e.getX();
+            int endY = e.getY();
+
+            // Finalize the shape based on the selected tool
+            if (graphics != null) {
+                // Set the color and stroke for the final shape
+                graphics.setColor(drawingColor);
+                graphics.setStroke(new BasicStroke(lineThickness));
+                switch (currentTool) {
+                    case SELECTION:
+                        if (isSelecting) {
+                            notifyClipboardStateChanged();
+                            isSelecting = false;
+                            // Capture the selected content
+                            if (selectionRectangle != null && selectionRectangle.width > 0 && selectionRectangle.height > 0) {
+                                selectionContent = new BufferedImage(
+                                        selectionRectangle.width,
+                                        selectionRectangle.height,
+                                        BufferedImage.TYPE_INT_ARGB
+                                );
+                                Graphics2D g = selectionContent.createGraphics();
+                                g.drawImage(image,
+                                        -selectionRectangle.x, -selectionRectangle.y,
+                                        null
+                                );
+                                g.dispose();
+                            } else {
+                                selectionContent = null;
+                            }
+                            repaint();
+                        } else if (isDragging) {
+                            isDragging = false;
+                            // Only change cursor if still over selection
+                            if (selectionRectangle.contains(e.getPoint())) {
+                                setCursor(HAND_CURSOR);
+                            } else {
+                                setCursor(DEFAULT_CURSOR);
+                            }
+                            if (selectionContent != null) {
+                                saveToUndoStack();
+                                // Clear the original area with canvas background color
+                                graphics.setColor(canvasBackground);
+                                graphics.fillRect(
+                                        originalSelectionLocation.x,
+                                        originalSelectionLocation.y,
+                                        selectionRectangle.width,
+                                        selectionRectangle.height
+                                );
+
+                                graphics.drawImage(selectionContent,
+                                        selectionRectangle.x,
+                                        selectionRectangle.y,
+                                        null
+                                );
+                                repaint();
+                            }
+                        }
+                        break;
+                    case LINE:
+                        // Finalize the line
+                        graphics.drawLine(startX, startY, endX, endY);
+                        repaint();
+                        break;
+                    case RECTANGLE_OUTLINE:
+                    case RECTANGLE_FILLED:
+                        // Finalize the rectangle
+                        int rectX = Math.min(startX, endX);
+                        int rectY = Math.min(startY, endY);
+                        int rectWidth = Math.abs(endX - startX);
+                        int rectHeight = Math.abs(endY - startY);
+                        drawRectangle(graphics, rectX, rectY, rectX + rectWidth, rectY + rectHeight, currentTool == Tool.RECTANGLE_FILLED);
+                        repaint();
+                        break;
+                    case CIRCLE_OUTLINE:
+                    case CIRCLE_FILLED:
+                        // Draw the circle on the permanent canvas
+                        drawCircle(graphics, startX, startY, endX, endY, currentTool == Tool.CIRCLE_FILLED);
+                        repaint();
+
+                        break;
+                    default:
+                        break;
+                }
+
+                // Clear the temporary canvas
+                tempCanvas = null;
+                redoStack.clear();
             }
         }
 
