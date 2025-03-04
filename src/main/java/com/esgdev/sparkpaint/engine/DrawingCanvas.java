@@ -654,6 +654,7 @@ public class DrawingCanvas extends JPanel {
                         selectionRectangle = new Rectangle(startX, startY, 0, 0);
                         isSelecting = true;
                     }
+                    break;
                 case FILL:
                     saveToUndoStack();
                     BufferedImage bufferedImage = (BufferedImage) image;
