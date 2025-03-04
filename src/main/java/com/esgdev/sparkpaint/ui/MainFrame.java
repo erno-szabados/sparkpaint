@@ -1,11 +1,13 @@
 package com.esgdev.sparkpaint.ui;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
+import com.esgdev.sparkpaint.ui.HelpMenu;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+
 
 
 public class MainFrame extends JFrame {
@@ -44,6 +46,8 @@ public class MainFrame extends JFrame {
         JMenuBar menuBar = new JMenuBar();
         menuBar.add(new FileMenu(this));
         menuBar.add(new EditMenu(this));
+        menuBar.add(new HelpMenu());
+        //menuBar.add(new HelpMenu(this)); // Uncomment after implementing HelpMenu class
         setJMenuBar(menuBar);
 
         // Create constraints for the canvas
