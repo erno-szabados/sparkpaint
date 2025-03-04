@@ -1,21 +1,60 @@
 package com.esgdev.sparkpaint.ui;
 
+import com.esgdev.sparkpaint.engine.ClipboardChangeListener;
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.UndoRedoChangeListener;
 
 import javax.swing.*;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.io.IOException;
 
-public class EditMenu extends JMenu implements UndoRedoChangeListener {
+public class EditMenu extends JMenu implements UndoRedoChangeListener, ClipboardChangeListener {
     private final DrawingCanvas canvas;
     private final JMenuItem undoItem;
     private final JMenuItem redoItem;
+    private final JMenuItem cutItem; // New Cut menu item
+    private final JMenuItem copyItem; // New Copy menu item
+    private final JMenuItem pasteItem; // New Paste menu item
+    private final MainFrame mainFrame;
+
 
     public EditMenu(MainFrame mainFrame) {
         super("Edit");
+        this.mainFrame = mainFrame;
         this.canvas = mainFrame.getCanvas();
+
+        // Create and add Cut item
+        cutItem = new JMenuItem("Cut");
+        cutItem.setMnemonic('T'); // Shortcut for accessibility (Alt+T)
+        cutItem.addActionListener(this::handleCut);
+        cutItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.CTRL_MASK)); // Ctrl+X
+        add(cutItem);
+
+        // Create and add Copy item
+        copyItem = new JMenuItem("Copy");
+        copyItem.setMnemonic('C'); // Shortcut for accessibility (Alt+C)
+        copyItem.addActionListener(this::handleCopy);
+        copyItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_MASK)); // Ctrl+C
+        add(copyItem);
+
+        // Create and add Paste item
+        pasteItem = new JMenuItem("Paste");
+        pasteItem.setMnemonic('P'); // Shortcut for accessibility (Alt+P)
+        pasteItem.addActionListener(this::handlePaste);
+        pasteItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_MASK)); // Ctrl+V
+        add(pasteItem);
+        // Register for clipboard changes
+        canvas.addClipboardChangeListener(this);
+
+        // Initialize menu items' enabled state
+        updateClipboardMenuItems(false, canvas.canPaste());
+
+
+        // Add a separator between Undo/Redo and Cut/Copy/Paste
+        addSeparator();
 
         // Create and add Undo item
         undoItem = new JMenuItem("Undo");
@@ -36,7 +75,26 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener {
 
         // Initialize enabled state of menu items
         updateMenuItems(canvas.canUndo(), canvas.canRedo());
+    }
 
+    private void handleCut(ActionEvent e) {
+        canvas.cutSelection(); // Assuming canvas handles the cut logic
+    }
+
+    private void handleCopy(ActionEvent e) {
+        canvas.copySelection(); // Assuming canvas handles the copy logic
+    }
+
+    private void handlePaste(ActionEvent e) {
+        try {
+            canvas.pasteSelection(); // Assuming canvas handles the paste logic
+        } catch (Exception ex) {
+            mainFrame.setStatusMessage("Error pasting clipboard content!");
+            JOptionPane.showMessageDialog(mainFrame,
+                    "Error pasting clipboard content!: " + ex.getMessage(),
+                    "Clipboard Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void handleUndo(ActionEvent e) {
@@ -56,9 +114,23 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener {
         redoItem.setEnabled(canRedo);
     }
 
-    @Override
-    public void undoRedoStateChanged(boolean canUndo, boolean canRedo) {
-        updateMenuItems(canUndo, canRedo);
+    // Add new method to update clipboard-related menu items
+    private void updateClipboardMenuItems(boolean canCopy, boolean canPaste) {
+        cutItem.setEnabled(canCopy);
+        copyItem.setEnabled(canCopy);
+        pasteItem.setEnabled(canPaste);
     }
 
+
+    @Override
+    public void undoRedoStateChanged(boolean canUndo, boolean canRedo) {
+        SwingUtilities.invokeLater(() -> updateMenuItems(canUndo, canRedo));
+    }
+
+    // Implement ClipboardChangeListener
+    @Override
+    public void clipboardStateChanged(boolean canCopy, boolean canPaste) {
+        // Ensure UI updates happen on EDT
+        SwingUtilities.invokeLater(() -> updateClipboardMenuItems(canCopy, canPaste));
+    }
 }

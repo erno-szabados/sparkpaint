@@ -1,6 +1,5 @@
 package com.esgdev.sparkpaint.engine;
 
-import com.esgdev.sparkpaint.ui.CanvasPropertyChangeListener;
 import com.esgdev.sparkpaint.ui.ToolChangeListener;
 
 import javax.imageio.ImageIO;
@@ -8,7 +7,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -46,6 +44,8 @@ public class DrawingCanvas extends JPanel {
     private final Stack<BufferedImage> undoStack = new Stack<>();
     private final Stack<BufferedImage> redoStack = new Stack<>();
     private final List<UndoRedoChangeListener> undoRedoChangeListeners = new ArrayList<>();
+    private final List<ClipboardChangeListener> clipboardChangeListeners = new ArrayList<>();
+
     private static final int MAX_HISTORY_SIZE = 16;
     public static final int DEFAULT_CANVAS_WIDTH = 800;
     public static final int DEFAULT_CANVAS_HEIGHT = 600;
@@ -209,7 +209,7 @@ public class DrawingCanvas extends JPanel {
         }
 
         if (currentTool == Tool.SELECTION && selectionRectangle != null) {
-            Graphics2D g2d = (Graphics2D)g;
+            Graphics2D g2d = (Graphics2D) g;
             // Draw the dotted border
             float[] dashPattern = {5, 5}; // Define a pattern: 5px dash, 5px gap
             BasicStroke dottedStroke = new BasicStroke(
@@ -411,6 +411,77 @@ public class DrawingCanvas extends JPanel {
         }
     }
 
+    private void eraseSelection() {
+        // Clear the selected region by filling it with the canvas background color.
+        graphics.setComposite(AlphaComposite.Clear);
+        graphics.fillRect(selectionRectangle.x, selectionRectangle.y, selectionRectangle.width, selectionRectangle.height);
+        graphics.setComposite(AlphaComposite.SrcOver);
+        selectionRectangle = null; // Clear selection after cutting.
+        repaint();
+    }
+
+    public void cutSelection() {
+        if (selectionRectangle == null
+                || selectionRectangle.width <= 0
+                || selectionRectangle.height <= 0) {
+            return;
+        }
+        copySelection();
+        eraseSelection();
+        notifyClipboardStateChanged();
+    }
+
+    public void copySelection() {
+        if (selectionRectangle == null
+                || selectionRectangle.width <= 0
+                || selectionRectangle.height <= 0) {
+            return;
+        }
+        // Extract the selected region from the canvas image.
+        BufferedImage canvasImage = (BufferedImage) image;
+        BufferedImage selectionImage = canvasImage.getSubimage(
+                selectionRectangle.x,
+                selectionRectangle.y,
+                selectionRectangle.width,
+                selectionRectangle.height
+        );
+        ImageSelection.copyImage(selectionImage);
+        notifyClipboardStateChanged();
+    }
+
+    public void pasteSelection() throws IOException, UnsupportedFlavorException {
+        BufferedImage pastedImage = ImageSelection.pasteImage();
+        if (pastedImage != null) {
+            // For simplicity, paste at (0,0). Modify as needed for custom positioning.
+            graphics.drawImage(pastedImage, 0, 0, null);
+            repaint();
+            notifyClipboardStateChanged();
+        }
+    }
+
+    public boolean hasSelection() {
+        return selectionRectangle != null;
+    }
+
+    public boolean canPaste() {
+        try {
+            // Includes a workaround for JDK-6606476 (Uncatchable exception printed to console for certain clipboard contents)
+            Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+            DataFlavor[] flavors = clipboard.getAvailableDataFlavors();
+
+            // Explicitly check only for image flavor without constructing other flavors
+            for (DataFlavor flavor : flavors) {
+                if (DataFlavor.imageFlavor.equals(flavor)) {
+                    return true;
+                }
+            }
+            return false;
+
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public void undo() {
         if (!undoStack.isEmpty()) {
             tempCanvas = null;
@@ -506,6 +577,7 @@ public class DrawingCanvas extends JPanel {
                 switch (currentTool) {
                     case SELECTION:
                         if (isSelecting) {
+                            notifyClipboardStateChanged();
                             isSelecting = false;
                             repaint();
                         }
@@ -624,49 +696,23 @@ public class DrawingCanvas extends JPanel {
         }
     }
 
+    // Add listener management methods
+    public void addClipboardChangeListener(ClipboardChangeListener listener) {
+        clipboardChangeListeners.add(listener);
+    }
 
-    private class ImageSelection implements Transferable {
+    public void removeClipboardChangeListener(ClipboardChangeListener listener) {
+        clipboardChangeListeners.remove(listener);
+    }
 
-        private final BufferedImage image;
+    // Method to notify listeners
+    private void notifyClipboardStateChanged() {
+        boolean canCopy = hasSelection();
+        boolean canPaste = canPaste();
 
-        public ImageSelection(BufferedImage image) {
-            this.image = image;
-        }
-
-        @Override
-        public DataFlavor[] getTransferDataFlavors() {
-            return new DataFlavor[]{DataFlavor.imageFlavor};
-        }
-
-        @Override
-        public boolean isDataFlavorSupported(DataFlavor flavor) {
-            return DataFlavor.imageFlavor.equals(flavor);
-        }
-
-        @Override
-        public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException {
-            if (!isDataFlavorSupported(flavor)) {
-                throw new UnsupportedFlavorException(flavor);
-            }
-            return image;
+        for (ClipboardChangeListener listener : clipboardChangeListeners) {
+            listener.clipboardStateChanged(canCopy, canPaste);
         }
     }
 
-    private void copyImage() {
-        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-        // FIXME check if this cast is sane
-        // TOD will use selection
-        clipboard.setContents(new ImageSelection((BufferedImage) this.image), null);
-    }
-
-    private void pasteImage() throws IOException, UnsupportedFlavorException {
-        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-
-        if (clipboard.isDataFlavorAvailable(DataFlavor.imageFlavor)) {
-            BufferedImage clipboardImage = (BufferedImage) clipboard.getData(DataFlavor.imageFlavor);
-            // TODO paste as moveable selection not as an image (once available)
-            graphics.drawImage(clipboardImage, 0, 0, null);
-            repaint();
-        }
-    }
 }

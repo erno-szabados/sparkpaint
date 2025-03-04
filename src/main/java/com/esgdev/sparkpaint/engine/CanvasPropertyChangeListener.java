@@ -1,4 +1,4 @@
-package com.esgdev.sparkpaint.ui;
+package com.esgdev.sparkpaint.engine;
 
 import java.awt.*;
 

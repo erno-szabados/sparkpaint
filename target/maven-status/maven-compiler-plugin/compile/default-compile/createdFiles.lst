@@ -1,12 +1,12 @@
 com\esgdev\sparkpaint\ui\NewImageDialog.class
 com\esgdev\sparkpaint\ui\DrawingToolbar.class
 com\esgdev\sparkpaint\ui\StatusMessageHandler.class
-com\esgdev\sparkpaint\ui\CanvasPropertyChangeListener.class
 com\esgdev\sparkpaint\engine\DrawingCanvas$ToolMouseAdapter.class
 com\esgdev\sparkpaint\ui\MainFrame.class
 com\esgdev\sparkpaint\ui\MainFrame$3.class
 com\esgdev\sparkpaint\ui\DrawingSettingsToolBox$1.class
 com\esgdev\sparkpaint\ui\EditMenu.class
+com\esgdev\sparkpaint\engine\ImageSelection.class
 com\esgdev\sparkpaint\ui\DrawingToolbar$2.class
 com\esgdev\sparkpaint\ui\FileMenu.class
 com\esgdev\sparkpaint\ui\ToolChangeListener.class
@@ -14,11 +14,12 @@ com\esgdev\sparkpaint\ui\IconLoader.class
 com\esgdev\sparkpaint\engine\UndoRedoChangeListener.class
 com\esgdev\sparkpaint\ui\MainFrame$1.class
 com\esgdev\sparkpaint\Main.class
+com\esgdev\sparkpaint\engine\CanvasPropertyChangeListener.class
 com\esgdev\sparkpaint\engine\DrawingCanvas$1.class
 com\esgdev\sparkpaint\ui\DrawingSettingsToolBox.class
 com\esgdev\sparkpaint\engine\DrawingCanvas.class
 com\esgdev\sparkpaint\ui\DrawingToolbar$1.class
 com\esgdev\sparkpaint\ui\DrawingSettingsToolBox$2.class
+com\esgdev\sparkpaint\engine\ClipboardChangeListener.class
 com\esgdev\sparkpaint\engine\DrawingCanvas$Tool.class
-com\esgdev\sparkpaint\engine\DrawingCanvas$ImageSelection.class
 com\esgdev\sparkpaint\ui\MainFrame$2.class

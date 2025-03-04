@@ -1,5 +1,6 @@
 package com.esgdev.sparkpaint.ui;
 
+import com.esgdev.sparkpaint.engine.CanvasPropertyChangeListener;
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.UndoRedoChangeListener;
 
