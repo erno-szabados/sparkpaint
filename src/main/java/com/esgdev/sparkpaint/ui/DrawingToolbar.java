@@ -1,11 +1,13 @@
 package com.esgdev.sparkpaint.ui;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
+import com.esgdev.sparkpaint.engine.UndoRedoChangeListener;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
 
-public class DrawingToolbar extends JToolBar {
+public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
     private static final int IconWidth = 24;
     private static final int IconHeight = 24;
     private final StatusMessageHandler statusMessageHandler;
@@ -15,6 +17,9 @@ public class DrawingToolbar extends JToolBar {
 
     private JButton colorButton;
     private JButton fillColorButton;
+    private JButton undoButton;
+    private JButton redoButton;
+
 
     public DrawingToolbar(DrawingCanvas canvas, StatusMessageHandler statusMessageHandler) {
         super(JToolBar.VERTICAL);
@@ -47,24 +52,28 @@ public class DrawingToolbar extends JToolBar {
         this.setFloatable(false); // Disable floating toolbar
 
         // Create Undo button
-        JButton undoButton = new JButton();
+        undoButton = new JButton();
         ImageIcon undoIcon = IconLoader.loadAndScaleIcon("undo.png", IconWidth, IconHeight);
         undoButton.setIcon(undoIcon);
         undoButton.setToolTipText("Undo");
-        undoButton.addActionListener(e -> canvas.undo());
+        undoButton.setEnabled(false); // Initial state
+        undoButton.addActionListener(this::handleUndo);
         undoButton.addActionListener(e -> statusMessageHandler.setStatusMessage("Undo last drawing operation."));
         this.add(undoButton);
 
         // Create Redo button
-        JButton redoButton = new JButton();
+        redoButton = new JButton();
         ImageIcon redoIcon = IconLoader.loadAndScaleIcon("redo.png", IconWidth, IconHeight);
         redoButton.setIcon(redoIcon);
         redoButton.setToolTipText("Redo");
-        redoButton.addActionListener(e -> canvas.redo());
+        redoButton.setEnabled(false); // Initial state
+        redoButton.addActionListener(this::handleRedo);
         redoButton.addActionListener(e -> statusMessageHandler.setStatusMessage("Redo last drawing operation."));
         this.add(redoButton);
 
         this.addSeparator();
+        canvas.addUndoRedoChangeListener(this);
+
 
         // Load and scale icons
         ImageIcon pencilIcon = IconLoader.loadAndScaleIcon("pencil.png", IconWidth, IconHeight);
@@ -255,6 +264,24 @@ public class DrawingToolbar extends JToolBar {
         fillColorButton.setToolTipText(String.format("#%02X%02X%02X",
                 color.getRed(), color.getGreen(), color.getBlue()));
         fillColorButton.repaint();
+    }
+
+    private void handleUndo(ActionEvent e) {
+        if (canvas.canUndo()) {
+            canvas.undo();
+        }
+    }
+
+    private void handleRedo(ActionEvent e) {
+        if (canvas.canRedo()) {
+            canvas.redo();
+        }
+    }
+
+    @Override
+    public void undoRedoStateChanged(boolean canUndo, boolean canRedo) {
+        undoButton.setEnabled(canUndo);
+        redoButton.setEnabled(canRedo);
     }
 
 }

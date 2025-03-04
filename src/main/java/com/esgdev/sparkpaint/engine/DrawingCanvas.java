@@ -6,6 +6,10 @@ import com.esgdev.sparkpaint.ui.ToolChangeListener;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
@@ -16,18 +20,8 @@ import java.util.List;
 import java.util.Stack;
 
 public class DrawingCanvas extends JPanel {
-    public static final int MAX_LINE_THICKNESS = 20;
-    private String currentFilePath;
-    private Color drawingColor = Color.BLACK; // Default color
-    private Color fillColor = Color.WHITE; //
-    private Color canvasBackground = Color.WHITE;
-    private float lineThickness = 2.0f; // Default line thickness
-    private final List<ToolChangeListener> toolChangeListeners = new ArrayList<>();
-    private final List<CanvasPropertyChangeListener> propertyChangeListeners = new ArrayList<>();
 
-    private final Stack<BufferedImage> undoStack = new Stack<>();
-    private final Stack<BufferedImage> redoStack = new Stack<>();
-    private static final int MAX_HISTORY_SIZE = 16;
+
 
     public enum Tool {
         PENCIL,
@@ -43,9 +37,23 @@ public class DrawingCanvas extends JPanel {
     private BufferedImage tempCanvas; // Temporary canvas for drawing previews
     private int startX, startY;
     private Tool currentTool = Tool.PENCIL;
+    public static final int MAX_LINE_THICKNESS = 20;
+    private String currentFilePath;
+    private Color drawingColor = Color.BLACK;
+    private Color fillColor = Color.WHITE; //
+    private Color canvasBackground = Color.WHITE;
+    private float lineThickness = 2.0f;
+    private final List<ToolChangeListener> toolChangeListeners = new ArrayList<>();
+    private final List<CanvasPropertyChangeListener> propertyChangeListeners = new ArrayList<>();
+    private final Stack<BufferedImage> undoStack = new Stack<>();
+    private final Stack<BufferedImage> redoStack = new Stack<>();
+    private final List<UndoRedoChangeListener> undoRedoChangeListeners = new ArrayList<>();
+    private static final int MAX_HISTORY_SIZE = 16;
+    public static final int DEFAULT_CANVAS_WIDTH = 800;
+    public static final int DEFAULT_CANVAS_HEIGHT = 600;
 
     public DrawingCanvas() {
-        setPreferredSize(new Dimension(800, 600));
+        setPreferredSize(new Dimension(DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT));
         setBackground(Color.WHITE);
 
         ToolMouseAdapter toolMouseAdapter = new ToolMouseAdapter();
@@ -371,6 +379,7 @@ public class DrawingCanvas extends JPanel {
             if (undoStack.size() > MAX_HISTORY_SIZE) {
                 undoStack.removeFirst(); // Keep the stack size within the limit
             }
+            notifyUndoRedoStateChanged();
         }
     }
 
@@ -386,9 +395,9 @@ public class DrawingCanvas extends JPanel {
 
             // Pop previous state from undo stack and set it as current image
             image = undoStack.pop();
-            System.out.println("undo stack:" + undoStack.size());
             graphics = (Graphics2D) image.getGraphics();
             repaint();
+            notifyUndoRedoStateChanged();
         }
     }
 
@@ -404,11 +413,20 @@ public class DrawingCanvas extends JPanel {
 
             // Pop next state from redo stack and set it as current image
             image = redoStack.pop();
-            System.out.println("redo stack:" + redoStack.size());
             graphics = (Graphics2D) image.getGraphics();
             repaint();
+            notifyUndoRedoStateChanged();
         }
     }
+
+    public boolean canUndo() {
+        return !undoStack.isEmpty();
+    }
+
+    public boolean canRedo() {
+        return !redoStack.isEmpty();
+    }
+
 
     private void clearHistory() {
         undoStack.clear();
@@ -534,6 +552,68 @@ public class DrawingCanvas extends JPanel {
                 default:
                     break;
             }
+        }
+    }
+
+    public void addUndoRedoChangeListener(UndoRedoChangeListener listener) {
+        undoRedoChangeListeners.add(listener);
+    }
+
+    public void removeUndoRedoChangeListener(UndoRedoChangeListener listener) {
+        undoRedoChangeListeners.remove(listener);
+    }
+
+    private void notifyUndoRedoStateChanged() {
+        boolean canUndo = canUndo();
+        boolean canRedo = canRedo();
+        for (UndoRedoChangeListener listener : undoRedoChangeListeners) {
+            listener.undoRedoStateChanged(canUndo, canRedo);
+        }
+    }
+
+
+    private class ImageSelection implements Transferable {
+
+        private final BufferedImage image;
+
+        public ImageSelection(BufferedImage image) {
+            this.image = image;
+        }
+
+        @Override
+        public DataFlavor[] getTransferDataFlavors() {
+            return new DataFlavor[]{DataFlavor.imageFlavor};
+        }
+
+        @Override
+        public boolean isDataFlavorSupported(DataFlavor flavor) {
+            return DataFlavor.imageFlavor.equals(flavor);
+        }
+
+        @Override
+        public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException {
+            if (!isDataFlavorSupported(flavor)) {
+                throw new UnsupportedFlavorException(flavor);
+            }
+            return image;
+        }
+    }
+
+    private void copyImage() {
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        // FIXME check if this cast is sane
+        // TOD will use selection
+        clipboard.setContents(new ImageSelection((BufferedImage) this.image), null);
+    }
+
+    private void pasteImage() throws IOException, UnsupportedFlavorException {
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+
+        if (clipboard.isDataFlavorAvailable(DataFlavor.imageFlavor)) {
+            BufferedImage clipboardImage = (BufferedImage) clipboard.getData(DataFlavor.imageFlavor);
+            // TODO paste as moveable selection not as an image (once available)
+            graphics.drawImage(clipboardImage, 0, 0, null);
+            repaint();
         }
     }
 }

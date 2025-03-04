@@ -1,11 +1,13 @@
 package com.esgdev.sparkpaint.ui;
 
+import com.esgdev.sparkpaint.engine.DrawingCanvas;
+
 import javax.swing.*;
 import java.awt.*;
 
 public class NewImageDialog extends JDialog {
-    private int imageWidth = 800;
-    private int imageHeight = 600;
+    private int imageWidth = DrawingCanvas.DEFAULT_CANVAS_WIDTH;
+    private int imageHeight = DrawingCanvas.DEFAULT_CANVAS_HEIGHT;
     private Color backgroundColor = Color.WHITE;
     private boolean approved = false;
 

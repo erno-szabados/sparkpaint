@@ -36,15 +36,15 @@ public class MainFrame extends JFrame {
         // Set a reasonable minimum size for the frame
         setMinimumSize(new Dimension(800, 600));
 
-        // Create and set up the menu bar
-        JMenuBar menuBar = new JMenuBar();
 
-        menuBar.add(new FileMenu(this));  // Add our new FileMenu
-        setJMenuBar(menuBar);  // Add menubar to the frame
-
-        // Add main canvas (at the center). Must precede toolbar and tool settings!
+        // Add main canvas (at the center). Must precede menu, toolbar and tool settings!
         canvas = new DrawingCanvas();
 
+        // Create and set up the menu bar
+        JMenuBar menuBar = new JMenuBar();
+        menuBar.add(new FileMenu(this));
+        menuBar.add(new EditMenu(this));
+        setJMenuBar(menuBar);
 
         // Create constraints for the canvas
         GridBagConstraints gbc = new GridBagConstraints();
