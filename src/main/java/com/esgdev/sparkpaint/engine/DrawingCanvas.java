@@ -413,11 +413,8 @@ public class DrawingCanvas extends JPanel {
 
     private void eraseSelection() {
         // Clear the selected region by filling it with the canvas background color.
-        graphics.setComposite(AlphaComposite.Clear);
+        graphics.setColor(canvasBackground);
         graphics.fillRect(selectionRectangle.x, selectionRectangle.y, selectionRectangle.width, selectionRectangle.height);
-        graphics.setComposite(AlphaComposite.SrcOver);
-        selectionRectangle = null; // Clear selection after cutting.
-        repaint();
     }
 
     public void cutSelection() {
@@ -426,12 +423,18 @@ public class DrawingCanvas extends JPanel {
                 || selectionRectangle.height <= 0) {
             return;
         }
-        copySelection();
+        copySelection(false);
         eraseSelection();
+        selectionRectangle = null; // Clear selection after cutting.
+        repaint();
         notifyClipboardStateChanged();
     }
 
     public void copySelection() {
+        copySelection(true);
+    }
+
+    private void copySelection(boolean clearRectangle) {
         if (selectionRectangle == null
                 || selectionRectangle.width <= 0
                 || selectionRectangle.height <= 0) {
@@ -446,6 +449,10 @@ public class DrawingCanvas extends JPanel {
                 selectionRectangle.height
         );
         ImageSelection.copyImage(selectionImage);
+        if (clearRectangle) {
+            selectionRectangle = null;
+            repaint();
+        }
         notifyClipboardStateChanged();
     }
 
@@ -557,8 +564,8 @@ public class DrawingCanvas extends JPanel {
                     saveCanvasState();
                     break;
                 case SELECTION:
-                    isSelecting = true;
                     selectionRectangle = new Rectangle(startX, startY, 0, 0);
+                    isSelecting = true;
                 default:
                     break;
             }

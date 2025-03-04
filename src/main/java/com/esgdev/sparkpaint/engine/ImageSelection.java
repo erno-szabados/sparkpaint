@@ -13,7 +13,12 @@ class ImageSelection implements Transferable {
     private final BufferedImage image;
 
     public ImageSelection(BufferedImage image) {
-        this.image = image;
+        BufferedImage copy = new BufferedImage(image.getWidth(), image.getHeight(), image.getType());
+        Graphics2D g2d = copy.createGraphics();
+        g2d.drawImage(image, 0, 0, null);
+        g2d.dispose();
+        this.image = copy;
+
     }
 
     @Override
