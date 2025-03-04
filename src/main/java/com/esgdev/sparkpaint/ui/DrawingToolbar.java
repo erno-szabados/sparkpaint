@@ -51,48 +51,24 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         this.setFloatable(false); // Disable floating toolbar
 
-        // Create Undo button
-        undoButton = new JButton();
-        ImageIcon undoIcon = IconLoader.loadAndScaleIcon("undo.png", IconWidth, IconHeight);
-        undoButton.setIcon(undoIcon);
-        undoButton.setToolTipText("Undo");
-        undoButton.setEnabled(false); // Initial state
-        undoButton.addActionListener(this::handleUndo);
-        undoButton.addActionListener(e -> statusMessageHandler.setStatusMessage("Undo last drawing operation."));
-        this.add(undoButton);
+        this.add(createSelectButton());
 
-        // Create Redo button
-        redoButton = new JButton();
-        ImageIcon redoIcon = IconLoader.loadAndScaleIcon("redo.png", IconWidth, IconHeight);
-        redoButton.setIcon(redoIcon);
-        redoButton.setToolTipText("Redo");
-        redoButton.setEnabled(false); // Initial state
-        redoButton.addActionListener(this::handleRedo);
-        redoButton.addActionListener(e -> statusMessageHandler.setStatusMessage("Redo last drawing operation."));
+        // Undo/redo tools
+        undoButton = createUndoButton();
+        this.add(undoButton);
+        redoButton = createRedoButton();
         this.add(redoButton);
 
         this.addSeparator();
+
         canvas.addUndoRedoChangeListener(this);
 
-
-        // Load and scale icons
-        ImageIcon pencilIcon = IconLoader.loadAndScaleIcon("pencil.png", IconWidth, IconHeight);
-        ImageIcon lineIcon = IconLoader.loadAndScaleIcon("line.png", IconWidth, IconHeight);
-
         // Create Pencil button
-        JButton pencilButton = new JButton();
-        pencilButton.setIcon(pencilIcon);
-        pencilButton.setToolTipText("Draw with Pencil");
-        pencilButton.addActionListener(e -> canvas.setCurrentTool(DrawingCanvas.Tool.PENCIL));
-        pencilButton.addActionListener(e -> statusMessageHandler.setStatusMessage("Pencil selected."));
+        JButton pencilButton = createPencilButton();
         this.add(pencilButton);
 
         // Create Line button
-        JButton lineButton = new JButton();
-        lineButton.setIcon(lineIcon);
-        lineButton.setToolTipText("Draw a Line");
-        lineButton.addActionListener(e -> canvas.setCurrentTool(DrawingCanvas.Tool.LINE));
-        lineButton.addActionListener(e -> statusMessageHandler.setStatusMessage("Line selected."));
+        JButton lineButton = createLineButton();
         this.add(lineButton);
 
         this.add(createRectangleButton());
@@ -102,6 +78,51 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         fillColorButton = createFillColorButton();
         this.add(fillColorButton);
         this.addSeparator();
+    }
+
+    private JButton createUndoButton() {
+        JButton button = new JButton();
+        ImageIcon icon = IconLoader.loadAndScaleIcon("undo.png", IconWidth, IconHeight);
+        button.setIcon(icon);
+        button.setToolTipText("Undo");
+        button.setEnabled(false); // Initial state
+        button.addActionListener(this::handleUndo);
+        button.addActionListener(e -> statusMessageHandler.setStatusMessage("Undo last drawing operation."));
+        return button;
+    }
+
+    private JButton createRedoButton() {
+        JButton button = new JButton();
+        ImageIcon icon = IconLoader.loadAndScaleIcon("redo.png", IconWidth, IconHeight);
+        button.setIcon(icon);
+        button.setToolTipText("Redo");
+        button.setEnabled(false); // Initial state
+        button.addActionListener(this::handleRedo);
+        button.addActionListener(e -> statusMessageHandler.setStatusMessage("Redo last drawing operation."));
+
+        return button;
+    }
+
+    private JButton createPencilButton() {
+        JButton button = new JButton();
+        ImageIcon icon = IconLoader.loadAndScaleIcon("pencil.png", IconWidth, IconHeight);
+        button.setIcon(icon);
+        button.setToolTipText("Draw with Pencil");
+        button.addActionListener(e -> canvas.setCurrentTool(DrawingCanvas.Tool.PENCIL));
+        button.addActionListener(e -> statusMessageHandler.setStatusMessage("Pencil selected."));
+
+        return button;
+    }
+
+    private JButton createLineButton() {
+        JButton button = new JButton();
+        ImageIcon icon = IconLoader.loadAndScaleIcon("line.png", IconWidth, IconHeight);
+        button.setIcon(icon);
+        button.setToolTipText("Draw a Line");
+        button.addActionListener(e -> canvas.setCurrentTool(DrawingCanvas.Tool.LINE));
+        button.addActionListener(e -> statusMessageHandler.setStatusMessage("Line selected."));
+
+        return button;
     }
 
     private JButton createColorButton() {
@@ -149,6 +170,16 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         return button;
     }
 
+    private JToggleButton createSelectButton() {
+        ImageIcon icon = IconLoader.loadAndScaleIcon("select.png", IconWidth, IconHeight);
+        JToggleButton button = new JToggleButton(icon);
+        button.setToolTipText("Selection Tool");
+        button.addActionListener(e -> canvas.setCurrentTool(DrawingCanvas.Tool.SELECTION));
+        //toolGroup.add(button); // Add to the button group for mutual exclusivity
+        return button;
+    }
+
+
     private JToggleButton createRectangleButton() {
         JToggleButton button = new JToggleButton();
         ImageIcon outlineIcon = IconLoader.loadAndScaleIcon("rect-outline.png", IconWidth, IconHeight);
@@ -158,7 +189,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         button.setToolTipText("Rectangle (Outline)");
 
         // Track the filled state
-        final boolean[] isFilled = { false };
+        final boolean[] isFilled = {false};
 
         button.addActionListener(e -> {
             if (canvas.getCurrentTool() != DrawingCanvas.Tool.RECTANGLE_OUTLINE &&
@@ -199,7 +230,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         button.setToolTipText("Center point circle (Outline)");
 
         // Track the filled state
-        final boolean[] isFilled = { false };
+        final boolean[] isFilled = {false};
 
         button.addActionListener(e -> {
             if (canvas.getCurrentTool() != DrawingCanvas.Tool.CIRCLE_OUTLINE &&

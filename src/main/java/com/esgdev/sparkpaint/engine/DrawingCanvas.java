@@ -20,16 +20,14 @@ import java.util.List;
 import java.util.Stack;
 
 public class DrawingCanvas extends JPanel {
-
-
-
     public enum Tool {
         PENCIL,
         LINE,
         RECTANGLE_OUTLINE,
         RECTANGLE_FILLED,
         CIRCLE_OUTLINE,
-        CIRCLE_FILLED
+        CIRCLE_FILLED,
+        SELECTION
     }
 
     private Image image;
@@ -51,6 +49,9 @@ public class DrawingCanvas extends JPanel {
     private static final int MAX_HISTORY_SIZE = 16;
     public static final int DEFAULT_CANVAS_WIDTH = 800;
     public static final int DEFAULT_CANVAS_HEIGHT = 600;
+
+    private Rectangle selectionRectangle;
+    private boolean isSelecting = false;
 
     public DrawingCanvas() {
         setPreferredSize(new Dimension(DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT));
@@ -206,6 +207,23 @@ public class DrawingCanvas extends JPanel {
         if (tempCanvas != null) {
             g.drawImage(tempCanvas, 0, 0, null);
         }
+
+        if (currentTool == Tool.SELECTION && selectionRectangle != null) {
+            Graphics2D g2d = (Graphics2D)g;
+            // Draw the dotted border
+            float[] dashPattern = {5, 5}; // Define a pattern: 5px dash, 5px gap
+            BasicStroke dottedStroke = new BasicStroke(
+                    1,                       // Line Width
+                    BasicStroke.CAP_BUTT,    // End-cap style
+                    BasicStroke.JOIN_MITER,  // Join style
+                    10.0f,                   // Miter limit
+                    dashPattern,             // Dash pattern (dotted line)
+                    0                        // Dash phase
+            );
+            g2d.setColor(Color.BLACK);
+            g2d.setStroke(dottedStroke);
+            g2d.drawRect(selectionRectangle.x, selectionRectangle.y, selectionRectangle.width, selectionRectangle.height);
+        }
     }
 
     // Initialize the canvas image and graphics object
@@ -331,10 +349,20 @@ public class DrawingCanvas extends JPanel {
 
     public void setCurrentTool(Tool tool) {
         this.currentTool = tool;
-        if (tool == Tool.PENCIL || tool == Tool.LINE || tool == Tool.RECTANGLE_OUTLINE || tool == Tool.RECTANGLE_FILLED) {
-            setCursor(new Cursor(Cursor.CROSSHAIR_CURSOR)); // Crosshair cursor for drawing tools
-        } else {
-            setCursor(new Cursor(Cursor.DEFAULT_CURSOR)); // Default cursor
+        switch (tool) {
+            case PENCIL:
+            case LINE:
+            case RECTANGLE_OUTLINE:
+            case RECTANGLE_FILLED:
+            case CIRCLE_OUTLINE:
+            case CIRCLE_FILLED:
+            case SELECTION:
+                setCursor(new Cursor(Cursor.CROSSHAIR_CURSOR)); // Crosshair cursor for drawing tools
+                break;
+            default:
+                setCursor(new Cursor(Cursor.DEFAULT_CURSOR)); // Default cursor
+
+                break;
         }
         // Notify all listeners
         for (ToolChangeListener listener : toolChangeListeners) {
@@ -457,6 +485,9 @@ public class DrawingCanvas extends JPanel {
                 case CIRCLE_FILLED:
                     saveCanvasState();
                     break;
+                case SELECTION:
+                    isSelecting = true;
+                    selectionRectangle = new Rectangle(startX, startY, 0, 0);
                 default:
                     break;
             }
@@ -473,6 +504,12 @@ public class DrawingCanvas extends JPanel {
                 graphics.setColor(drawingColor);
                 graphics.setStroke(new BasicStroke(lineThickness));
                 switch (currentTool) {
+                    case SELECTION:
+                        if (isSelecting) {
+                            isSelecting = false;
+                            repaint();
+                        }
+                        break;
                     case LINE:
                         // Finalize the line
                         graphics.drawLine(startX, startY, endX, endY);
@@ -508,6 +545,11 @@ public class DrawingCanvas extends JPanel {
         @Override
         public void mouseDragged(MouseEvent e) {
             switch (currentTool) {
+                case SELECTION:
+                    drawSelection(e);
+
+                    repaint();
+                    break;
                 case PENCIL:// Pencil drawing
                     int x = e.getX();
                     int y = e.getY();
@@ -552,6 +594,17 @@ public class DrawingCanvas extends JPanel {
                 default:
                     break;
             }
+        }
+
+        private void drawSelection(MouseEvent e) {
+            int currentX = e.getX();
+            int currentY = e.getY();
+            // Update selection rectangle dimensions
+            int x = Math.min(startX, currentX);
+            int y = Math.min(startY, currentY);
+            int width = Math.abs(currentX - startX);
+            int height = Math.abs(currentY - startY);
+            selectionRectangle.setBounds(x, y, width, height);
         }
     }
 
