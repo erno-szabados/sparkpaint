@@ -63,6 +63,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         this.add(createRectangleButton());
         this.add(createCircleButton());
         this.add(createEllipseButton());
+        this.add(createEyedropperButton());
         colorButton = createColorButton();
         this.add(colorButton);
         fillColorButton = createFillColorButton();
@@ -168,7 +169,19 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         ImageIcon icon = IconLoader.loadAndScaleIcon("select.png", IconWidth, IconHeight);
         JButton button = new JButton(icon);
         button.setToolTipText("Selection Tool");
-        button.addActionListener(e -> canvas.setCurrentTool(DrawingCanvas.Tool.SELECTION));
+        button.addActionListener(e -> {
+            canvas.setCurrentTool(DrawingCanvas.Tool.SELECTION);
+            statusMessageHandler.setStatusMessage("Selection tool selected.");});
+        return button;
+    }
+
+    private JButton createEyedropperButton() {
+        ImageIcon icon = IconLoader.loadAndScaleIcon("eyedropper.png", IconWidth, IconHeight);
+        JButton button = new JButton(icon);
+        button.setToolTipText("Eyedropper Tool");
+        button.addActionListener(e -> {
+            canvas.setCurrentTool(DrawingCanvas.Tool.EYEDROPPER);
+            statusMessageHandler.setStatusMessage("Eyedropper tool selected.");});
         return button;
     }
 

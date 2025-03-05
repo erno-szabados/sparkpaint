@@ -27,7 +27,8 @@ public class DrawingCanvas extends JPanel {
         ELLIPSE_OUTLINE,
         ELLIPSE_FILLED,
         SELECTION,
-        FILL
+        FILL,
+        EYEDROPPER
     }
 
     private Image image;
@@ -405,6 +406,7 @@ public class DrawingCanvas extends JPanel {
     public void setCurrentTool(Tool tool) {
         this.currentTool = tool;
         switch (tool) {
+            case EYEDROPPER:
             case PENCIL:
             case LINE:
             case RECTANGLE_OUTLINE:
@@ -629,6 +631,13 @@ public class DrawingCanvas extends JPanel {
             saveToUndoStack();
             //If tool is LINE or RECTANGLE, save the current canvas state
             switch (currentTool) {
+                case EYEDROPPER:
+                    if (image != null) {
+                        BufferedImage bufferedImage = (BufferedImage) image;
+                        drawingColor = new Color(bufferedImage.getRGB(startX, startY));
+                        notifyDrawingColorChanged();
+                    }
+                    break;
                 case PENCIL:
                     graphics.setColor(drawingColor);
                     break;
