@@ -411,6 +411,8 @@ public class DrawingCanvas extends JPanel {
             case RECTANGLE_FILLED:
             case CIRCLE_OUTLINE:
             case CIRCLE_FILLED:
+            case ELLIPSE_OUTLINE:
+            case ELLIPSE_FILLED:
             case SELECTION:
             case FILL:
                 setCursor(CROSSHAIR_CURSOR); // Crosshair cursor for drawing tools
@@ -608,7 +610,7 @@ public class DrawingCanvas extends JPanel {
                 if (selectionRectangle.contains(e.getPoint())) {
                     setCursor(HAND_CURSOR);
                 } else {
-                    setCursor(DEFAULT_CURSOR);
+                    setCursor(CROSSHAIR_CURSOR);
                 }
             }
         }
