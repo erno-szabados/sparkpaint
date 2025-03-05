@@ -634,8 +634,14 @@ public class DrawingCanvas extends JPanel {
                 case EYEDROPPER:
                     if (image != null) {
                         BufferedImage bufferedImage = (BufferedImage) image;
-                        drawingColor = new Color(bufferedImage.getRGB(startX, startY));
-                        notifyDrawingColorChanged();
+                        if (SwingUtilities.isLeftMouseButton(e)) {
+                            drawingColor = new Color(bufferedImage.getRGB(startX, startY));
+                            notifyDrawingColorChanged();
+                        }
+                        else if (SwingUtilities.isRightMouseButton(e)) {
+                            fillColor = new Color(bufferedImage.getRGB(startX, startY));
+                            notifyFillColorChanged();
+                        }
                     }
                     break;
                 case PENCIL:
@@ -669,8 +675,11 @@ public class DrawingCanvas extends JPanel {
                     saveToUndoStack();
                     BufferedImage bufferedImage = (BufferedImage) image;
                     Color targetColor = new Color(bufferedImage.getRGB(startX, startY));
-                    floodFill(startX, startY, targetColor, drawingColor, FILL_EPSILON);
-
+                    if (SwingUtilities.isLeftMouseButton(e)) {
+                        floodFill(startX, startY, targetColor, drawingColor, FILL_EPSILON);   
+                    } else if (SwingUtilities.isRightMouseButton(e)) {
+                        floodFill(startX, startY, targetColor, fillColor, FILL_EPSILON);
+                    }
                     // Notify listeners that we've made a change
                     notifyUndoRedoStateChanged();
                     repaint();

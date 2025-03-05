@@ -59,10 +59,11 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         canvas.addUndoRedoChangeListener(this);
         this.add(createPencilButton());
         this.add(createLineButton());
-        this.add(createFillButton());
         this.add(createRectangleButton());
         this.add(createCircleButton());
         this.add(createEllipseButton());
+        this.addSeparator();
+        this.add(createFillButton());
         this.add(createEyedropperButton());
         colorButton = createColorButton();
         this.add(colorButton);

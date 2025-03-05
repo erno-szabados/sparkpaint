@@ -46,6 +46,7 @@ public class MainFrame extends JFrame {
         JMenuBar menuBar = new JMenuBar();
         menuBar.add(new FileMenu(this));
         menuBar.add(new EditMenu(this));
+        menuBar.add(new ImageMenu(this));
         menuBar.add(new HelpMenu());
         //menuBar.add(new HelpMenu(this)); // Uncomment after implementing HelpMenu class
         setJMenuBar(menuBar);
