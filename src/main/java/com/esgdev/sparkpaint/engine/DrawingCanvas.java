@@ -227,7 +227,7 @@ public class DrawingCanvas extends JPanel {
             // If dragging, draw the selection content at current position
             if (isDragging && selectionContent != null) {
                 // Show the background color in the original position
-                g2d.setColor(canvasBackground);
+                g2d.setColor(fillColor);
                 g2d.fillRect(
                         originalSelectionLocation.x,
                         originalSelectionLocation.y,
@@ -809,7 +809,7 @@ public class DrawingCanvas extends JPanel {
                             if (selectionContent != null) {
                                 saveToUndoStack();
                                 // Clear the original area with canvas background color
-                                graphics.setColor(canvasBackground);
+                                graphics.setColor(fillColor);
                                 graphics.fillRect(
                                         originalSelectionLocation.x,
                                         originalSelectionLocation.y,
