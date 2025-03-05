@@ -13,9 +13,8 @@ import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
-import java.util.Stack;
 
 public class DrawingCanvas extends JPanel {
     public enum Tool {
@@ -46,8 +45,8 @@ public class DrawingCanvas extends JPanel {
     private float lineThickness = 2.0f;
     private final List<ToolChangeListener> toolChangeListeners = new ArrayList<>();
     private final List<CanvasPropertyChangeListener> propertyChangeListeners = new ArrayList<>();
-    private final Stack<BufferedImage> undoStack = new Stack<>();
-    private final Stack<BufferedImage> redoStack = new Stack<>();
+    private final Deque<BufferedImage> undoStack = new ArrayDeque<>();
+    private final Deque<BufferedImage> redoStack = new ArrayDeque<>();
     private final List<UndoRedoChangeListener> undoRedoChangeListeners = new ArrayList<>();
     private final List<ClipboardChangeListener> clipboardChangeListeners = new ArrayList<>();
 
@@ -462,7 +461,7 @@ public class DrawingCanvas extends JPanel {
 
             undoStack.push(copy);
             if (undoStack.size() > MAX_HISTORY_SIZE) {
-                undoStack.removeFirst(); // Keep the stack size within the limit
+                undoStack.removeLast(); // Keep the stack size within the limit
             }
             notifyUndoRedoStateChanged();
         }
