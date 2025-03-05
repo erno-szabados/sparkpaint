@@ -33,7 +33,7 @@ public class HelpMenu extends JMenu {
         nameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         
         // Add version
-        JLabel versionLabel = new JLabel("Version 0.2");
+        JLabel versionLabel = new JLabel("Version 0.3");
         versionLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         
         // Add description
