@@ -7,13 +7,13 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 
-public class UndoRedoManager {
+public class HistoryManager {
     private final Deque<BufferedImage> undoStack = new ArrayDeque<>();
     private final Deque<BufferedImage> redoStack = new ArrayDeque<>();
     private final List<UndoRedoChangeListener> undoRedoChangeListeners;
     private static final int MAX_HISTORY_SIZE = 16;
 
-    public UndoRedoManager() {
+    public HistoryManager() {
         this.undoRedoChangeListeners = new ArrayList<>();
     }
 

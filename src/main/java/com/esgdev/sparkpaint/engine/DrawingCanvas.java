@@ -31,6 +31,9 @@ public class DrawingCanvas extends JPanel {
         FILL,
         EYEDROPPER
     }
+    public static final int DEFAULT_CANVAS_WIDTH = 800;
+    public static final int DEFAULT_CANVAS_HEIGHT = 600;
+    public static final int MAX_LINE_THICKNESS = 20;
 
     private Image image;
     private Graphics2D graphics;
@@ -38,8 +41,6 @@ public class DrawingCanvas extends JPanel {
     private BufferedImage selectionContent;
     private int startX, startY;
     private Tool currentTool = Tool.PENCIL;
-    public static final int MAX_LINE_THICKNESS = 20;
-    private static final int FILL_EPSILON = 30; // Tolerance for color matching (flood fill)
     private String currentFilePath;
     private Color drawingColor = Color.BLACK;
     private Color fillColor = Color.WHITE; //
@@ -47,22 +48,16 @@ public class DrawingCanvas extends JPanel {
     private float lineThickness = 2.0f;
     private final List<ToolChangeListener> toolChangeListeners = new ArrayList<>();
     private final List<CanvasPropertyChangeListener> propertyChangeListeners = new ArrayList<>();
-    private final List<ClipboardChangeListener> clipboardChangeListeners = new ArrayList<>();
     private final EnumMap<Tool, DrawingTool> tools = new EnumMap<>(Tool.class);
-    private final UndoRedoManager undoRedoManager;
+    private final HistoryManager historyManager;
     private final ClipboardManager clipboardManager;
-    public static final int DEFAULT_CANVAS_WIDTH = 800;
-    public static final int DEFAULT_CANVAS_HEIGHT = 600;
-
     private Rectangle selectionRectangle;
-    private static final Cursor DEFAULT_CURSOR = new Cursor(Cursor.DEFAULT_CURSOR);
-    private static final Cursor CROSSHAIR_CURSOR = new Cursor(Cursor.CROSSHAIR_CURSOR);
 
     public DrawingCanvas() {
         setPreferredSize(new Dimension(DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT));
         this.canvasBackground = Color.WHITE;
         setBackground(canvasBackground);
-        undoRedoManager = new UndoRedoManager();
+        historyManager = new HistoryManager();
         clipboardManager = new ClipboardManager(this);
         MouseAdapter canvasMouseAdapter = new CanvasMouseAdapter();
         addMouseListener(canvasMouseAdapter);
@@ -73,9 +68,9 @@ public class DrawingCanvas extends JPanel {
 
     /**
      * Creates a new canvas with the specified dimensions and background color.
-     * @param width
-     * @param height
-     * @param canvasBackground
+     * @param width width of the canvas
+     * @param height height of the canvas
+     * @param canvasBackground background color of the canvas
      */
     public void createNewCanvas(int width, int height, Color canvasBackground) {
         this.canvasBackground = canvasBackground;
@@ -381,25 +376,6 @@ public class DrawingCanvas extends JPanel {
 
     public void setCurrentTool(Tool tool) {
         this.currentTool = tool;
-        switch (tool) {
-            case EYEDROPPER:
-            case PENCIL:
-            case LINE:
-            case RECTANGLE_OUTLINE:
-            case RECTANGLE_FILLED:
-            case CIRCLE_OUTLINE:
-            case CIRCLE_FILLED:
-            case ELLIPSE_OUTLINE:
-            case ELLIPSE_FILLED:
-            case SELECTION:
-            case FILL:
-                setCursor(CROSSHAIR_CURSOR); // Crosshair cursor for drawing tools
-                break;
-            default:
-                setCursor(DEFAULT_CURSOR); // Default cursor
-
-                break;
-        }
         // Notify all listeners
         for (ToolChangeListener listener : toolChangeListeners) {
             listener.onToolChanged(tool);
@@ -469,37 +445,37 @@ public class DrawingCanvas extends JPanel {
     // Undo - redo
 
     public void saveToUndoStack() {
-        undoRedoManager.saveToUndoStack((BufferedImage) image);
+        historyManager.saveToUndoStack((BufferedImage) image);
     }
 
     public void undo() {
-        image = undoRedoManager.undo((BufferedImage) image);
+        image = historyManager.undo((BufferedImage) image);
         graphics = (Graphics2D) image.getGraphics();
         selectionRectangle = null;
         repaint();
     }
 
     public void redo() {
-        image = undoRedoManager.redo((BufferedImage) image);
+        image = historyManager.redo((BufferedImage) image);
         graphics = (Graphics2D) image.getGraphics();
         selectionRectangle = null;
         repaint();
     }
 
     public boolean canUndo() {
-        return undoRedoManager.canUndo();
+        return historyManager.canUndo();
     }
 
     public boolean canRedo() {
-        return undoRedoManager.canRedo();
+        return historyManager.canRedo();
     }
 
     private void clearHistory() {
-        undoRedoManager.clearHistory();
+        historyManager.clearHistory();
     }
 
     public void addUndoRedoChangeListener(UndoRedoChangeListener listener) {
-        undoRedoManager.addUndoRedoChangeListener(listener);
+        historyManager.addUndoRedoChangeListener(listener);
     }
 
 
