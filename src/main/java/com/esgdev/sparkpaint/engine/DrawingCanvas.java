@@ -243,6 +243,10 @@ public class DrawingCanvas extends JPanel {
         return currentTool;
     }
 
+    public DrawingTool getActiveTool() {
+        return tools.get(currentTool);
+    }
+
     public void setCurrentTool(Tool tool) {
         this.currentTool = tool;
         // Notify all listeners

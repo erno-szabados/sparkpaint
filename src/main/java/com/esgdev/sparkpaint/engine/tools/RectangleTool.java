@@ -14,7 +14,7 @@ package com.esgdev.sparkpaint.engine.tools;
 
             public RectangleTool(DrawingCanvas canvas) {
                 this.canvas = canvas;
-                this.isFilled = true;
+                this.isFilled = false;
             }
 
             @Override
@@ -85,5 +85,9 @@ package com.esgdev.sparkpaint.engine.tools;
             @Override
             public String statusMessage() {
                 return "Rectangle tool selected";
+            }
+
+            public void setFilled(boolean selected) {
+                this.isFilled = selected;
             }
         }
