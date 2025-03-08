@@ -2,6 +2,7 @@ package com.esgdev.sparkpaint.engine;
 
 import com.esgdev.sparkpaint.engine.tools.*;
 import com.esgdev.sparkpaint.engine.tools.DrawingTool;
+import com.esgdev.sparkpaint.io.FileManager;
 import com.esgdev.sparkpaint.ui.ToolChangeListener;
 
 import javax.imageio.ImageIO;
@@ -51,6 +52,7 @@ public class DrawingCanvas extends JPanel {
     private final EnumMap<Tool, DrawingTool> tools = new EnumMap<>(Tool.class);
     private final HistoryManager historyManager;
     private final ClipboardManager clipboardManager;
+    private final FileManager fileManager;
     private Rectangle selectionRectangle;
 
 
@@ -63,6 +65,7 @@ public class DrawingCanvas extends JPanel {
         setBackground(canvasBackground);
         historyManager = new HistoryManager();
         clipboardManager = new ClipboardManager(this);
+        fileManager = new FileManager();
         MouseAdapter canvasMouseAdapter = new CanvasMouseAdapter();
         addMouseListener(canvasMouseAdapter);
         addMouseMotionListener(canvasMouseAdapter);
@@ -148,65 +151,25 @@ public class DrawingCanvas extends JPanel {
     }
 
     public void saveToFile(File file) throws IOException {
-        // Get the image from the canvas
-        BufferedImage imageToSave = new BufferedImage(
-                image.getWidth(null),
-                image.getHeight(null),
-                BufferedImage.TYPE_INT_ARGB);
-
-        // Draw the current canvas state to the new image
-        Graphics2D g = imageToSave.createGraphics();
-        g.drawImage(image, 0, 0, null);
-        g.dispose();
-
-        // Get the file extension
-        String fileName = file.getName().toLowerCase();
-        String formatName = "png"; // default format
-
-        if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
-            formatName = "jpeg";
-            // Convert to RGB for JPEG (no alpha channel)
-            BufferedImage rgbImage = new BufferedImage(
-                    imageToSave.getWidth(),
-                    imageToSave.getHeight(),
-                    BufferedImage.TYPE_INT_RGB);
-            Graphics2D rgbGraphics = rgbImage.createGraphics();
-            rgbGraphics.drawImage(imageToSave, 0, 0, Color.WHITE, null);
-            rgbGraphics.dispose();
-            imageToSave = rgbImage;
-        }
-
-        // Save the image
-        if (!ImageIO.write(imageToSave, formatName, file)) {
-            throw new IOException("No appropriate writer found for format: " + formatName);
-        }
-
-        currentFilePath = file.getAbsolutePath();
+        fileManager.saveToFile(file, image);
+        currentFilePath = fileManager.getCurrentFilePath();
     }
 
     public void loadFromFile(File file) throws IOException {
-        BufferedImage loadedImage = ImageIO.read(file);
-        if (loadedImage == null) {
-            throw new IOException("Failed to load image: " + file.getName());
-        }
+        BufferedImage loadedImage = fileManager.loadFromFile(file);
 
-        // Store current graphics settings before creating new image
         Color currentColor = graphics != null ? graphics.getColor() : Color.BLACK;
         Stroke currentStroke = graphics != null ? graphics.getStroke() : new BasicStroke(1);
 
-        // Create a new buffered image with ARGB support
         image = new BufferedImage(loadedImage.getWidth(), loadedImage.getHeight(),
                 BufferedImage.TYPE_INT_ARGB);
         graphics = (Graphics2D) image.getGraphics();
 
-        // Restore graphics settings
         graphics.setColor(currentColor);
         graphics.setStroke(currentStroke);
-
-        // Draw the loaded image
         graphics.drawImage(loadedImage, 0, 0, null);
 
-        currentFilePath = file.getAbsolutePath();
+        currentFilePath = fileManager.getCurrentFilePath();
         setPreferredSize(new Dimension(image.getWidth(null), image.getHeight(null)));
         repaint();
         clearHistory();
