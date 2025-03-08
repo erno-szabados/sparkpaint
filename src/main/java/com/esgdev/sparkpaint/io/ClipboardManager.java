@@ -1,4 +1,6 @@
-package com.esgdev.sparkpaint.engine;
+package com.esgdev.sparkpaint.io;
+
+import com.esgdev.sparkpaint.engine.DrawingCanvas;
 
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;

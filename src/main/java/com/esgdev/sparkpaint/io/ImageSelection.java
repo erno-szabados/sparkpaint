@@ -1,4 +1,4 @@
-package com.esgdev.sparkpaint.engine;
+package com.esgdev.sparkpaint.io;
 
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
@@ -8,7 +8,7 @@ import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 
-class ImageSelection implements Transferable {
+public class ImageSelection implements Transferable {
 
     private final BufferedImage image;
 

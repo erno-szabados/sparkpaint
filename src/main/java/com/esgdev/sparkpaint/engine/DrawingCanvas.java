@@ -2,10 +2,11 @@ package com.esgdev.sparkpaint.engine;
 
 import com.esgdev.sparkpaint.engine.tools.*;
 import com.esgdev.sparkpaint.engine.tools.DrawingTool;
+import com.esgdev.sparkpaint.io.ClipboardChangeListener;
+import com.esgdev.sparkpaint.io.ClipboardManager;
 import com.esgdev.sparkpaint.io.FileManager;
 import com.esgdev.sparkpaint.ui.ToolChangeListener;
 
-import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.datatransfer.UnsupportedFlavorException;
@@ -40,9 +41,7 @@ public class DrawingCanvas extends JPanel {
     private Graphics2D graphics;
     private BufferedImage tempCanvas; // Temporary canvas for drawing previews
     private BufferedImage selectionContent;
-    private int startX, startY;
     private Tool currentTool = Tool.PENCIL;
-    private String currentFilePath;
     private Color drawingColor = Color.BLACK;
     private Color fillColor = Color.WHITE; //
     private Color canvasBackground = Color.WHITE;
@@ -112,7 +111,6 @@ public class DrawingCanvas extends JPanel {
         image = newImage;
         graphics = newGraphics;
         tempCanvas = newTempCanvas;
-        currentFilePath = null;
 
         notifyDrawingColorChanged();
         notifyFillColorChanged();
@@ -152,7 +150,6 @@ public class DrawingCanvas extends JPanel {
 
     public void saveToFile(File file) throws IOException {
         fileManager.saveToFile(file, image);
-        currentFilePath = fileManager.getCurrentFilePath();
     }
 
     public void loadFromFile(File file) throws IOException {
@@ -169,54 +166,13 @@ public class DrawingCanvas extends JPanel {
         graphics.setStroke(currentStroke);
         graphics.drawImage(loadedImage, 0, 0, null);
 
-        currentFilePath = fileManager.getCurrentFilePath();
         setPreferredSize(new Dimension(image.getWidth(null), image.getHeight(null)));
         repaint();
         clearHistory();
     }
 
     public String getCurrentFilePath() {
-        return currentFilePath;
-    }
-
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-
-        // Clear the canvas with the background color
-        g.setColor(canvasBackground);
-        g.fillRect(0, 0, getWidth(), getHeight());
-
-        // Draw the permanent canvas
-        if (image != null) {
-            g.drawImage(image, 0, 0, null);
-        }
-
-        // Draw the temporary canvas on top
-        if (tempCanvas != null) {
-            g.drawImage(tempCanvas, 0, 0, null);
-        }
-
-        if (currentTool != Tool.SELECTION || selectionRectangle == null)
-            return;
-
-        Graphics2D g2d = (Graphics2D) g;
-
-        DrawingTool tool = tools.get(currentTool);
-        if (tool instanceof SelectionTool) {
-            ((SelectionTool) tool).drawSelection(g2d);
-        }
-    }
-
-    private void initTools() {
-        tools.put(Tool.LINE, new LineTool(this));
-        tools.put(Tool.RECTANGLE_FILLED, new RectangleTool(this));
-        tools.put(Tool.CIRCLE_FILLED, new CircleTool(this));
-        tools.put(Tool.ELLIPSE_FILLED, new EllipseTool(this));
-        tools.put(Tool.FILL, new FillTool(this));
-        tools.put(Tool.EYEDROPPER, new EyedropperTool(this));
-        tools.put(Tool.PENCIL, new PencilTool(this));
-        tools.put(Tool.SELECTION, new SelectionTool(this));
+        return fileManager.getCurrentFilePath();
     }
 
     // Save the current canvas state to a temporary buffer
@@ -302,31 +258,46 @@ public class DrawingCanvas extends JPanel {
         }
     }
 
-    public void addCanvasPropertyChangeListener(CanvasPropertyChangeListener listener) {
-        propertyChangeListeners.add(listener);
-    }
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
 
-    public void removeCanvasPropertyChangeListener(CanvasPropertyChangeListener listener) {
-        propertyChangeListeners.remove(listener);
-    }
+        // Clear the canvas with the background color
+        g.setColor(canvasBackground);
+        g.fillRect(0, 0, getWidth(), getHeight());
 
-    private void notifyDrawingColorChanged() {
-        for (CanvasPropertyChangeListener listener : propertyChangeListeners) {
-            listener.onDrawingColorChanged(drawingColor);
+        // Draw the permanent canvas
+        if (image != null) {
+            g.drawImage(image, 0, 0, null);
+        }
+
+        // Draw the temporary canvas on top
+        if (tempCanvas != null) {
+            g.drawImage(tempCanvas, 0, 0, null);
+        }
+
+        if (currentTool != Tool.SELECTION || selectionRectangle == null)
+            return;
+
+        Graphics2D g2d = (Graphics2D) g;
+
+        DrawingTool tool = tools.get(currentTool);
+        if (tool instanceof SelectionTool) {
+            ((SelectionTool) tool).drawSelection(g2d);
         }
     }
 
-    private void notifyFillColorChanged() {
-        for (CanvasPropertyChangeListener listener : propertyChangeListeners) {
-            listener.onFillColorChanged(fillColor);
-        }
+    private void initTools() {
+        tools.put(Tool.LINE, new LineTool(this));
+        tools.put(Tool.RECTANGLE_FILLED, new RectangleTool(this));
+        tools.put(Tool.CIRCLE_FILLED, new CircleTool(this));
+        tools.put(Tool.ELLIPSE_FILLED, new EllipseTool(this));
+        tools.put(Tool.FILL, new FillTool(this));
+        tools.put(Tool.EYEDROPPER, new EyedropperTool(this));
+        tools.put(Tool.PENCIL, new PencilTool(this));
+        tools.put(Tool.SELECTION, new SelectionTool(this));
     }
 
-    private void notifyBackgroundColorChanged() {
-        for (CanvasPropertyChangeListener listener : propertyChangeListeners) {
-            listener.onBackgroundColorChanged(canvasBackground);
-        }
-    }
 
     // Copy - paste
 
@@ -390,12 +361,38 @@ public class DrawingCanvas extends JPanel {
         return historyManager.canRedo();
     }
 
-    private void clearHistory() {
+    public void clearHistory() {
         historyManager.clearHistory();
     }
 
     public void addUndoRedoChangeListener(UndoRedoChangeListener listener) {
         historyManager.addUndoRedoChangeListener(listener);
+    }
+
+    public void addCanvasPropertyChangeListener(CanvasPropertyChangeListener listener) {
+        propertyChangeListeners.add(listener);
+    }
+
+    public void removeCanvasPropertyChangeListener(CanvasPropertyChangeListener listener) {
+        propertyChangeListeners.remove(listener);
+    }
+
+    private void notifyDrawingColorChanged() {
+        for (CanvasPropertyChangeListener listener : propertyChangeListeners) {
+            listener.onDrawingColorChanged(drawingColor);
+        }
+    }
+
+    private void notifyFillColorChanged() {
+        for (CanvasPropertyChangeListener listener : propertyChangeListeners) {
+            listener.onFillColorChanged(fillColor);
+        }
+    }
+
+    private void notifyBackgroundColorChanged() {
+        for (CanvasPropertyChangeListener listener : propertyChangeListeners) {
+            listener.onBackgroundColorChanged(canvasBackground);
+        }
     }
 
     /**

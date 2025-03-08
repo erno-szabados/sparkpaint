@@ -6,9 +6,19 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 
+/**
+ * FileManager is responsible for saving and loading images to and from files.
+ */
 public class FileManager {
     private String currentFilePath;
 
+    /**
+     * Saves the given image to the specified file.
+     *
+     * @param file        The file to save the image to.
+     * @param canvasImage The image to save.
+     * @throws IOException If an error occurs during saving.
+     */
     public void saveToFile(File file, Image canvasImage) throws IOException {
         BufferedImage imageToSave = new BufferedImage(
                 canvasImage.getWidth(null),
@@ -34,6 +44,13 @@ public class FileManager {
         currentFilePath = file.getAbsolutePath();
     }
 
+    /**
+     * Loads an image from the specified file.
+     *
+     * @param file The file to load the image from.
+     * @return The loaded image.
+     * @throws IOException If an error occurs during loading.
+     */
     public BufferedImage loadFromFile(File file) throws IOException {
         BufferedImage loadedImage = ImageIO.read(file);
         if (loadedImage == null) {
@@ -44,6 +61,12 @@ public class FileManager {
         return loadedImage;
     }
 
+    /**
+     * Converts a BufferedImage to RGB format.
+     *
+     * @param input The input image.
+     * @return The converted image in RGB format.
+     */
     private BufferedImage convertToRGB(BufferedImage input) {
         BufferedImage rgbImage = new BufferedImage(
                 input.getWidth(),
@@ -55,7 +78,12 @@ public class FileManager {
         return rgbImage;
     }
 
+    /**
+     * Returns the current file path.
+     *
+     * @return The current file path.
+     */
     public String getCurrentFilePath() {
-        return currentFilePath;
+        return currentFilePath != null ? currentFilePath : "Untitled";
     }
 }
