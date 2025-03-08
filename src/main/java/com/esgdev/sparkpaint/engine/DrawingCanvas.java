@@ -27,12 +27,9 @@ public class DrawingCanvas extends JPanel {
     public enum Tool {
         PENCIL,
         LINE,
-        RECTANGLE_OUTLINE,
-        RECTANGLE_FILLED,
-        CIRCLE_OUTLINE,
-        CIRCLE_FILLED,
-        ELLIPSE_OUTLINE,
-        ELLIPSE_FILLED,
+        RECTANGLE,
+        CIRCLE,
+        ELLIPSE,
         SELECTION,
         FILL,
         EYEDROPPER
@@ -285,9 +282,9 @@ public class DrawingCanvas extends JPanel {
 
     private void initTools() {
         tools.put(Tool.LINE, new LineTool(this));
-        tools.put(Tool.RECTANGLE_FILLED, new RectangleTool(this));
-        tools.put(Tool.CIRCLE_FILLED, new CircleTool(this));
-        tools.put(Tool.ELLIPSE_FILLED, new EllipseTool(this));
+        tools.put(Tool.RECTANGLE, new RectangleTool(this));
+        tools.put(Tool.CIRCLE, new CircleTool(this));
+        tools.put(Tool.ELLIPSE, new EllipseTool(this));
         tools.put(Tool.FILL, new FillTool(this));
         tools.put(Tool.EYEDROPPER, new EyedropperTool(this));
         tools.put(Tool.PENCIL, new PencilTool(this));

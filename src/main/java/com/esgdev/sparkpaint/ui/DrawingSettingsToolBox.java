@@ -97,20 +97,8 @@ public class DrawingSettingsToolBox extends javax.swing.Box implements ToolChang
     }
 
     private void updateSettingsForTool(DrawingCanvas.Tool tool) {
-        // Show/hide relevant settings based on tool
-        switch (tool) {
-            case PENCIL:
-            case LINE:
-            case RECTANGLE_OUTLINE:
-            case RECTANGLE_FILLED:
-            case CIRCLE_OUTLINE:
-            case CIRCLE_FILLED:
-                lineThicknessBox.setVisible(true);
-                break;
-            default:
-                lineThicknessBox.setVisible(false);
-                break;
-        }
+        // TODO tools will provide their own settings
+        lineThicknessBox.setVisible(true);
 
         revalidate();
         repaint();

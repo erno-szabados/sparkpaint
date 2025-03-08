@@ -204,63 +204,34 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         return button;
     }
 
-    private JButton createBiStateButton(String toolName,
-                                              Icon outlineIcon, Icon filledIcon,
-                                              DrawingCanvas.Tool outlineTool, DrawingCanvas.Tool filledTool) {
-        JButton button = new JButton();
-        button.setIcon(outlineIcon);
-
-        final boolean[] isFilled = {false};
+    private JButton createRectangleButton() {
+        ImageIcon icon = IconLoader.loadAndScaleIcon("rect-outline.png", IconWidth, IconHeight);
+        JButton button = new JButton(icon);
+        button.setToolTipText("Rectangle Tool");
         button.addActionListener(e -> {
-            if (canvas.getCurrentTool() == (isFilled[0] ? filledTool : outlineTool)) {
-                // Only toggle if this shape tool is already selected
-                isFilled[0] = !isFilled[0];
-                button.setIcon(isFilled[0] ? filledIcon : outlineIcon);
-                canvas.setCurrentTool(isFilled[0] ? filledTool : outlineTool);
-            } else {
-                // First selection of this tool - always start with outline
-                isFilled[0] = false;
-                button.setIcon(outlineIcon);
-                canvas.setCurrentTool(outlineTool);
-            }
-            statusMessageHandler.setStatusMessage("Selected " + toolName + (isFilled[0] ? " (filled)" : " (outline)"));
-        });
-
-
+            canvas.setCurrentTool(DrawingCanvas.Tool.RECTANGLE);
+            statusMessageHandler.setStatusMessage("Rectangle tool selected.");});
         return button;
     }
 
-    private JButton createRectangleButton() {
-        return createBiStateButton(
-                "Rectangle",
-                // Replace these placeholders with the actual rectangle outline and filled icons
-                IconLoader.loadAndScaleIcon("rect-outline.png", IconWidth, IconHeight),
-                IconLoader.loadAndScaleIcon("rect-filled.png", IconWidth, IconHeight),
-                DrawingCanvas.Tool.RECTANGLE_OUTLINE,
-                DrawingCanvas.Tool.RECTANGLE_FILLED
-        );
-    }
-
     private JButton createCircleButton() {
-        return createBiStateButton(
-                "Circle",
-                // Replace these placeholders with the actual circle outline and filled icons
-                IconLoader.loadAndScaleIcon("circle-outline.png", IconWidth, IconHeight),
-                IconLoader.loadAndScaleIcon("circle-filled.png", IconWidth, IconHeight),
-                DrawingCanvas.Tool.CIRCLE_OUTLINE,
-                DrawingCanvas.Tool.CIRCLE_FILLED
-        );
+        ImageIcon icon = IconLoader.loadAndScaleIcon("circle-outline.png", IconWidth, IconHeight);
+        JButton button = new JButton(icon);
+        button.setToolTipText("Circle Tool");
+        button.addActionListener(e -> {
+            canvas.setCurrentTool(DrawingCanvas.Tool.CIRCLE);
+            statusMessageHandler.setStatusMessage("Circle tool selected.");});
+        return button;
     }
 
     private JButton createEllipseButton() {
-        return createBiStateButton(
-                "Ellipse",
-                // Replace these placeholders with the actual ellipse outline and filled icons
-                IconLoader.loadAndScaleIcon("ellipse-outline.png", IconWidth, IconHeight),
-                IconLoader.loadAndScaleIcon("ellipse-filled.png", IconWidth, IconHeight),
-                DrawingCanvas.Tool.ELLIPSE_OUTLINE,
-                DrawingCanvas.Tool.ELLIPSE_FILLED
-        );
+        ImageIcon icon = IconLoader.loadAndScaleIcon("ellipse-outline.png", IconWidth, IconHeight);
+        JButton button = new JButton(icon);
+        button.setToolTipText("Ellipse Tool");
+        button.addActionListener(e -> {
+            canvas.setCurrentTool(DrawingCanvas.Tool.ELLIPSE);
+            statusMessageHandler.setStatusMessage("Ellipse tool selected.");});
+        return button;
     }
 
 
