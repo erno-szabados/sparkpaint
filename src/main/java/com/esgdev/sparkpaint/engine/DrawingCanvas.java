@@ -53,6 +53,10 @@ public class DrawingCanvas extends JPanel {
     private final ClipboardManager clipboardManager;
     private Rectangle selectionRectangle;
 
+
+    /**
+     * Default constructor for the DrawingCanvas class.
+     */
     public DrawingCanvas() {
         setPreferredSize(new Dimension(DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT));
         this.canvasBackground = Color.WHITE;
@@ -314,53 +318,6 @@ public class DrawingCanvas extends JPanel {
         return lineThickness;
     }
 
-    private void drawRectangle(Graphics2D g, int x1, int y1, int x2, int y2, boolean filled) {
-        int x = Math.min(x1, x2);
-        int y = Math.min(y1, y2);
-        int width = Math.abs(x2 - x1);
-        int height = Math.abs(y2 - y1);
-
-        if (filled) {
-            g.setColor(fillColor);
-            g.fillRect(x, y, width, height);
-        }
-        g.setColor(drawingColor);
-        g.drawRect(x, y, width, height);
-    }
-
-    private void drawCircle(Graphics2D g, int x1, int y1, int x2, int y2, boolean isFilled) {
-
-        // Calculate radius based on the distance to the second point
-        int radius = (int) Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-
-        // Calculate top-left corner and diameter for the circle
-        int topLeftX = x1 - radius;
-        int topLeftY = y1 - radius;
-        int diameter = radius * 2;
-
-        if (isFilled) {
-            g.setColor(fillColor);
-            g.fillOval(topLeftX, topLeftY, diameter, diameter);
-        }
-        g.setColor(drawingColor);
-        g.drawOval(topLeftX, topLeftY, diameter, diameter);
-    }
-
-    private void drawEllipse(Graphics2D g, int startX, int startY, int endX, int endY, boolean isFilled) {
-        // Calculate the top-left corner, width, and height based on opposing corners
-        int x = Math.min(startX, endX);
-        int y = Math.min(startY, endY);
-        int width = Math.abs(endX - startX);
-        int height = Math.abs(endY - startY);
-
-        if (isFilled) {
-            g.setColor(fillColor);
-            g.fillOval(x, y, width, height);
-        }
-        g.setColor(drawingColor);
-        g.drawOval(x, y, width, height);
-    }
-
     public void addToolChangeListener(ToolChangeListener listener) {
         toolChangeListeners.add(listener);
     }
@@ -478,7 +435,10 @@ public class DrawingCanvas extends JPanel {
         historyManager.addUndoRedoChangeListener(listener);
     }
 
-
+    /**
+     * MouseAdapter for handling mouse events on the canvas.
+     * Relies on the current tool to handle events.
+     */
     private class CanvasMouseAdapter extends MouseAdapter {
         @Override
         public void mouseMoved(MouseEvent e) {
