@@ -20,7 +20,6 @@ import java.util.List;
 
 public class DrawingCanvas extends JPanel {
 
-
     public enum Tool {
         PENCIL,
         LINE,
@@ -50,13 +49,9 @@ public class DrawingCanvas extends JPanel {
     private float lineThickness = 2.0f;
     private final List<ToolChangeListener> toolChangeListeners = new ArrayList<>();
     private final List<CanvasPropertyChangeListener> propertyChangeListeners = new ArrayList<>();
-    private final Deque<BufferedImage> undoStack = new ArrayDeque<>();
-    private final Deque<BufferedImage> redoStack = new ArrayDeque<>();
-    private final List<UndoRedoChangeListener> undoRedoChangeListeners = new ArrayList<>();
     private final List<ClipboardChangeListener> clipboardChangeListeners = new ArrayList<>();
-    private EnumMap<Tool, DrawingTool> tools = new EnumMap<>(Tool.class);
-
-    private static final int MAX_HISTORY_SIZE = 16;
+    private final EnumMap<Tool, DrawingTool> tools = new EnumMap<>(Tool.class);
+    private final UndoRedoManager undoRedoManager;
     public static final int DEFAULT_CANVAS_WIDTH = 800;
     public static final int DEFAULT_CANVAS_HEIGHT = 600;
 
@@ -69,7 +64,7 @@ public class DrawingCanvas extends JPanel {
         setPreferredSize(new Dimension(DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT));
         this.canvasBackground = Color.WHITE;
         setBackground(canvasBackground);
-
+        undoRedoManager = new UndoRedoManager();
         MouseAdapter canvasMouseAdapter = new CanvasMouseAdapter();
         addMouseListener(canvasMouseAdapter);
         addMouseMotionListener(canvasMouseAdapter);
@@ -438,21 +433,7 @@ public class DrawingCanvas extends JPanel {
         }
     }
 
-    public void saveToUndoStack() {
-        if (image != null) {
-            BufferedImage copy = new BufferedImage(image.getWidth(null), image.getHeight(null),
-                    BufferedImage.TYPE_INT_ARGB);
-            Graphics2D g2d = copy.createGraphics();
-            g2d.drawImage(image, 0, 0, null);
-            g2d.dispose();
-
-            undoStack.push(copy);
-            if (undoStack.size() > MAX_HISTORY_SIZE) {
-                undoStack.removeLast(); // Keep the stack size within the limit
-            }
-            notifyUndoRedoStateChanged();
-        }
-    }
+    // Copy - paste
 
     private void eraseSelection() {
         // Clear the selected region by filling it with the canvas background color.
@@ -548,74 +529,6 @@ public class DrawingCanvas extends JPanel {
         }
     }
 
-    public void undo() {
-        if (!undoStack.isEmpty()) {
-            tempCanvas = null;
-            // Save current state to redo stack
-            BufferedImage currentState = new BufferedImage(image.getWidth(null), image.getHeight(null),
-                    BufferedImage.TYPE_INT_ARGB);
-            Graphics2D g2d = currentState.createGraphics();
-            g2d.drawImage(image, 0, 0, null);
-            g2d.dispose();
-            redoStack.push(currentState);
-
-            // Pop previous state from undo stack and set it as current image
-            image = undoStack.pop();
-            graphics = (Graphics2D) image.getGraphics();
-            repaint();
-            notifyUndoRedoStateChanged();
-        }
-    }
-
-    public void redo() {
-        if (!redoStack.isEmpty()) {
-            tempCanvas = null;
-            // Save current state to undo stack
-            BufferedImage currentState = new BufferedImage(image.getWidth(null), image.getHeight(null),
-                    BufferedImage.TYPE_INT_ARGB);
-            Graphics2D g2d = currentState.createGraphics();
-            g2d.drawImage(image, 0, 0, null);
-            g2d.dispose();
-            undoStack.push(currentState);
-
-            // Pop next state from redo stack and set it as current image
-            image = redoStack.pop();
-            graphics = (Graphics2D) image.getGraphics();
-            repaint();
-            notifyUndoRedoStateChanged();
-        }
-    }
-
-    public boolean canUndo() {
-        return !undoStack.isEmpty();
-    }
-
-    public boolean canRedo() {
-        return !redoStack.isEmpty();
-    }
-
-    private void clearHistory() {
-        undoStack.clear();
-        redoStack.clear();
-    }
-
-    public void addUndoRedoChangeListener(UndoRedoChangeListener listener) {
-        undoRedoChangeListeners.add(listener);
-    }
-
-    public void removeUndoRedoChangeListener(UndoRedoChangeListener listener) {
-        undoRedoChangeListeners.remove(listener);
-    }
-
-    private void notifyUndoRedoStateChanged() {
-        boolean canUndo = canUndo();
-        boolean canRedo = canRedo();
-        for (UndoRedoChangeListener listener : undoRedoChangeListeners) {
-            listener.undoRedoStateChanged(canUndo, canRedo);
-        }
-    }
-
-    // Add listener management methods
     public void addClipboardChangeListener(ClipboardChangeListener listener) {
         clipboardChangeListeners.add(listener);
     }
@@ -633,6 +546,43 @@ public class DrawingCanvas extends JPanel {
             listener.clipboardStateChanged(canCopy, canPaste);
         }
     }
+
+    // Undo - redo
+
+    public void saveToUndoStack() {
+        undoRedoManager.saveToUndoStack((BufferedImage) image);
+    }
+
+    public void undo() {
+        image = undoRedoManager.undo((BufferedImage) image);
+        graphics = (Graphics2D) image.getGraphics();
+        selectionRectangle = null;
+        repaint();
+    }
+
+    public void redo() {
+        image = undoRedoManager.redo((BufferedImage) image);
+        graphics = (Graphics2D) image.getGraphics();
+        selectionRectangle = null;
+        repaint();
+    }
+
+    public boolean canUndo() {
+        return undoRedoManager.canUndo();
+    }
+
+    public boolean canRedo() {
+        return undoRedoManager.canRedo();
+    }
+
+    private void clearHistory() {
+        undoRedoManager.clearHistory();
+    }
+
+    public void addUndoRedoChangeListener(UndoRedoChangeListener listener) {
+        undoRedoManager.addUndoRedoChangeListener(listener);
+    }
+
 
     private class CanvasMouseAdapter extends MouseAdapter {
         @Override
