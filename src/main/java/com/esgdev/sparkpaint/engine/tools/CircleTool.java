@@ -86,4 +86,8 @@ public class CircleTool implements DrawingTool {
     public String statusMessage() {
         return "Circle tool selected";
     }
+
+    public void setFilled(boolean selected) {
+        this.isFilled = selected;
+    }
 }

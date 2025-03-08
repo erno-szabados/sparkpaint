@@ -86,4 +86,8 @@ package com.esgdev.sparkpaint.engine.tools;
         public String statusMessage() {
             return "Ellipse tool selected";
         }
+
+        public void setFilled(boolean selected) {
+            this.isFilled = selected;
+        }
     }

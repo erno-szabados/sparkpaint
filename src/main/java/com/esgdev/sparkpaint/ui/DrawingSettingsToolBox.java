@@ -1,8 +1,7 @@
 package com.esgdev.sparkpaint.ui;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
-import com.esgdev.sparkpaint.engine.tools.RectangleToolSettings;
-import com.esgdev.sparkpaint.engine.tools.ToolSettings;
+import com.esgdev.sparkpaint.engine.tools.*;
 
 import javax.swing.*;
 import java.util.EnumMap;
@@ -28,6 +27,11 @@ public class DrawingSettingsToolBox extends Box implements ToolChangeListener {
 
     private void initializeToolSettings(DrawingCanvas canvas) {
         toolSettings.put(DrawingCanvas.Tool.RECTANGLE, new RectangleToolSettings(canvas));
+        toolSettings.put(DrawingCanvas.Tool.CIRCLE, new CircleToolSettings(canvas));
+        toolSettings.put(DrawingCanvas.Tool.ELLIPSE, new EllipseToolSettings(canvas));
+        toolSettings.put(DrawingCanvas.Tool.LINE, new LineToolSettings(canvas));
+        toolSettings.put(DrawingCanvas.Tool.PENCIL, new PencilToolSettings(canvas));
+
         // Add other tool settings
     }
 

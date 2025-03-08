@@ -27,14 +27,16 @@ package com.esgdev.sparkpaint.engine.tools;
                         JLabel thicknessLabel = new JLabel("Line Thickness:");
                         thicknessLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-                        thicknessSlider = new JSlider(JSlider.HORIZONTAL, 1, 20, 2);
+                        int currentThickness = (int) canvas.getLineThickness();
+
+                        thicknessSlider = new JSlider(JSlider.HORIZONTAL, 1, 20, currentThickness);
                         thicknessSlider.setMaximumSize(new Dimension(150, 25));
                         thicknessSlider.setAlignmentX(Component.LEFT_ALIGNMENT);
                         thicknessSlider.setPaintTicks(true);
                         thicknessSlider.setMajorTickSpacing(5);
                         thicknessSlider.setMinorTickSpacing(1);
 
-                        thicknessValueLabel = new JLabel("2");
+                        thicknessValueLabel = new JLabel(String.valueOf(currentThickness));
                         thicknessValueLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
                         thicknessSlider.addChangeListener(e -> {
