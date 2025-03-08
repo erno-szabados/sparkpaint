@@ -18,6 +18,10 @@ import java.io.IOException;
 import java.util.*;
 import java.util.List;
 
+/**
+ * DrawingCanvas is a class that represents a drawing canvas where users can draw shapes, lines, and other graphics.
+ * Supports various drawing tools and allows for undo/redo functionality, clipboard operations, and file management.
+ */
 public class DrawingCanvas extends JPanel {
 
     public enum Tool {
@@ -41,19 +45,20 @@ public class DrawingCanvas extends JPanel {
     private Graphics2D graphics;
     private BufferedImage tempCanvas; // Temporary canvas for drawing previews
     private BufferedImage selectionContent;
+    private Rectangle selectionRectangle;
+
     private Tool currentTool = Tool.PENCIL;
     private Color drawingColor = Color.BLACK;
     private Color fillColor = Color.WHITE; //
     private Color canvasBackground = Color.WHITE;
     private float lineThickness = 2.0f;
+
     private final List<ToolChangeListener> toolChangeListeners = new ArrayList<>();
     private final List<CanvasPropertyChangeListener> propertyChangeListeners = new ArrayList<>();
     private final EnumMap<Tool, DrawingTool> tools = new EnumMap<>(Tool.class);
     private final HistoryManager historyManager;
     private final ClipboardManager clipboardManager;
     private final FileManager fileManager;
-    private Rectangle selectionRectangle;
-
 
     /**
      * Default constructor for the DrawingCanvas class.
@@ -213,15 +218,6 @@ public class DrawingCanvas extends JPanel {
         return fillColor;
     }
 
-    public void setCanvasBackground(Color color) {
-        if (color != null && !color.equals(this.canvasBackground)) {
-            this.canvasBackground = color;
-            notifyBackgroundColorChanged();
-        }
-
-        repaint();
-    }
-
     public Color getCanvasBackground() {
         return canvasBackground;
     }
@@ -297,7 +293,6 @@ public class DrawingCanvas extends JPanel {
         tools.put(Tool.PENCIL, new PencilTool(this));
         tools.put(Tool.SELECTION, new SelectionTool(this));
     }
-
 
     // Copy - paste
 
