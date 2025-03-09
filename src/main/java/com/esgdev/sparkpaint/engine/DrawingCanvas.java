@@ -39,7 +39,7 @@ public class DrawingCanvas extends JPanel {
     public static final int DEFAULT_CANVAS_WIDTH = 800;
     public static final int DEFAULT_CANVAS_HEIGHT = 600;
     public static final int MAX_LINE_THICKNESS = 20;
-    public static final float MAX_ZOOM_FACTOR = 10.0f;
+    public static final float MAX_ZOOM_FACTOR = 12.0f;
     public static final float MIN_ZOOM_FACTOR = 1.0f;
 
     private Image image;
@@ -489,11 +489,11 @@ public class DrawingCanvas extends JPanel {
 
 
             if (e.getWheelRotation() < 0) { // Zoom in
-                zoomFactor *= 1.25f;
+                zoomFactor *= 2.0f;
                 zoomFactor = (float) (Math.round(zoomFactor * 10.0) / 10.0);
                 zoomFactor = Math.min(zoomFactor, MAX_ZOOM_FACTOR);
             } else { // Zoom out
-                zoomFactor /= 1.25f;
+                zoomFactor /= 2.0f;
                 zoomFactor = (float) (Math.round(zoomFactor * 10.0) / 10.0);
                 zoomFactor = Math.max(zoomFactor, MIN_ZOOM_FACTOR);
             }
