@@ -4,6 +4,7 @@ import com.esgdev.sparkpaint.engine.DrawingCanvas;
 
 import java.awt.*;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
 import java.awt.image.BufferedImage;
 
 public class SelectionTool implements DrawingTool {
@@ -90,6 +91,11 @@ public class SelectionTool implements DrawingTool {
         }
         canvas.setTempCanvas(null);
         canvas.repaint();
+    }
+
+    @Override
+    public void mouseScrolled(MouseWheelEvent e) {
+
     }
 
     @Override

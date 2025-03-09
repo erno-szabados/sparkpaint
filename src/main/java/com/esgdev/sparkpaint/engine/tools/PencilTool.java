@@ -4,6 +4,7 @@ import com.esgdev.sparkpaint.engine.DrawingCanvas;
 
 import java.awt.*;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
 
 public class PencilTool implements DrawingTool {
     private final DrawingCanvas canvas;
@@ -43,6 +44,11 @@ public class PencilTool implements DrawingTool {
     @Override
     public void mouseReleased(MouseEvent e) {
         // No action needed for mouse released
+    }
+
+    @Override
+    public void mouseScrolled(MouseWheelEvent e) {
+
     }
 
     @Override

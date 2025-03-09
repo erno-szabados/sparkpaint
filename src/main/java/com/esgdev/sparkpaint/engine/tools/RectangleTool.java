@@ -4,6 +4,7 @@ package com.esgdev.sparkpaint.engine.tools;
 
         import java.awt.*;
         import java.awt.event.MouseEvent;
+        import java.awt.event.MouseWheelEvent;
         import java.awt.image.BufferedImage;
 
         public class RectangleTool implements DrawingTool {
@@ -75,6 +76,11 @@ package com.esgdev.sparkpaint.engine.tools;
                 g2d.drawRect(x, y, width, height);
                 canvas.setTempCanvas(null);
                 canvas.repaint();
+            }
+
+            @Override
+            public void mouseScrolled(MouseWheelEvent e) {
+
             }
 
             @Override

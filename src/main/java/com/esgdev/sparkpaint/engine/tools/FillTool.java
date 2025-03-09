@@ -5,6 +5,7 @@ import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
 import java.awt.image.BufferedImage;
 import java.util.Stack;
 
@@ -24,7 +25,7 @@ public class FillTool implements DrawingTool {
 
     @Override
     public void mousePressed(MouseEvent e) {
-        Point point = e.getPoint();
+        Point point = scalePoint(canvas, e.getPoint());
         canvas.saveToUndoStack();
         BufferedImage bufferedImage = (BufferedImage) canvas.getImage();
         Color targetColor = new Color(bufferedImage.getRGB(point.x, point.y));
@@ -41,6 +42,11 @@ public class FillTool implements DrawingTool {
     @Override
     public void mouseReleased(MouseEvent e) {
         // No action needed for mouse released
+    }
+
+    @Override
+    public void mouseScrolled(MouseWheelEvent e) {
+
     }
 
     @Override

@@ -12,6 +12,7 @@ import java.awt.*;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -37,6 +38,8 @@ public class DrawingCanvas extends JPanel {
     public static final int DEFAULT_CANVAS_WIDTH = 800;
     public static final int DEFAULT_CANVAS_HEIGHT = 600;
     public static final int MAX_LINE_THICKNESS = 20;
+    public static final float MAX_ZOOM_FACTOR = 5.0f;
+    public static final float MIN_ZOOM_FACTOR = 1.0f;
 
     private Image image;
     private Graphics2D graphics;
@@ -49,6 +52,7 @@ public class DrawingCanvas extends JPanel {
     private Color fillColor = Color.WHITE; //
     private Color canvasBackground = Color.WHITE;
     private float lineThickness = 2.0f;
+    private float zoomFactor = 1.0f;
 
     private final List<ToolChangeListener> toolChangeListeners = new ArrayList<>();
     private final List<CanvasPropertyChangeListener> propertyChangeListeners = new ArrayList<>();
@@ -70,6 +74,7 @@ public class DrawingCanvas extends JPanel {
         MouseAdapter canvasMouseAdapter = new CanvasMouseAdapter();
         addMouseListener(canvasMouseAdapter);
         addMouseMotionListener(canvasMouseAdapter);
+        addMouseWheelListener(canvasMouseAdapter); // Redraw the JPanel with the updated zoom level
         initTools();
         createNewCanvas(DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, canvasBackground);
     }
@@ -127,7 +132,9 @@ public class DrawingCanvas extends JPanel {
     }
 
     public Graphics2D getCanvasGraphics() {
-        return (Graphics2D) graphics.create();
+        Graphics2D g2d = (Graphics2D) graphics.create();
+        g2d.scale(zoomFactor, zoomFactor);
+        return g2d;
     }
 
     public Rectangle getSelectionRectangle() {
@@ -230,6 +237,10 @@ public class DrawingCanvas extends JPanel {
         return lineThickness;
     }
 
+    public float getZoomFactor() {
+        return zoomFactor;
+    }
+
     public void addToolChangeListener(ToolChangeListener listener) {
         toolChangeListeners.add(listener);
     }
@@ -259,24 +270,25 @@ public class DrawingCanvas extends JPanel {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.scale(zoomFactor, zoomFactor);
+
         // Clear the canvas with the background color
-        g.setColor(canvasBackground);
-        g.fillRect(0, 0, getWidth(), getHeight());
+        g2d.setColor(canvasBackground);
+        g2d.fillRect(0, 0, getWidth(), getHeight());
 
         // Draw the permanent canvas
         if (image != null) {
-            g.drawImage(image, 0, 0, null);
+            g2d.drawImage(image, 0, 0, null);
         }
 
         // Draw the temporary canvas on top
         if (tempCanvas != null) {
-            g.drawImage(tempCanvas, 0, 0, null);
+            g2d.drawImage(tempCanvas, 0, 0, null);
         }
 
         if (currentTool != Tool.SELECTION || selectionRectangle == null)
             return;
-
-        Graphics2D g2d = (Graphics2D) g;
 
         DrawingTool tool = tools.get(currentTool);
         if (tool instanceof SelectionTool) {
@@ -428,6 +440,34 @@ public class DrawingCanvas extends JPanel {
             DrawingTool tool = tools.get(currentTool);
             if (tool != null) {
                 tool.mouseReleased(e);
+            }
+        }
+
+        @Override
+        public void mouseWheelMoved(MouseWheelEvent e) {
+
+            if (e.getWheelRotation() < 0) { // Zoom in
+                zoomFactor *= 1.1f;
+                zoomFactor = (float) (Math.round(zoomFactor * 10.0) / 10.0);
+                zoomFactor = Math.min(zoomFactor, MAX_ZOOM_FACTOR);
+            } else { // Zoom out
+                zoomFactor /= 1.1f;
+                zoomFactor = (float) (Math.round(zoomFactor * 10.0) / 10.0);
+                zoomFactor = Math.max(zoomFactor, MIN_ZOOM_FACTOR);
+            }
+
+            // Update preferred size based on zoom factor
+            int scaledWidth = (int) (image.getWidth(null) * zoomFactor);
+            int scaledHeight = (int) (image.getHeight(null) * zoomFactor);
+            setPreferredSize(new Dimension(scaledWidth, scaledHeight));
+
+            System.out.println("Zoom factor: " + zoomFactor);
+            revalidate();
+            repaint();
+
+            DrawingTool tool = tools.get(currentTool);
+            if (tool != null) {
+                tool.mouseScrolled(e);
             }
         }
     }

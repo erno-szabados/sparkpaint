@@ -4,6 +4,7 @@ import com.esgdev.sparkpaint.engine.DrawingCanvas;
 
 import java.awt.*;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
 import java.awt.image.BufferedImage;
 
 public class CircleTool implements DrawingTool {
@@ -75,6 +76,11 @@ public class CircleTool implements DrawingTool {
         g2d.drawOval(x, y, diameter, diameter);
         canvas.setTempCanvas(null);
         canvas.repaint();
+    }
+
+    @Override
+    public void mouseScrolled(MouseWheelEvent e) {
+
     }
 
     @Override
