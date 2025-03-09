@@ -107,6 +107,13 @@ package com.esgdev.sparkpaint.ui;
                         if (imageWidth <= 0 || imageHeight <= 0) {
                             throw new NumberFormatException();
                         }
+                        if (imageWidth > 3000 || imageHeight > 3000) {
+                            JOptionPane.showMessageDialog(this,
+                                "Width and height must be less than or equal to 10000 pixels.",
+                                "Invalid Input",
+                                JOptionPane.ERROR_MESSAGE);
+                            return;
+                        }
                         approved = true;
                         dispose();
                     } catch (NumberFormatException ex) {
