@@ -31,6 +31,7 @@ public class DrawingSettingsToolBox extends Box implements ToolChangeListener {
         toolSettings.put(DrawingCanvas.Tool.ELLIPSE, new EllipseToolSettings(canvas));
         toolSettings.put(DrawingCanvas.Tool.LINE, new LineToolSettings(canvas));
         toolSettings.put(DrawingCanvas.Tool.PENCIL, new PencilToolSettings(canvas));
+        toolSettings.put(DrawingCanvas.Tool.BRUSH, new BrushToolSettings(canvas));
 
         // Add other tool settings
     }

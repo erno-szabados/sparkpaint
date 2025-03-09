@@ -26,6 +26,7 @@ import java.util.List;
 public class DrawingCanvas extends JPanel {
 
     public enum Tool {
+        BRUSH,
         PENCIL,
         LINE,
         RECTANGLE,
@@ -38,7 +39,7 @@ public class DrawingCanvas extends JPanel {
     public static final int DEFAULT_CANVAS_WIDTH = 800;
     public static final int DEFAULT_CANVAS_HEIGHT = 600;
     public static final int MAX_LINE_THICKNESS = 20;
-    public static final float MAX_ZOOM_FACTOR = 5.0f;
+    public static final float MAX_ZOOM_FACTOR = 10.0f;
     public static final float MIN_ZOOM_FACTOR = 1.0f;
 
     private Image image;
@@ -258,6 +259,10 @@ public class DrawingCanvas extends JPanel {
         return tools.get(currentTool);
     }
 
+    public DrawingTool getTool(Tool tool) {
+        return tools.get(tool);
+    }
+
     public void setCurrentTool(Tool tool) {
         this.currentTool = tool;
         // Notify all listeners
@@ -304,6 +309,7 @@ public class DrawingCanvas extends JPanel {
         tools.put(Tool.FILL, new FillTool(this));
         tools.put(Tool.EYEDROPPER, new EyedropperTool(this));
         tools.put(Tool.PENCIL, new PencilTool(this));
+        tools.put(Tool.BRUSH, new BrushTool(this));
         tools.put(Tool.SELECTION, new SelectionTool(this));
     }
 

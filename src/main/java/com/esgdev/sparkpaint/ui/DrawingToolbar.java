@@ -59,6 +59,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         this.add(redoButton);
         this.addSeparator();
         canvas.addUndoRedoChangeListener(this);
+        this.add(createBrushButton());
         this.add(createPencilButton());
         this.add(createLineButton());
         this.add(createRectangleButton());
@@ -93,6 +94,19 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         button.setEnabled(false); // Initial state
         button.addActionListener(this::handleRedo);
         button.addActionListener(e -> statusMessageHandler.setStatusMessage("Redo last drawing operation."));
+
+        return button;
+    }
+
+    private JButton createBrushButton() {
+        JButton button = new JButton();
+        ImageIcon icon = IconLoader.loadAndScaleIcon("brush.png", IconWidth, IconHeight);
+        button.setIcon(icon);
+        button.setToolTipText("Draw with Brush");
+        button.addActionListener(e -> {
+            canvas.setCurrentTool(DrawingCanvas.Tool.BRUSH);
+            statusMessageHandler.setStatusMessage("Brush selected.");
+        });
 
         return button;
     }
