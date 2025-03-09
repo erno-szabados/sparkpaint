@@ -3,6 +3,7 @@ package com.esgdev.sparkpaint.ui;
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
@@ -59,13 +60,109 @@ public class ImageMenu extends JMenu {
         }
     }
 
-    private void handleResize(ActionEvent e) {
-        // TODO: Show resize dialog with current dimensions, allowing user to enter new dimensions
-        // This should resize the canvas while maintaining the content
+   private void handleResize(ActionEvent e) {
+        BufferedImage currentImage = (BufferedImage) canvas.getImage();
+        if (currentImage == null) {
+            JOptionPane.showMessageDialog(mainFrame, "No image loaded.", "Resize", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Create dialog panel with width and height inputs
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+
+        // Width input
+        JPanel widthPanel = new JPanel();
+        JLabel widthLabel = new JLabel("Width:");
+        JSpinner widthSpinner = new JSpinner(new SpinnerNumberModel(currentImage.getWidth(), 1, 10000, 1));
+        widthPanel.add(widthLabel);
+        widthPanel.add(widthSpinner);
+
+        // Height input
+        JPanel heightPanel = new JPanel();
+        JLabel heightLabel = new JLabel("Height:");
+        JSpinner heightSpinner = new JSpinner(new SpinnerNumberModel(currentImage.getHeight(), 1, 10000, 1));
+        heightPanel.add(heightLabel);
+        heightPanel.add(heightSpinner);
+
+        panel.add(widthPanel);
+        panel.add(heightPanel);
+
+        int result = JOptionPane.showConfirmDialog(mainFrame, panel,
+                "Resize Image", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (result == JOptionPane.OK_OPTION) {
+            int newWidth = (Integer) widthSpinner.getValue();
+            int newHeight = (Integer) heightSpinner.getValue();
+
+            // Create new canvas with current background
+            canvas.createNewCanvas(newWidth, newHeight, canvas.getCanvasBackground());
+
+            // Draw the old image centered on the new canvas
+            Graphics2D g = (Graphics2D) canvas.getImage().getGraphics();
+            int x = (newWidth - currentImage.getWidth()) / 2;
+            int y = (newHeight - currentImage.getHeight()) / 2;
+            g.drawImage(currentImage, x, y, null);
+            g.dispose();
+
+            canvas.repaint();
+            canvas.saveToUndoStack();
+        }
     }
 
     private void handleScale(ActionEvent e) {
-        // TODO: Show scale dialog allowing user to enter scale percentage or new dimensions
-        // This should scale the image content
+        BufferedImage currentImage = (BufferedImage) canvas.getImage();
+        if (currentImage == null) {
+            JOptionPane.showMessageDialog(mainFrame, "No image loaded.", "Scale", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Create dialog panel with scale percentage input
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+
+        // Scale percentage input
+        JPanel scalePanel = new JPanel();
+        JLabel scaleLabel = new JLabel("Scale (%):");
+        JSpinner scaleSpinner = new JSpinner(new SpinnerNumberModel(100, 1, 1000, 1));
+        scalePanel.add(scaleLabel);
+        scalePanel.add(scaleSpinner);
+
+        // Preview dimensions
+        JPanel previewPanel = new JPanel();
+        JLabel dimensionsLabel = new JLabel(String.format("Current: %dx%d", currentImage.getWidth(), currentImage.getHeight()));
+        previewPanel.add(dimensionsLabel);
+
+        // Update preview when scale changes
+        scaleSpinner.addChangeListener(change -> {
+            int scale = (Integer) scaleSpinner.getValue();
+            int newWidth = currentImage.getWidth() * scale / 100;
+            int newHeight = currentImage.getHeight() * scale / 100;
+            dimensionsLabel.setText(String.format("New: %dx%d", newWidth, newHeight));
+        });
+
+        panel.add(scalePanel);
+        panel.add(previewPanel);
+
+        int result = JOptionPane.showConfirmDialog(mainFrame, panel,
+                "Scale Image", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (result == JOptionPane.OK_OPTION) {
+            int scale = (Integer) scaleSpinner.getValue();
+            int newWidth = currentImage.getWidth() * scale / 100;
+            int newHeight = currentImage.getHeight() * scale / 100;
+
+            // Create new canvas with scaled dimensions
+            canvas.createNewCanvas(newWidth, newHeight, canvas.getCanvasBackground());
+
+            // Scale and draw the image
+            Graphics2D g = (Graphics2D) canvas.getImage().getGraphics();
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g.drawImage(currentImage, 0, 0, newWidth, newHeight, null);
+            g.dispose();
+
+            canvas.repaint();
+            canvas.saveToUndoStack();
+        }
     }
 }
