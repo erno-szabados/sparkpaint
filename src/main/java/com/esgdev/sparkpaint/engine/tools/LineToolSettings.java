@@ -8,6 +8,8 @@ import java.awt.*;
 public class LineToolSettings extends BaseToolSettings {
     private JSlider thicknessSlider;
     private JLabel thicknessValueLabel;
+    private JCheckBox antiAliasingCheckbox;
+    private boolean useAntiAliasing = true;  // Default value
 
     public LineToolSettings(DrawingCanvas canvas) {
         super(canvas);
@@ -38,6 +40,11 @@ public class LineToolSettings extends BaseToolSettings {
             applySettings();
         });
 
+        // Anti-aliasing checkbox
+        antiAliasingCheckbox = new JCheckBox("Anti-aliasing", useAntiAliasing);
+        antiAliasingCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
+        antiAliasingCheckbox.addActionListener(e -> applySettings());
+
         // Add components
         panel.add(thicknessLabel);
         panel.add(Box.createVerticalStrut(2));
@@ -45,14 +52,18 @@ public class LineToolSettings extends BaseToolSettings {
         panel.add(Box.createVerticalStrut(2));
         panel.add(thicknessValueLabel);
         panel.add(Box.createVerticalStrut(5));
-
+        panel.add(antiAliasingCheckbox);
         return panel;
     }
+
 
     @Override
     public void applySettings() {
         if (canvas.getCurrentTool() == DrawingCanvas.Tool.LINE) {
             canvas.setLineThickness(thicknessSlider.getValue());
+            useAntiAliasing = antiAliasingCheckbox.isSelected();
+            LineTool tool = (LineTool) canvas.getTool(DrawingCanvas.Tool.LINE);
+            tool.setAntiAliasing(useAntiAliasing);
         }
     }
 
@@ -60,6 +71,7 @@ public class LineToolSettings extends BaseToolSettings {
     public void resetToDefaults() {
         thicknessSlider.setValue(2);
         thicknessValueLabel.setText("2");
+        antiAliasingCheckbox.setSelected(true);
         applySettings();
     }
 }
