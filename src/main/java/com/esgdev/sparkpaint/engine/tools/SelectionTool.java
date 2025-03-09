@@ -121,6 +121,49 @@ public class SelectionTool implements DrawingTool {
         return "Selection tool selected";
     }
 
+    // Add to SelectionTool class
+
+   public void rotateSelection(int degrees) {
+        if (canvas.getSelectionContent() == null) return;
+
+        BufferedImage original = (BufferedImage) canvas.getSelectionContent();
+        int width = original.getWidth();
+        int height = original.getHeight();
+
+        // Create new rotated image
+        BufferedImage rotated = new BufferedImage(
+            degrees % 180 == 0 ? width : height,
+            degrees % 180 == 0 ? height : width,
+            BufferedImage.TYPE_INT_ARGB
+        );
+
+        Graphics2D g2d = rotated.createGraphics();
+        g2d.translate((rotated.getWidth() - width) / 2,
+                      (rotated.getHeight() - height) / 2);
+        g2d.rotate(Math.toRadians(degrees), width / 2.0, height / 2.0);
+        g2d.drawImage(original, 0, 0, null);
+        g2d.dispose();
+
+        // Save state before rotation
+        canvas.saveToUndoStack();
+
+        // Clear original area
+        Rectangle rect = canvas.getSelectionRectangle();
+        Graphics2D canvasG2d = canvas.getCanvasGraphics();
+        canvasG2d.setColor(canvas.getCanvasBackground());
+        canvasG2d.fillRect(rect.x, rect.y, rect.width, rect.height);
+
+        // Update selection content and rectangle
+        canvas.setSelectionContent(rotated);
+        rect.setSize(rotated.getWidth(), rotated.getHeight());
+
+        // Draw rotated content to canvas
+        canvasG2d.drawImage(rotated, rect.x, rect.y, null);
+        canvasG2d.dispose();
+
+        canvas.repaint();
+    }
+
     public void drawSelection(Graphics2D g2d) {
         Rectangle selectionRectangle = canvas.getSelectionRectangle();
         Image selectionContent = canvas.getSelectionContent();
