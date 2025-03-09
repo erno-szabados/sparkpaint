@@ -143,7 +143,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         // Set the icon to the button
         Color color = canvas.getDrawingColor();
         button.setIcon(getColorIcon(color));
-        button.setToolTipText(String.format("#%02X%02X%02X",
+        button.setToolTipText(String.format("Draw color - #%02X%02X%02X",
                 color.getRed(), color.getGreen(), color.getBlue()));
         button.addActionListener(e -> {
             // Use the shared colorChooser instance
@@ -155,7 +155,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
                 action -> {
                     Color newColor = colorChooser.getColor();
                     button.setIcon(getColorIcon(newColor));
-                    button.setToolTipText(String.format("#%02X%02X%02X",
+                    button.setToolTipText(String.format("Draw color - #%02X%02X%02X",
                             newColor.getRed(), newColor.getGreen(), newColor.getBlue()));
                     canvas.setDrawingColor(newColor);
                 },
@@ -171,7 +171,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         JButton button = new JButton();
         Color color = canvas.getFillColor();
         button.setIcon(getColorIcon(color));
-        button.setToolTipText(String.format("#%02X%02X%02X",
+        button.setToolTipText(String.format("Fill color - #%02X%02X%02X",
                 color.getRed(), color.getGreen(), color.getBlue()));
 
 
@@ -185,7 +185,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
                 action -> {
                     Color newColor = colorChooser.getColor();
                     button.setIcon(getColorIcon(newColor));
-                    button.setToolTipText(String.format("#%02X%02X%02X",
+                    button.setToolTipText(String.format("Fill color - #%02X%02X%02X",
                             newColor.getRed(), newColor.getGreen(), newColor.getBlue()));
                     canvas.setFillColor(newColor);
                 },
