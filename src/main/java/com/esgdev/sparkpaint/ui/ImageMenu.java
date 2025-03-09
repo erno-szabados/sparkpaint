@@ -6,6 +6,7 @@ import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.awt.image.BufferedImage;
 
 public class ImageMenu extends JMenu {
     private final DrawingCanvas canvas;
@@ -45,11 +46,17 @@ public class ImageMenu extends JMenu {
     }
 
     private void handleInfo(ActionEvent e) {
-        // TODO: Show dialog with image information (dimensions, color depth, file size if saved)
-        JOptionPane.showMessageDialog(mainFrame,
-                String.format("Image Size: %dx%d pixels", canvas.getWidth(), canvas.getHeight()),
-                "Image Information",
-                JOptionPane.INFORMATION_MESSAGE);
+        BufferedImage image = (BufferedImage) canvas.getImage();
+        String filePath = canvas.getCurrentFilePath();
+
+        if (image != null) {
+            String message = String.format("Image Size: %dx%d pixels\nFile Path: %s",
+                                            image.getWidth(), image.getHeight(),
+                                            filePath != null ? filePath : "Unsaved");
+            JOptionPane.showMessageDialog(mainFrame, message, "Image Information", JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(mainFrame, "No image loaded.", "Image Information", JOptionPane.WARNING_MESSAGE);
+        }
     }
 
     private void handleResize(ActionEvent e) {

@@ -86,4 +86,13 @@ public class FileManager {
     public String getCurrentFilePath() {
         return currentFilePath != null ? currentFilePath : "Untitled";
     }
+
+    /**
+     * Sets the current file path.
+     *
+     * @param currentFilePath The new current file path.
+     */
+    public void setCurrentFilePath(String currentFilePath) {
+        this.currentFilePath = currentFilePath;
+    }
 }

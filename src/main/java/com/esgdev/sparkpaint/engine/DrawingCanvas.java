@@ -185,6 +185,10 @@ public class DrawingCanvas extends JPanel {
         return fileManager.getCurrentFilePath();
     }
 
+    public void resetCurrentFilePath() {
+        fileManager.setCurrentFilePath(null);
+    }
+
     // Save the current canvas state to a temporary buffer
     public void saveCanvasState() {
         tempCanvas = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
