@@ -7,12 +7,12 @@
     <!-- Project information -->
     <groupId>com.esgdev.sparkpaint</groupId>
     <artifactId>sparkpaint</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>0.5-SNAPSHOT</version>
 
     <!-- Define the JDK version you're using -->
     <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
     </properties>
 
     <!-- Dependencies section -->

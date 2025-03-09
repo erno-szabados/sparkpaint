@@ -1,17 +1,21 @@
 package com.esgdev.sparkpaint.ui;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
+import com.esgdev.sparkpaint.ui.HelpMenu;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+
 
 
 public class MainFrame extends JFrame {
-    private static final int IconWidth = 24;
-    private static final int IconHeight = 24;
+
     private DrawingCanvas canvas;
     private JLabel statusMessage;
     private JLabel cursorPositionLabel;
+    private ColorPalette palette;
 
     public MainFrame() {
         // Set up the JFrame properties
@@ -24,19 +28,33 @@ public class MainFrame extends JFrame {
         initializeUI();
     }
 
+    public DrawingCanvas getCanvas() {
+        return canvas;
+    }
+
+    public ColorPalette getColorPalette() {
+        return palette;
+    }
+
     // Method to initialize the UI components
     private void initializeUI() {
         Container contentPane = getContentPane();
         contentPane.setLayout(new BorderLayout());
+        // Set a reasonable minimum size for the frame
+        setMinimumSize(new Dimension(800, 600));
 
-        // Add toolbar (at the top)
-        JToolBar toolbar = createToolBar();
-        contentPane.add(toolbar, BorderLayout.NORTH);
 
-        // Add main canvas (at the center)
+        // Add main canvas (at the center). Must precede menu, toolbar and tool settings!
         canvas = new DrawingCanvas();
-        // Create a container panel with GridBagLayout
-        JPanel canvasContainer = new JPanel(new GridBagLayout());
+
+        // Create and set up the menu bar
+        JMenuBar menuBar = new JMenuBar();
+        menuBar.add(new FileMenu(this));
+        menuBar.add(new EditMenu(this));
+        menuBar.add(new ImageMenu(this));
+        menuBar.add(new HelpMenu());
+        //menuBar.add(new HelpMenu(this)); // Uncomment after implementing HelpMenu class
+        setJMenuBar(menuBar);
 
         // Create constraints for the canvas
         GridBagConstraints gbc = new GridBagConstraints();
@@ -45,67 +63,70 @@ public class MainFrame extends JFrame {
         gbc.weightx = 0;  // Don't expand horizontally
         gbc.weighty = 0;  // Don't expand vertically
         gbc.anchor = GridBagConstraints.CENTER;  // Center the canvas
+        //gbc.fill = GridBagConstraints.BOTH;
 
+        JPanel canvasContainer = new JPanel(new GridBagLayout());
         // Add the canvas to the container with constraints
         canvasContainer.add(canvas, gbc);
 
-        // Add the container to the center of the BorderLayout
-        add(canvasContainer, BorderLayout.CENTER);
+        // Create scroll pane
+        JScrollPane scrollPane = new JScrollPane(canvasContainer);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 
+
+
+        // Add toolbar
+        JToolBar toolbar = new DrawingToolbar(canvas, this::setStatusMessage);
+        contentPane.add(toolbar, BorderLayout.WEST);
+
+        // Add tool settings
+        Box toolBox = new DrawingSettingsToolBox(canvas, this::setStatusMessage);
+        // Create the split pane with your existing components
+        JSplitPane splitPane = new JSplitPane(
+                JSplitPane.HORIZONTAL_SPLIT,
+                scrollPane,                // left component
+                toolBox                    // right component
+        );
+        splitPane.setOneTouchExpandable(true);  // Adds a small button to collapse/expand
+        splitPane.setDividerLocation(getWidth() - 200);  // Initial divider location
+        splitPane.setResizeWeight(1.0);
+        // Add a ComponentListener to the right component
+        toolBox.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                // Check the size of the right component
+                if (toolBox.getWidth() > DrawingSettingsToolBox.MaxWidth) { // Set to desired maximum width
+                    splitPane.setDividerLocation(splitPane.getWidth() - DrawingSettingsToolBox.MaxWidth); // Maintain the right component's maximum width
+                }
+            }
+        });
+
+        // Add the container to the center of the BorderLayout
+        add(splitPane, BorderLayout.CENTER);
+        //contentPane.add(splitPane, BorderLayout.EAST);
+
+        // Add color palette (just before status bar)
+        palette = new ColorPalette(canvas);
+        contentPane.add(palette, BorderLayout.NORTH);
 
         // Add status bar (at the bottom)
         JPanel statusBar = new JPanel(new BorderLayout());
         statusMessage = new JLabel("Ready");
         statusBar.add(statusMessage, BorderLayout.WEST);
 
-
         // Add cursor position label on the right side of the status bar
         cursorPositionLabel = new JLabel("Cursor: (0, 0)");
         cursorPositionLabel.setHorizontalAlignment(SwingConstants.RIGHT); // Align text to the right
         statusBar.add(cursorPositionLabel, BorderLayout.EAST);
-
         contentPane.add(statusBar, BorderLayout.SOUTH);
 
         // Attach a listener to update the cursor position label
         addCursorTracking();
-
     }
 
-    // Method to create a basic toolbar
-    private JToolBar createToolBar() {
-        JToolBar toolbar = new JToolBar();
-        toolbar.setFloatable(false); // Disable floating toolbar
-
-        // Load and scale icons
-        ImageIcon pencilIcon = IconLoader.loadAndScaleIcon("pencil.png", IconWidth, IconHeight);
-        ImageIcon lineIcon = IconLoader.loadAndScaleIcon("line.png", IconWidth, IconHeight);
-        ImageIcon rectangleIcon = IconLoader.loadAndScaleIcon("rect-outline.png", IconWidth, IconHeight);
-
-        // Create Pencil button
-        JButton pencilButton = new JButton();
-        pencilButton.setIcon(pencilIcon);
-        pencilButton.setToolTipText("Draw with Pencil");
-        pencilButton.addActionListener(e -> canvas.setCurrentTool(DrawingCanvas.Tool.PENCIL));
-        pencilButton.addActionListener(e -> statusMessage.setText("Pencil selected."));
-        toolbar.add(pencilButton);
-
-        // Create Line button
-        JButton lineButton = new JButton();
-        lineButton.setIcon(lineIcon);
-        lineButton.setToolTipText("Draw a Line");
-        lineButton.addActionListener(e -> canvas.setCurrentTool(DrawingCanvas.Tool.LINE));
-        lineButton.addActionListener(e -> statusMessage.setText("Line selected."));
-        toolbar.add(lineButton);
-
-        // Create Rectangle button
-        JButton rectangleButton = new JButton();
-        rectangleButton.setIcon(rectangleIcon);
-        rectangleButton.setToolTipText("Draw a Rectangle");
-        rectangleButton.addActionListener(e -> canvas.setCurrentTool(DrawingCanvas.Tool.RECTANGLE));
-        rectangleButton.addActionListener(e -> statusMessage.setText("Rectangle selected."));
-        toolbar.add(rectangleButton);
-
-        return toolbar;
+    public void setStatusMessage(String message) {
+        statusMessage.setText(message);
     }
 
     // Add a mouse motion listener to track and update cursor position
