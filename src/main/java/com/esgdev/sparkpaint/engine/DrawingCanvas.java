@@ -296,6 +296,30 @@ public class DrawingCanvas extends JPanel {
             g2d.drawImage(tempCanvas, 0, 0, null);
         }
 
+        // Reset scale for grid drawing
+        g2d.scale(1 / zoomFactor, 1 / zoomFactor);
+
+        // Draw grid when zoom factor is greater than 5
+        if (zoomFactor > 5.0f) {
+            // Get scaled dimensions
+            int scaledWidth = (int) (image.getWidth(null) * zoomFactor);
+            int scaledHeight = (int) (image.getHeight(null) * zoomFactor);
+
+            g2d.setColor(new Color(200, 200, 200, 100));
+
+            // Draw vertical lines for each pixel
+            for (int x = 0; x <= scaledWidth; x += (int) zoomFactor) {
+                g2d.drawLine(x, 0, x, scaledHeight);
+            }
+            // Draw horizontal lines for each pixel
+            for (int y = 0; y <= scaledHeight; y += (int) zoomFactor) {
+                g2d.drawLine(0, y, scaledWidth, y);
+            }
+        }
+
+        // Restore scale for selection tool
+        g2d.scale(zoomFactor, zoomFactor);
+
         if (currentTool != Tool.SELECTION || selectionRectangle == null)
             return;
 
@@ -465,11 +489,11 @@ public class DrawingCanvas extends JPanel {
 
 
             if (e.getWheelRotation() < 0) { // Zoom in
-                zoomFactor *= 1.1f;
+                zoomFactor *= 1.25f;
                 zoomFactor = (float) (Math.round(zoomFactor * 10.0) / 10.0);
                 zoomFactor = Math.min(zoomFactor, MAX_ZOOM_FACTOR);
             } else { // Zoom out
-                zoomFactor /= 1.1f;
+                zoomFactor /= 1.25f;
                 zoomFactor = (float) (Math.round(zoomFactor * 10.0) / 10.0);
                 zoomFactor = Math.max(zoomFactor, MIN_ZOOM_FACTOR);
             }
