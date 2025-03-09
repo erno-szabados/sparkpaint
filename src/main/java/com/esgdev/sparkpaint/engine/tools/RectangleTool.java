@@ -25,14 +25,14 @@ package com.esgdev.sparkpaint.engine.tools;
 
             @Override
             public void mousePressed(MouseEvent e) {
-                startPoint = e.getPoint();
+                startPoint = scalePoint(canvas, e.getPoint());
                 canvas.saveToUndoStack();
                 canvas.saveCanvasState();
             }
 
             @Override
             public void mouseDragged(MouseEvent e) {
-                Point point = e.getPoint();
+                Point point = scalePoint(canvas, e.getPoint());
                 BufferedImage tempCanvas = new BufferedImage(canvas.getWidth(), canvas.getHeight(), BufferedImage.TYPE_INT_ARGB);
                 Graphics2D g2d = tempCanvas.createGraphics();
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -56,14 +56,15 @@ package com.esgdev.sparkpaint.engine.tools;
 
             @Override
             public void mouseReleased(MouseEvent e) {
-                Point point = e.getPoint();
-                Graphics2D g2d = canvas.getCanvasGraphics();
+                Point point = scalePoint(canvas, e.getPoint());
+                BufferedImage image = (BufferedImage) canvas.getImage();
+                Graphics2D g2d = image.createGraphics();
                 if (g2d == null) {
                     System.out.println("Graphics is null");
                     return;
                 }
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2d.setStroke(new BasicStroke(canvas.getLineThickness()));
-                g2d.setColor(canvas.getDrawingColor());
                 int x = Math.min(startPoint.x, point.x);
                 int y = Math.min(startPoint.y, point.y);
                 int width = Math.abs(point.x - startPoint.x);
@@ -74,6 +75,7 @@ package com.esgdev.sparkpaint.engine.tools;
                 }
                 g2d.setColor(canvas.getDrawingColor());
                 g2d.drawRect(x, y, width, height);
+                g2d.dispose();
                 canvas.setTempCanvas(null);
                 canvas.repaint();
             }

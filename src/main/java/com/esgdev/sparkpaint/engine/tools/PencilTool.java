@@ -5,6 +5,7 @@ import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
+import java.awt.image.BufferedImage;
 
 public class PencilTool implements DrawingTool {
     private final DrawingCanvas canvas;
@@ -22,14 +23,15 @@ public class PencilTool implements DrawingTool {
 
     @Override
     public void mousePressed(MouseEvent e) {
-        startPoint = e.getPoint();
+        startPoint = scalePoint(canvas, e.getPoint());
         canvas.saveToUndoStack();
     }
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        Point point = e.getPoint();
-        Graphics2D g2d = canvas.getCanvasGraphics();
+        Point point = scalePoint(canvas, e.getPoint());
+        BufferedImage image = (BufferedImage) canvas.getImage();
+        Graphics2D g2d = image.createGraphics();
         if (g2d == null) {
             System.out.println("Graphics is null");
             return;

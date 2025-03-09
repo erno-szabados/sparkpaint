@@ -445,6 +445,14 @@ public class DrawingCanvas extends JPanel {
 
         @Override
         public void mouseWheelMoved(MouseWheelEvent e) {
+            Point viewPosition = SwingUtilities.getAncestorOfClass(JScrollPane.class, DrawingCanvas.this)
+                    .getComponent(0).getLocation();
+            Point cursorPoint = e.getPoint();
+
+            // Store the position relative to the image before zooming
+            double relativeX = cursorPoint.x / (image.getWidth(null) * zoomFactor);
+            double relativeY = cursorPoint.y / (image.getHeight(null) * zoomFactor);
+
 
             if (e.getWheelRotation() < 0) { // Zoom in
                 zoomFactor *= 1.1f;
@@ -460,6 +468,23 @@ public class DrawingCanvas extends JPanel {
             int scaledWidth = (int) (image.getWidth(null) * zoomFactor);
             int scaledHeight = (int) (image.getHeight(null) * zoomFactor);
             setPreferredSize(new Dimension(scaledWidth, scaledHeight));
+
+            // Calculate new scroll position to keep the cursor point fixed
+            JScrollPane scrollPane = (JScrollPane) SwingUtilities.getAncestorOfClass(JScrollPane.class, DrawingCanvas.this);
+            if (scrollPane != null) {
+                JViewport viewport = scrollPane.getViewport();
+                Point newViewPosition = new Point();
+
+                // Calculate the new view position based on cursor position
+                newViewPosition.x = (int) (relativeX * scaledWidth - cursorPoint.x);
+                newViewPosition.y = (int) (relativeY * scaledHeight - cursorPoint.y);
+
+                // Ensure the new position is within bounds
+                newViewPosition.x = Math.max(0, Math.min(newViewPosition.x, scaledWidth - viewport.getWidth()));
+                newViewPosition.y = Math.max(0, Math.min(newViewPosition.y, scaledHeight - viewport.getHeight()));
+
+                viewport.setViewPosition(newViewPosition);
+            }
 
             System.out.println("Zoom factor: " + zoomFactor);
             revalidate();
