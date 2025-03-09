@@ -22,7 +22,8 @@ public class SelectionTool implements DrawingTool {
 
     @Override
     public void mouseMoved(MouseEvent e) {
-        if (canvas.getSelectionRectangle() != null && canvas.getSelectionRectangle().contains(e.getPoint())) {
+        Rectangle selectionRectangle = canvas.getSelectionRectangle();
+        if (selectionRectangle != null && selectionRectangle.contains(e.getPoint())) {
             canvas.setCursor(handCursor);
         } else {
             canvas.setCursor(crosshairCursor);
@@ -31,11 +32,15 @@ public class SelectionTool implements DrawingTool {
 
     @Override
     public void mousePressed(MouseEvent e) {
+        if (canvas.getZoomFactor() != 1) {
+            return;
+        }
         startPoint = e.getPoint();
-        if (canvas.getSelectionRectangle() != null && canvas.getSelectionRectangle().contains(e.getPoint())) {
+        Rectangle selectionRectangle = canvas.getSelectionRectangle();
+        if (selectionRectangle != null && selectionRectangle.contains(e.getPoint())) {
             isDragging = true;
-            dragOffset = new Point(e.getX() - canvas.getSelectionRectangle().x, e.getY() - canvas.getSelectionRectangle().y);
-            originalSelectionLocation = new Point(canvas.getSelectionRectangle().x, canvas.getSelectionRectangle().y);
+            dragOffset = new Point(e.getX() - selectionRectangle.x, e.getY() - selectionRectangle.y);
+            originalSelectionLocation = new Point(selectionRectangle.x, selectionRectangle.y);
         } else {
             canvas.setSelectionRectangle(new Rectangle(startPoint.x, startPoint.y, 0, 0));
         }
@@ -43,25 +48,33 @@ public class SelectionTool implements DrawingTool {
 
     @Override
     public void mouseDragged(MouseEvent e) {
+        if (canvas.getZoomFactor() != 1) {
+            return;
+        }
+        Rectangle selectionRectangle = canvas.getSelectionRectangle();
         if (isDragging) {
             int newX = e.getX() - dragOffset.x;
             int newY = e.getY() - dragOffset.y;
-            canvas.getSelectionRectangle().setLocation(newX, newY);
+            selectionRectangle.setLocation(newX, newY);
         } else {
             int x = Math.min(startPoint.x, e.getX());
             int y = Math.min(startPoint.y, e.getY());
             int width = Math.abs(e.getX() - startPoint.x);
             int height = Math.abs(e.getY() - startPoint.y);
-            canvas.getSelectionRectangle().setBounds(x, y, width, height);
+            selectionRectangle.setBounds(x, y, width, height);
         }
         canvas.repaint();
     }
 
     @Override
     public void mouseReleased(MouseEvent e) {
+        if (canvas.getZoomFactor() != 1) {
+            return;
+        }
+        Rectangle selectionRectangle = canvas.getSelectionRectangle();
         if (isDragging) {
             isDragging = false;
-            if (canvas.getSelectionRectangle().contains(e.getPoint())) {
+            if (selectionRectangle.contains(e.getPoint())) {
                 canvas.setCursor(handCursor);
             } else {
                 canvas.setCursor(Cursor.getDefaultCursor());
@@ -70,8 +83,8 @@ public class SelectionTool implements DrawingTool {
                 canvas.saveToUndoStack();
                 Graphics2D g2d = canvas.getCanvasGraphics();
                 g2d.setColor(canvas.getCanvasBackground());
-                g2d.fillRect(originalSelectionLocation.x, originalSelectionLocation.y, canvas.getSelectionRectangle().width, canvas.getSelectionRectangle().height);
-                g2d.drawImage(canvas.getSelectionContent(), canvas.getSelectionRectangle().x, canvas.getSelectionRectangle().y, null);
+                g2d.fillRect(originalSelectionLocation.x, originalSelectionLocation.y, selectionRectangle.width, selectionRectangle.height);
+                g2d.drawImage(canvas.getSelectionContent(), selectionRectangle.x, selectionRectangle.y, null);
                 g2d.dispose();
                 canvas.repaint();
             }
@@ -79,10 +92,10 @@ public class SelectionTool implements DrawingTool {
             // not dragging, Selecting
             canvas.notifyClipboardStateChanged();
             // Selection finished, copy the selected area to a BufferedImage
-            if (canvas.getSelectionRectangle().width > 0 && canvas.getSelectionRectangle().height > 0) {
-                BufferedImage selectionContent = new BufferedImage(canvas.getSelectionRectangle().width, canvas.getSelectionRectangle().height, BufferedImage.TYPE_INT_ARGB);
+            if (selectionRectangle.width > 0 && selectionRectangle.height > 0) {
+                BufferedImage selectionContent = new BufferedImage(selectionRectangle.width, selectionRectangle.height, BufferedImage.TYPE_INT_ARGB);
                 Graphics2D g2d = selectionContent.createGraphics();
-                g2d.drawImage(canvas.getImage(), -canvas.getSelectionRectangle().x, -canvas.getSelectionRectangle().y, null);
+                g2d.drawImage(canvas.getImage(), -selectionRectangle.x, -selectionRectangle.y, null);
                 g2d.dispose();
                 canvas.setSelectionContent(selectionContent);
             } else {
@@ -109,29 +122,31 @@ public class SelectionTool implements DrawingTool {
     }
 
     public void drawSelection(Graphics2D g2d) {
+        Rectangle selectionRectangle = canvas.getSelectionRectangle();
+        Image selectionContent = canvas.getSelectionContent();
         // If dragging, draw the selection content at current position
-        if (isDragging && canvas.getSelectionContent() != null) {
+        if (isDragging && selectionContent != null) {
+
             // Show the background color in the original position
             g2d.setColor(canvas.getCanvasBackground());
             g2d.fillRect(
                     originalSelectionLocation.x,
                     originalSelectionLocation.y,
-                    canvas.getSelectionRectangle().width,
-                    canvas.getSelectionRectangle().height);
+                    selectionRectangle.width,
+                    selectionRectangle.height);
 
-            if (canvas.getSelectionContent() != null &&
-                canvas.getSelectionContent().getWidth(null) > 0 &&
-                canvas.getSelectionContent().getHeight(null) > 0) {
-                g2d.drawImage(canvas.getSelectionContent(),
-                        canvas.getSelectionRectangle().x,
-                        canvas.getSelectionRectangle().y,
+            if (selectionContent.getWidth(null) > 0 &&
+                selectionContent.getHeight(null) > 0) {
+                g2d.drawImage(selectionContent,
+                        selectionRectangle.x,
+                        selectionRectangle.y,
                         null);
             }
         }
 
-        if (canvas.getSelectionRectangle() != null &&
-                canvas.getSelectionRectangle().width > 0 &&
-                canvas.getSelectionRectangle().height > 0) {
+        if (selectionRectangle != null &&
+                selectionRectangle.width > 0 &&
+                selectionRectangle.height > 0) {
             drawSelectionRectangle(g2d);
         }
     }
