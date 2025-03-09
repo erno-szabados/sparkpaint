@@ -5,9 +5,11 @@ import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.UndoRedoChangeListener;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.io.IOException;
 
 public class EditMenu extends JMenu implements UndoRedoChangeListener, ClipboardChangeListener {
     private final DrawingCanvas canvas;
@@ -16,6 +18,9 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener, Clipboard
     private final JMenuItem cutItem; // New Cut menu item
     private final JMenuItem copyItem; // New Copy menu item
     private final JMenuItem pasteItem; // New Paste menu item
+    private final JMenuItem loadPaletteItem;
+    private final JMenuItem savePaletteItem;
+    private final JMenuItem restoreDefaultPaletteItem;
     private final MainFrame mainFrame;
 
 
@@ -67,6 +72,63 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener, Clipboard
         redoItem.addActionListener(this::handleRedo);
         redoItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Y, InputEvent.CTRL_MASK));
         add(redoItem);
+
+        addSeparator();
+
+        // Create and add Load Palette item
+        loadPaletteItem = new JMenuItem("Load Palette...");
+        loadPaletteItem.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setFileFilter(new FileNameExtensionFilter(
+                    "Palette Files (*.palette)", "palette"));
+
+            if (fileChooser.showOpenDialog(mainFrame) == JFileChooser.APPROVE_OPTION) {
+                try {
+                    mainFrame.getColorPalette().loadPalette(fileChooser.getSelectedFile());
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(mainFrame,
+                            "Error loading palette: " + ex.getMessage(),
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        add(loadPaletteItem);
+
+        // Create and add Save Palette item
+        savePaletteItem = new JMenuItem("Save Palette As...");
+        savePaletteItem.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setFileFilter(new FileNameExtensionFilter(
+                    "Palette Files (*.palette)", "palette"));
+
+            if (fileChooser.showSaveDialog(mainFrame) == JFileChooser.APPROVE_OPTION) {
+                try {
+                    mainFrame.getColorPalette().savePalette(fileChooser.getSelectedFile());
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(mainFrame,
+                            "Error saving palette: " + ex.getMessage(),
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        add(savePaletteItem);
+
+        // After adding savePaletteItem, add:
+        restoreDefaultPaletteItem = new JMenuItem("Restore Default Palette");
+        restoreDefaultPaletteItem.addActionListener(e -> {
+            int choice = JOptionPane.showConfirmDialog(mainFrame,
+                    "This will replace your current palette with the default colors. Continue?",
+                    "Restore Default Palette",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE);
+
+            if (choice == JOptionPane.YES_OPTION) {
+                mainFrame.getColorPalette().restoreDefaultPalette();
+            }
+        });
+        add(restoreDefaultPaletteItem);
 
         // Register as UndoRedoChangeListener
         canvas.addUndoRedoChangeListener(this);

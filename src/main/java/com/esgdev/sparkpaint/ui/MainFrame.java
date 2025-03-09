@@ -15,6 +15,7 @@ public class MainFrame extends JFrame {
     private DrawingCanvas canvas;
     private JLabel statusMessage;
     private JLabel cursorPositionLabel;
+    private ColorPalette palette;
 
     public MainFrame() {
         // Set up the JFrame properties
@@ -29,6 +30,10 @@ public class MainFrame extends JFrame {
 
     public DrawingCanvas getCanvas() {
         return canvas;
+    }
+
+    public ColorPalette getColorPalette() {
+        return palette;
     }
 
     // Method to initialize the UI components
@@ -100,6 +105,10 @@ public class MainFrame extends JFrame {
         // Add the container to the center of the BorderLayout
         add(splitPane, BorderLayout.CENTER);
         //contentPane.add(splitPane, BorderLayout.EAST);
+
+        // Add color palette (just before status bar)
+        palette = new ColorPalette(canvas);
+        contentPane.add(palette, BorderLayout.NORTH);
 
         // Add status bar (at the bottom)
         JPanel statusBar = new JPanel(new BorderLayout());

@@ -486,7 +486,6 @@ public class DrawingCanvas extends JPanel {
                 viewport.setViewPosition(newViewPosition);
             }
 
-            System.out.println("Zoom factor: " + zoomFactor);
             revalidate();
             repaint();
 
