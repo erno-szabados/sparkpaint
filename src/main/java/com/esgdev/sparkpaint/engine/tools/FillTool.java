@@ -10,12 +10,17 @@ import java.awt.image.BufferedImage;
 import java.util.Stack;
 
 public class FillTool implements DrawingTool {
-    private static final int FILL_EPSILON = 30;
+    public static final int DEFAULT_FILL_EPSILON = 30;
     private final DrawingCanvas canvas;
     private final Cursor cursor = Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR);
+    private int epsilon;
 
     public FillTool(DrawingCanvas canvas) {
         this.canvas = canvas;
+    }
+
+    public void setEpsilon(int value) {
+        this.epsilon = value;
     }
 
     @Override
@@ -30,7 +35,7 @@ public class FillTool implements DrawingTool {
         BufferedImage bufferedImage = (BufferedImage) canvas.getImage();
         Color targetColor = new Color(bufferedImage.getRGB(point.x, point.y));
         Color replacementColor = SwingUtilities.isLeftMouseButton(e) ? canvas.getDrawingColor() : canvas.getFillColor();
-        floodFill(bufferedImage, point.x, point.y, targetColor, replacementColor, FILL_EPSILON);
+        floodFill(bufferedImage, point.x, point.y, targetColor, replacementColor, epsilon);
         canvas.repaint();
     }
 
