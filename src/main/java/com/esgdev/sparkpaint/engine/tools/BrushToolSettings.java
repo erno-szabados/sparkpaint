@@ -34,14 +34,14 @@ public class BrushToolSettings extends BaseToolSettings {
         JLabel sizeLabel = new JLabel("Brush Size:");
         sizeLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        sizeSlider = new JSlider(JSlider.HORIZONTAL, 1, 20, 1);
+        sizeSlider = new JSlider(JSlider.HORIZONTAL, 1, 50, BrushTool.DEFAULT_SPRAY_SIZE);
         sizeSlider.setMaximumSize(new Dimension(150, 25));
         sizeSlider.setAlignmentX(Component.LEFT_ALIGNMENT);
         sizeSlider.setPaintTicks(true);
         sizeSlider.setMajorTickSpacing(5);
         sizeSlider.setMinorTickSpacing(1);
 
-        sizeValueLabel = new JLabel("1");
+        sizeValueLabel = new JLabel(String.valueOf(BrushTool.DEFAULT_SPRAY_SIZE));
         sizeValueLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         sizeSlider.addChangeListener(e -> {
@@ -60,7 +60,7 @@ public class BrushToolSettings extends BaseToolSettings {
         sprayDensitySlider.setMajorTickSpacing(20);
         sprayDensitySlider.setMinorTickSpacing(5);
 
-        sprayDensityValueLabel = new JLabel("20");
+        sprayDensityValueLabel = new JLabel(String.valueOf(BrushTool.DEFAULT_SPRAY_DENSITY));
         sprayDensityValueLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         sprayDensitySlider.addChangeListener(e -> {
@@ -99,11 +99,11 @@ public class BrushToolSettings extends BaseToolSettings {
 
     @Override
     public void resetToDefaults() {
-        sizeSlider.setValue(1);
-        sizeValueLabel.setText("1");
-        shapeComboBox.setSelectedItem(BrushTool.BrushShape.PIXEL);
-        sprayDensitySlider.setValue(20);
-        sprayDensityValueLabel.setText("20");
+        sizeSlider.setValue(BrushTool.DEFAULT_SPRAY_SIZE);
+        sizeValueLabel.setText(String.valueOf(BrushTool.DEFAULT_SPRAY_SIZE));
+        shapeComboBox.setSelectedItem(BrushTool.BrushShape.SQUARE);
+        sprayDensitySlider.setValue(BrushTool.DEFAULT_SPRAY_DENSITY);
+        sprayDensityValueLabel.setText(String.valueOf(BrushTool.DEFAULT_SPRAY_DENSITY));
         applySettings();
     }
 }

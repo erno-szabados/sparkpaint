@@ -10,19 +10,19 @@ import java.util.Random;
 
 public class BrushTool implements DrawingTool {
     public enum BrushShape {
-        PIXEL,
         SQUARE,
         CIRCLE,
         SPRAY
     }
 
     private final Random random = new Random();
-    private static final int DEFAULT_SPRAY_DENSITY = 20;
+    public static final int DEFAULT_SPRAY_DENSITY = 20;
+    public static final int DEFAULT_SPRAY_SIZE = 5;
     private final DrawingCanvas canvas;
     private final Cursor cursor = Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR);
     private Point lastPoint;
-    private BrushShape shape = BrushShape.PIXEL;
-    private int size = 1;
+    private BrushShape shape = BrushShape.SQUARE;
+    private int size = DEFAULT_SPRAY_SIZE;
     private int sprayDensity = DEFAULT_SPRAY_DENSITY;
 
     public BrushTool(DrawingCanvas canvas) {
@@ -61,9 +61,6 @@ public class BrushTool implements DrawingTool {
             int y = p.y - size / 2;
 
             switch (shape) {
-                case PIXEL:
-                    image.setRGB(p.x, p.y, canvas.getDrawingColor().getRGB());
-                    break;
                 case SQUARE:
                     g2d.fillRect(x, y, size, size);
                     break;
@@ -108,7 +105,6 @@ public class BrushTool implements DrawingTool {
     @Override
     public String statusMessage() {
         switch (shape) {
-            case PIXEL: return "Brush tool: Pixel mode";
             case SQUARE: return "Brush tool: Square mode";
             case CIRCLE: return  "Brush tool: Circle mode";
             case SPRAY: return "Brush tool: Spray mode";
