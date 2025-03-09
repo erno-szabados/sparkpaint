@@ -10,6 +10,8 @@ public class BrushToolSettings extends BaseToolSettings {
     private JLabel sizeValueLabel;
     private JComboBox<BrushTool.BrushShape> shapeComboBox;
     private final BrushTool brushTool;
+    private JSlider sprayDensitySlider;
+    private JLabel sprayDensityValueLabel;
 
     public BrushToolSettings(DrawingCanvas canvas) {
         super(canvas);
@@ -47,6 +49,25 @@ public class BrushToolSettings extends BaseToolSettings {
             applySettings();
         });
 
+        // Spray density slider
+        JLabel sprayDensityLabel = new JLabel("Spray Density:");
+        sprayDensityLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        sprayDensitySlider = new JSlider(JSlider.HORIZONTAL, 1, 100, 20);
+        sprayDensitySlider.setMaximumSize(new Dimension(150, 25));
+        sprayDensitySlider.setAlignmentX(Component.LEFT_ALIGNMENT);
+        sprayDensitySlider.setPaintTicks(true);
+        sprayDensitySlider.setMajorTickSpacing(20);
+        sprayDensitySlider.setMinorTickSpacing(5);
+
+        sprayDensityValueLabel = new JLabel("20");
+        sprayDensityValueLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        sprayDensitySlider.addChangeListener(e -> {
+            sprayDensityValueLabel.setText(String.valueOf(sprayDensitySlider.getValue()));
+            applySettings();
+        });
+
         panel.add(shapeLabel);
         panel.add(Box.createVerticalStrut(2));
         panel.add(shapeComboBox);
@@ -57,6 +78,12 @@ public class BrushToolSettings extends BaseToolSettings {
         panel.add(Box.createVerticalStrut(2));
         panel.add(sizeValueLabel);
         panel.add(Box.createVerticalStrut(5));
+        panel.add(sprayDensityLabel);
+        panel.add(Box.createVerticalStrut(2));
+        panel.add(sprayDensitySlider);
+        panel.add(Box.createVerticalStrut(2));
+        panel.add(sprayDensityValueLabel);
+        panel.add(Box.createVerticalStrut(5));
 
         return panel;
     }
@@ -66,6 +93,7 @@ public class BrushToolSettings extends BaseToolSettings {
         if (canvas.getCurrentTool() == DrawingCanvas.Tool.BRUSH) {
             brushTool.setSize(sizeSlider.getValue());
             brushTool.setShape((BrushTool.BrushShape) shapeComboBox.getSelectedItem());
+            brushTool.setSprayDensity(sprayDensitySlider.getValue());
         }
     }
 
@@ -74,6 +102,8 @@ public class BrushToolSettings extends BaseToolSettings {
         sizeSlider.setValue(1);
         sizeValueLabel.setText("1");
         shapeComboBox.setSelectedItem(BrushTool.BrushShape.PIXEL);
+        sprayDensitySlider.setValue(20);
+        sprayDensityValueLabel.setText("20");
         applySettings();
     }
 }

@@ -6,20 +6,24 @@ import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.awt.image.BufferedImage;
+import java.util.Random;
 
 public class BrushTool implements DrawingTool {
     public enum BrushShape {
         PIXEL,
         SQUARE,
-        CIRCLE
+        CIRCLE,
+        SPRAY
     }
 
-
+    private final Random random = new Random();
+    private static final int DEFAULT_SPRAY_DENSITY = 20;
     private final DrawingCanvas canvas;
     private final Cursor cursor = Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR);
     private Point lastPoint;
     private BrushShape shape = BrushShape.PIXEL;
     private int size = 1;
+    private int sprayDensity = DEFAULT_SPRAY_DENSITY;
 
     public BrushTool(DrawingCanvas canvas) {
         this.canvas = canvas;
@@ -66,6 +70,9 @@ public class BrushTool implements DrawingTool {
                 case CIRCLE:
                     g2d.fillOval(x, y, size, size);
                     break;
+                case SPRAY:
+                    sprayPaint(image, p);
+                    break;
             }
             g2d.dispose();
         }
@@ -77,6 +84,10 @@ public class BrushTool implements DrawingTool {
 
     public void setSize(int size) {
         this.size = size;
+    }
+
+    public void setSprayDensity(int sprayDensity) {
+        this.sprayDensity = sprayDensity;
     }
 
     @Override
@@ -96,6 +107,33 @@ public class BrushTool implements DrawingTool {
 
     @Override
     public String statusMessage() {
-        return "Brush tool selected (pixel mode)";
+        switch (shape) {
+            case PIXEL: return "Brush tool: Pixel mode";
+            case SQUARE: return "Brush tool: Square mode";
+            case CIRCLE: return  "Brush tool: Circle mode";
+            case SPRAY: return "Brush tool: Spray mode";
+            default:
+                return "Brush tool: Unknown mode";
+        }
+    }
+
+    private void sprayPaint(BufferedImage image, Point center) {
+        int color = canvas.getDrawingColor().getRGB();
+        int radius = size / 2;
+
+        for (int i = 0; i < sprayDensity; i++) {
+            double angle = random.nextDouble() * 2 * Math.PI;
+            double distance = random.nextDouble() * radius;
+
+            int dx = (int) (distance * Math.cos(angle));
+            int dy = (int) (distance * Math.sin(angle));
+
+            int x = center.x + dx;
+            int y = center.y + dy;
+
+            if (x >= 0 && x < image.getWidth() && y >= 0 && y < image.getHeight()) {
+                image.setRGB(x, y, color);
+            }
+        }
     }
 }
