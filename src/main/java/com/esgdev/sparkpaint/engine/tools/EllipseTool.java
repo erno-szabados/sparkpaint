@@ -15,7 +15,7 @@ package com.esgdev.sparkpaint.engine.tools;
 
         public EllipseTool(DrawingCanvas canvas) {
             this.canvas = canvas;
-            this.isFilled = true;
+            this.isFilled = false;
         }
 
         @Override

@@ -15,7 +15,7 @@ public class CircleTool implements DrawingTool {
 
     public CircleTool(DrawingCanvas canvas) {
         this.canvas = canvas;
-        this.isFilled = true;
+        this.isFilled = false;
     }
 
     @Override
