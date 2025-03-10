@@ -123,6 +123,8 @@ public class DrawingCanvas extends JPanel {
         graphics = newGraphics;
         tempCanvas = newTempCanvas;
 
+        precacheZoomGrid(width, height);
+
         notifyDrawingColorChanged();
         notifyFillColorChanged();
         clearHistory();
@@ -323,24 +325,32 @@ public class DrawingCanvas extends JPanel {
         }
 
         BufferedImage cachedGrid = zoomGridCacheMap.get(zoomFactor);
-        if (cachedGrid == null) {
-            int scaledWidth = (int) (image.getWidth(null) * zoomFactor);
-            int scaledHeight = (int) (image.getHeight(null) * zoomFactor);
-            cachedGrid = new BufferedImage(scaledWidth, scaledHeight, BufferedImage.TYPE_INT_ARGB);
+        if (cachedGrid != null)
+            g2d.drawImage(cachedGrid, 0, 0, null);
+    }
+
+    private void precacheZoomGrid(int width, int height) {
+        // Clear existing cache
+        zoomGridCacheMap.clear();
+
+        // Pre-cache grids for high zoom levels
+        float[] highZoomLevels = {8.0f, 12.0f};
+        for (float zoom : highZoomLevels) {
+            int scaledWidth = (int) (width * zoom);
+            int scaledHeight = (int) (height * zoom);
+            BufferedImage cachedGrid = new BufferedImage(scaledWidth, scaledHeight, BufferedImage.TYPE_INT_ARGB);
             Graphics2D gridGraphics = cachedGrid.createGraphics();
 
             gridGraphics.setColor(new Color(200, 200, 200, 100));
-            for (int x = 0; x <= scaledWidth; x += (int) zoomFactor) {
+            for (int x = 0; x <= scaledWidth; x += (int) zoom) {
                 gridGraphics.drawLine(x, 0, x, scaledHeight);
             }
-            for (int y = 0; y <= scaledHeight; y += (int) zoomFactor) {
+            for (int y = 0; y <= scaledHeight; y += (int) zoom) {
                 gridGraphics.drawLine(0, y, scaledWidth, y);
             }
             gridGraphics.dispose();
-            zoomGridCacheMap.put(zoomFactor, cachedGrid);
+            zoomGridCacheMap.put(zoom, cachedGrid);
         }
-
-        g2d.drawImage(cachedGrid, 0, 0, null);
     }
 
     private void initTools() {
