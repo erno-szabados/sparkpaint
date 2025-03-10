@@ -54,6 +54,9 @@ public class DrawingCanvas extends JPanel {
     private Color canvasBackground = Color.WHITE;
     private float lineThickness = 2.0f;
     private float zoomFactor = 1.0f;
+    private BufferedImage zoomGridCache;
+    private float cachedZoomFactor = -1.0f;
+    private Map<Float, BufferedImage> zoomGridCacheMap = new HashMap<>();
 
     private final List<ToolChangeListener> toolChangeListeners = new ArrayList<>();
     private final List<CanvasPropertyChangeListener> propertyChangeListeners = new ArrayList<>();
@@ -300,22 +303,7 @@ public class DrawingCanvas extends JPanel {
         g2d.scale(1 / zoomFactor, 1 / zoomFactor);
 
         // Draw grid when zoom factor is greater than 5
-        if (zoomFactor > 5.0f) {
-            // Get scaled dimensions
-            int scaledWidth = (int) (image.getWidth(null) * zoomFactor);
-            int scaledHeight = (int) (image.getHeight(null) * zoomFactor);
-
-            g2d.setColor(new Color(200, 200, 200, 100));
-
-            // Draw vertical lines for each pixel
-            for (int x = 0; x <= scaledWidth; x += (int) zoomFactor) {
-                g2d.drawLine(x, 0, x, scaledHeight);
-            }
-            // Draw horizontal lines for each pixel
-            for (int y = 0; y <= scaledHeight; y += (int) zoomFactor) {
-                g2d.drawLine(0, y, scaledWidth, y);
-            }
-        }
+        renderZoomGrid(g2d);
 
         // Restore scale for selection tool
         g2d.scale(zoomFactor, zoomFactor);
@@ -327,6 +315,32 @@ public class DrawingCanvas extends JPanel {
         if (tool instanceof SelectionTool) {
             ((SelectionTool) tool).drawSelection(g2d);
         }
+    }
+
+    private void renderZoomGrid(Graphics2D g2d) {
+        if (zoomFactor <= 5.0f) {
+            return;
+        }
+
+        BufferedImage cachedGrid = zoomGridCacheMap.get(zoomFactor);
+        if (cachedGrid == null) {
+            int scaledWidth = (int) (image.getWidth(null) * zoomFactor);
+            int scaledHeight = (int) (image.getHeight(null) * zoomFactor);
+            cachedGrid = new BufferedImage(scaledWidth, scaledHeight, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D gridGraphics = cachedGrid.createGraphics();
+
+            gridGraphics.setColor(new Color(200, 200, 200, 100));
+            for (int x = 0; x <= scaledWidth; x += (int) zoomFactor) {
+                gridGraphics.drawLine(x, 0, x, scaledHeight);
+            }
+            for (int y = 0; y <= scaledHeight; y += (int) zoomFactor) {
+                gridGraphics.drawLine(0, y, scaledWidth, y);
+            }
+            gridGraphics.dispose();
+            zoomGridCacheMap.put(zoomFactor, cachedGrid);
+        }
+
+        g2d.drawImage(cachedGrid, 0, 0, null);
     }
 
     private void initTools() {
@@ -488,14 +502,23 @@ public class DrawingCanvas extends JPanel {
             double relativeY = cursorPoint.y / (image.getHeight(null) * zoomFactor);
 
 
+            // Define valid zoom factors
+            float[] zoomLevels = {1.0f, 2.0f, 4.0f, 8.0f, 12.0f};
+
             if (e.getWheelRotation() < 0) { // Zoom in
-                zoomFactor *= 2.0f;
-                zoomFactor = (float) (Math.round(zoomFactor * 10.0) / 10.0);
-                zoomFactor = Math.min(zoomFactor, MAX_ZOOM_FACTOR);
+                for (float zoomLevel : zoomLevels) {
+                    if (zoomFactor < zoomLevel) {
+                        zoomFactor = zoomLevel;
+                        break;
+                    }
+                }
             } else { // Zoom out
-                zoomFactor /= 2.0f;
-                zoomFactor = (float) (Math.round(zoomFactor * 10.0) / 10.0);
-                zoomFactor = Math.max(zoomFactor, MIN_ZOOM_FACTOR);
+                for (int i = zoomLevels.length - 1; i >= 0; i--) {
+                    if (zoomFactor > zoomLevels[i]) {
+                        zoomFactor = zoomLevels[i];
+                        break;
+                    }
+                }
             }
 
             // Update preferred size based on zoom factor
