@@ -2,6 +2,7 @@ package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
@@ -37,7 +38,11 @@ public class PencilTool implements DrawingTool {
             return;
         }
         g2d.setStroke(new BasicStroke(canvas.getLineThickness()));
-        g2d.setColor(canvas.getDrawingColor());
+        if (SwingUtilities.isLeftMouseButton(e)) {
+            g2d.setColor(canvas.getDrawingColor());
+        } else if (SwingUtilities.isRightMouseButton(e)) {
+            g2d.setColor(canvas.getFillColor());
+        }
         g2d.drawLine(startPoint.x, startPoint.y, point.x, point.y);
         startPoint = point;
         canvas.repaint();

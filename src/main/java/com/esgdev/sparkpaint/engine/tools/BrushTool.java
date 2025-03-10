@@ -2,6 +2,7 @@ package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
@@ -38,23 +39,27 @@ public class BrushTool implements DrawingTool {
     public void mousePressed(MouseEvent e) {
         lastPoint = scalePoint(canvas, e.getPoint());
         canvas.saveToUndoStack();
-        drawShape(lastPoint);
+        drawShape(e, lastPoint);
         canvas.repaint();
     }
 
     @Override
     public void mouseDragged(MouseEvent e) {
         Point currentPoint = scalePoint(canvas, e.getPoint());
-        drawShape(currentPoint);
+        drawShape(e, currentPoint);
         lastPoint = currentPoint;
         canvas.repaint();
     }
 
-    private void drawShape(Point p) {
+    private void drawShape(MouseEvent e, Point p) {
         BufferedImage image = (BufferedImage) canvas.getImage();
         if (image != null) {
             Graphics2D g2d = image.createGraphics();
-            g2d.setColor(canvas.getDrawingColor());
+            if (SwingUtilities.isLeftMouseButton(e)) {
+                g2d.setColor(canvas.getDrawingColor());
+            } else if (SwingUtilities.isRightMouseButton(e)) {
+                g2d.setColor(canvas.getFillColor());
+            }
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
             int x = p.x - size / 2;
@@ -68,7 +73,7 @@ public class BrushTool implements DrawingTool {
                     g2d.fillOval(x, y, size, size);
                     break;
                 case SPRAY:
-                    sprayPaint(image, p);
+                    sprayPaint(e, image, p);
                     break;
             }
             g2d.dispose();
@@ -113,8 +118,14 @@ public class BrushTool implements DrawingTool {
         }
     }
 
-    private void sprayPaint(BufferedImage image, Point center) {
-        int color = canvas.getDrawingColor().getRGB();
+    private void sprayPaint(MouseEvent e, BufferedImage image, Point center) {
+        int color;
+        if (SwingUtilities.isLeftMouseButton(e)) {
+            color = canvas.getDrawingColor().getRGB();
+        } else if (SwingUtilities.isRightMouseButton(e)) {
+            color = canvas.getFillColor().getRGB();
+        } else return;
+
         int radius = size / 2;
 
         for (int i = 0; i < sprayDensity; i++) {

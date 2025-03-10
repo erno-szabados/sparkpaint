@@ -2,6 +2,7 @@ package com.esgdev.sparkpaint.engine.tools;
 
     import com.esgdev.sparkpaint.engine.DrawingCanvas;
 
+    import javax.swing.*;
     import java.awt.*;
     import java.awt.event.MouseEvent;
     import java.awt.event.MouseWheelEvent;
@@ -38,7 +39,11 @@ package com.esgdev.sparkpaint.engine.tools;
                     useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
             g2d.drawImage(canvas.getImage(), 0, 0, null);
             g2d.setStroke(new BasicStroke(canvas.getLineThickness()));
-            g2d.setColor(canvas.getDrawingColor());
+            if (SwingUtilities.isLeftMouseButton(e)) {
+                g2d.setColor(canvas.getDrawingColor());
+            } else if (SwingUtilities.isRightMouseButton(e)) {
+                g2d.setColor(canvas.getFillColor());
+            }
             g2d.drawLine(startPoint.x, startPoint.y, point.x, point.y);
             g2d.dispose();
             canvas.setTempCanvas(tempCanvas);
@@ -57,7 +62,11 @@ package com.esgdev.sparkpaint.engine.tools;
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                     useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
             g2d.setStroke(new BasicStroke(canvas.getLineThickness()));
-            g2d.setColor(canvas.getDrawingColor());
+            if (SwingUtilities.isLeftMouseButton(e)) {
+                g2d.setColor(canvas.getDrawingColor());
+            } else if (SwingUtilities.isRightMouseButton(e)) {
+                g2d.setColor(canvas.getFillColor());
+            }
             g2d.drawLine(startPoint.x, startPoint.y, point.x, point.y);
             canvas.setTempCanvas(null);
             canvas.repaint();
