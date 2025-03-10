@@ -65,7 +65,6 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         this.add(createLineButton());
         this.add(createRectangleButton());
         this.add(createCircleButton());
-        this.add(createEllipseButton());
         this.addSeparator();
         this.add(createFillButton());
         this.add(createEyedropperButton());
@@ -245,18 +244,6 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         toolGroup.add(button);
         return button;
     }
-
-    private JToggleButton createEllipseButton() {
-        ImageIcon icon = IconLoader.loadAndScaleIcon("ellipse-outline.png", IconWidth, IconHeight);
-        JToggleButton button = new JToggleButton(icon);
-        button.setToolTipText("Ellipse Tool");
-        button.addActionListener(e -> {
-            canvas.setCurrentTool(DrawingCanvas.Tool.ELLIPSE);
-            statusMessageHandler.setStatusMessage("Ellipse tool selected.");});
-        toolGroup.add(button);
-        return button;
-    }
-
 
     private JToggleButton createFillButton() {
         JToggleButton button = new JToggleButton();

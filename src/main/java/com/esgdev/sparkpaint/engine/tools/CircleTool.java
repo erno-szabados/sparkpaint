@@ -13,6 +13,7 @@ public class CircleTool implements DrawingTool {
     private Point startPoint;
     private boolean isFilled;
     private boolean useAntiAliasing = true;
+    private boolean isCenterBased = false;
 
     public CircleTool(DrawingCanvas canvas) {
         this.canvas = canvas;
@@ -42,16 +43,7 @@ public class CircleTool implements DrawingTool {
         g2d.drawImage(canvas.getImage(), 0, 0, null);
         g2d.setStroke(new BasicStroke(canvas.getLineThickness()));
         g2d.setColor(canvas.getDrawingColor());
-        int radius = (int) Math.sqrt(Math.pow(point.x - startPoint.x, 2) + Math.pow(point.y - startPoint.y, 2));
-        int x = startPoint.x - radius;
-        int y = startPoint.y - radius;
-        int diameter = radius * 2;
-        if (isFilled) {
-            g2d.setColor(canvas.getFillColor());
-            g2d.fillOval(x, y, diameter, diameter);
-        }
-        g2d.setColor(canvas.getDrawingColor());
-        g2d.drawOval(x, y, diameter, diameter);
+        drawCircle(g2d, startPoint, point);
         g2d.dispose();
         canvas.setTempCanvas(tempCanvas);
         canvas.repaint();
@@ -69,16 +61,7 @@ public class CircleTool implements DrawingTool {
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                 useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
         g2d.setStroke(new BasicStroke(canvas.getLineThickness()));
-        int radius = (int) Math.sqrt(Math.pow(point.x - startPoint.x, 2) + Math.pow(point.y - startPoint.y, 2));
-        int x = startPoint.x - radius;
-        int y = startPoint.y - radius;
-        int diameter = radius * 2;
-        if (isFilled) {
-            g2d.setColor(canvas.getFillColor());
-            g2d.fillOval(x, y, diameter, diameter);
-        }
-        g2d.setColor(canvas.getDrawingColor());
-        g2d.drawOval(x, y, diameter, diameter);
+        drawCircle(g2d, startPoint, point);
         g2d.dispose();
         canvas.setTempCanvas(null);
         canvas.repaint();
@@ -108,5 +91,42 @@ public class CircleTool implements DrawingTool {
         this.useAntiAliasing = useAntiAliasing;
     }
 
+    public void setCenterBased(boolean centerBased) {
+        this.isCenterBased = centerBased;
+    }
 
+    private void drawCircle(Graphics2D g2d, Point start, Point end) {
+        if (isCenterBased) {
+            drawCenterBasedCircle(g2d, start, end);
+        } else {
+            drawCornerBasedCircle(g2d, start, end);
+        }
+    }
+
+    private void drawCenterBasedCircle(Graphics2D g2d, Point center, Point end) {
+        int radius = (int) Math.sqrt(Math.pow(end.x - center.x, 2) + Math.pow(end.y - center.y, 2));
+        int x = center.x - radius;
+        int y = center.y - radius;
+        int diameter = radius * 2;
+
+        if (isFilled) {
+            g2d.setColor(canvas.getFillColor());
+            g2d.fillOval(x, y, diameter, diameter);
+        }
+        g2d.setColor(canvas.getDrawingColor());
+        g2d.drawOval(x, y, diameter, diameter);
+    }
+
+    private void drawCornerBasedCircle(Graphics2D g2d, Point start, Point end) {
+        int x = Math.min(start.x, end.x);
+        int y = Math.min(start.y, end.y);
+        int width = Math.abs(end.x - start.x);
+        int height = Math.abs(end.y - start.y);
+        if (isFilled) {
+            g2d.setColor(canvas.getFillColor());
+            g2d.fillOval(x, y, width, height);
+        }
+        g2d.setColor(canvas.getDrawingColor());
+        g2d.drawOval(x, y, width, height);
+    }
 }

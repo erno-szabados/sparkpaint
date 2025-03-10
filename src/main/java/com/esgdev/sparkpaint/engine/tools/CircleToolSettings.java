@@ -10,6 +10,8 @@ public class CircleToolSettings extends BaseToolSettings {
     private JSlider thicknessSlider;
     private JLabel thicknessValueLabel;
     private JCheckBox antiAliasingCheckbox;
+    private JRadioButton cornerBasedButton;
+    private JRadioButton centerBasedButton;
     private boolean useAntiAliasing = true;  // Default value
 
     public CircleToolSettings(DrawingCanvas canvas) {
@@ -19,6 +21,27 @@ public class CircleToolSettings extends BaseToolSettings {
     @Override
     public JComponent createSettingsPanel() {
         JPanel panel = (JPanel) super.createSettingsPanel();
+        ButtonGroup drawModeGroup = new ButtonGroup();
+        JPanel drawModePanel = new JPanel();
+        drawModePanel.setLayout(new BoxLayout(drawModePanel, BoxLayout.Y_AXIS));
+        drawModePanel.setBorder(BorderFactory.createTitledBorder("Draw Mode"));
+
+        cornerBasedButton = new JRadioButton("Ellipse", true);
+        cornerBasedButton.setToolTipText("Draws an ellipse based on the corner points");
+        centerBasedButton = new JRadioButton("Circle");
+        centerBasedButton.setToolTipText("Draws a circle based on the center point");
+
+        cornerBasedButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        centerBasedButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        drawModeGroup.add(cornerBasedButton);
+        drawModeGroup.add(centerBasedButton);
+
+        cornerBasedButton.addActionListener(e -> applySettings());
+        centerBasedButton.addActionListener(e -> applySettings());
+
+        drawModePanel.add(cornerBasedButton);
+        drawModePanel.add(centerBasedButton);
 
         // Fill checkbox
         filledCheckBox = new JCheckBox("Filled");
@@ -52,6 +75,8 @@ public class CircleToolSettings extends BaseToolSettings {
         antiAliasingCheckbox.addActionListener(e -> applySettings());
 
         // Add components
+        panel.add(drawModePanel);
+        panel.add(Box.createVerticalStrut(5));
         panel.add(filledCheckBox);
         panel.add(Box.createVerticalStrut(5));
         panel.add(thicknessLabel);
@@ -71,6 +96,7 @@ public class CircleToolSettings extends BaseToolSettings {
             if (canvas.getActiveTool() instanceof CircleTool) {
                 CircleTool tool = (CircleTool) canvas.getActiveTool();
                 tool.setFilled(filledCheckBox.isSelected());
+                tool.setCenterBased(centerBasedButton.isSelected());
                 useAntiAliasing = antiAliasingCheckbox.isSelected();
                 canvas.setLineThickness(thicknessSlider.getValue());
                 tool.setAntiAliasing(useAntiAliasing);

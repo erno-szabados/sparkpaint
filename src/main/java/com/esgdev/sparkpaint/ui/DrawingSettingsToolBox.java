@@ -28,7 +28,6 @@ public class DrawingSettingsToolBox extends Box implements ToolChangeListener {
     private void initializeToolSettings(DrawingCanvas canvas) {
         toolSettings.put(DrawingCanvas.Tool.RECTANGLE, new RectangleToolSettings(canvas));
         toolSettings.put(DrawingCanvas.Tool.CIRCLE, new CircleToolSettings(canvas));
-        toolSettings.put(DrawingCanvas.Tool.ELLIPSE, new EllipseToolSettings(canvas));
         toolSettings.put(DrawingCanvas.Tool.LINE, new LineToolSettings(canvas));
         toolSettings.put(DrawingCanvas.Tool.PENCIL, new PencilToolSettings(canvas));
         toolSettings.put(DrawingCanvas.Tool.BRUSH, new BrushToolSettings(canvas));

@@ -31,7 +31,6 @@ public class DrawingCanvas extends JPanel {
         LINE,
         RECTANGLE,
         CIRCLE,
-        ELLIPSE,
         SELECTION,
         FILL,
         EYEDROPPER
@@ -357,7 +356,6 @@ public class DrawingCanvas extends JPanel {
         tools.put(Tool.LINE, new LineTool(this));
         tools.put(Tool.RECTANGLE, new RectangleTool(this));
         tools.put(Tool.CIRCLE, new CircleTool(this));
-        tools.put(Tool.ELLIPSE, new EllipseTool(this));
         tools.put(Tool.FILL, new FillTool(this));
         tools.put(Tool.EYEDROPPER, new EyedropperTool(this));
         tools.put(Tool.PENCIL, new PencilTool(this));
