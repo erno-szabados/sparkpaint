@@ -180,9 +180,15 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener, Clipboard
     private void handleSelectAll(ActionEvent e) {
         BufferedImage image = (BufferedImage) canvas.getImage();
         if (image != null) {
+            canvas.saveToUndoStack();
+           Rectangle rectangle = new Rectangle(0, 0, image.getWidth(), image.getHeight());
             canvas.setCurrentTool(DrawingCanvas.Tool.SELECTION);
-            canvas.setSelectionRectangle(new Rectangle(0, 0, image.getWidth(), image.getHeight()));
-            canvas.setSelectionContent(image);
+            canvas.setSelectionRectangle(rectangle);
+            BufferedImage selectionContent = new BufferedImage(rectangle.width, rectangle.height, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2d = selectionContent.createGraphics();
+            g2d.drawImage(image, -rectangle.x, -rectangle.y, null);
+            g2d.dispose();
+            canvas.setSelectionContent(selectionContent);
             canvas.notifyClipboardStateChanged();
             canvas.repaint();
         }
