@@ -104,7 +104,6 @@ public class MainFrame extends JFrame {
 
         // Add the container to the center of the BorderLayout
         add(splitPane, BorderLayout.CENTER);
-        //contentPane.add(splitPane, BorderLayout.EAST);
 
         // Add color palette (just before status bar)
         palette = new ColorPalette(canvas);

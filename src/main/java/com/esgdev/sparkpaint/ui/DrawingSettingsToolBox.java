@@ -4,6 +4,7 @@ import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.tools.*;
 
 import javax.swing.*;
+import java.awt.*;
 import java.util.EnumMap;
 import java.util.Map;
 
@@ -18,9 +19,11 @@ public class DrawingSettingsToolBox extends Box implements ToolChangeListener {
         this.toolSettings = new EnumMap<>(DrawingCanvas.Tool.class);
         this.settingsPanel = new JPanel();
         this.settingsPanel.setLayout(new BoxLayout(settingsPanel, BoxLayout.Y_AXIS));
+        JPanel containerPanel = new JPanel(new BorderLayout());
+        containerPanel.add(this.settingsPanel, BorderLayout.CENTER);
 
         initializeToolSettings(canvas);
-        add(settingsPanel);
+        add(containerPanel);
 
         canvas.addToolChangeListener(this);
     }

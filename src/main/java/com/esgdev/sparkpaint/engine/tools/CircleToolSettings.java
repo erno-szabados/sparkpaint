@@ -25,6 +25,9 @@ public class CircleToolSettings extends BaseToolSettings {
         JPanel drawModePanel = new JPanel();
         drawModePanel.setLayout(new BoxLayout(drawModePanel, BoxLayout.Y_AXIS));
         drawModePanel.setBorder(BorderFactory.createTitledBorder("Draw Mode"));
+        JPanel containerPanel = new JPanel(new BorderLayout());
+        containerPanel.add(drawModePanel, BorderLayout.CENTER);
+        containerPanel.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 80));
 
         cornerBasedButton = new JRadioButton("Ellipse", true);
         cornerBasedButton.setToolTipText("Draws an ellipse based on the corner points");
@@ -75,7 +78,7 @@ public class CircleToolSettings extends BaseToolSettings {
         antiAliasingCheckbox.addActionListener(e -> applySettings());
 
         // Add components
-        panel.add(drawModePanel);
+        panel.add(containerPanel);
         panel.add(Box.createVerticalStrut(5));
         panel.add(filledCheckBox);
         panel.add(Box.createVerticalStrut(5));
