@@ -6,9 +6,11 @@ import com.esgdev.sparkpaint.engine.UndoRedoChangeListener;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 
 public class EditMenu extends JMenu implements UndoRedoChangeListener, ClipboardChangeListener {
@@ -49,6 +51,24 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener, Clipboard
         pasteItem.addActionListener(this::handlePaste);
         pasteItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_MASK)); // Ctrl+V
         add(pasteItem);
+
+        // In EditMenu class constructor, after the paste item
+        addSeparator();
+
+        // Add Select All item
+        JMenuItem selectAllItem = new JMenuItem("Select All");
+        selectAllItem.setMnemonic('A');
+        selectAllItem.addActionListener(this::handleSelectAll);
+        selectAllItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_MASK));
+        add(selectAllItem);
+
+        // Add Delete item
+        JMenuItem deleteItem = new JMenuItem("Delete");
+        deleteItem.setMnemonic('D');
+        deleteItem.addActionListener(this::handleDelete);
+        deleteItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0));
+        add(deleteItem);
+
         // Register for clipboard changes
         canvas.addClipboardChangeListener(this);
 
@@ -154,6 +174,32 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener, Clipboard
                     "Error pasting clipboard content!: " + ex.getMessage(),
                     "Clipboard Error",
                     JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void handleSelectAll(ActionEvent e) {
+        BufferedImage image = (BufferedImage) canvas.getImage();
+        if (image != null) {
+            canvas.setCurrentTool(DrawingCanvas.Tool.SELECTION);
+            canvas.setSelectionRectangle(new Rectangle(0, 0, image.getWidth(), image.getHeight()));
+            canvas.setSelectionContent(image);
+            canvas.notifyClipboardStateChanged();
+            canvas.repaint();
+        }
+    }
+
+    private void handleDelete(ActionEvent e) {
+        Rectangle selection = canvas.getSelectionRectangle();
+        if (selection != null && canvas.getSelectionContent() != null) {
+            Graphics2D g2d = canvas.getCanvasGraphics();
+            g2d.setColor(canvas.getCanvasBackground());
+            g2d.fillRect(selection.x, selection.y, selection.width, selection.height);
+            g2d.dispose();
+            canvas.setSelectionRectangle(null);
+            canvas.setSelectionContent(null);
+            canvas.notifyClipboardStateChanged();
+            canvas.saveToUndoStack();
+            canvas.repaint();
         }
     }
 

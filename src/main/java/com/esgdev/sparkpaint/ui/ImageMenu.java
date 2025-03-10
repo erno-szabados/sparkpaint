@@ -52,22 +52,21 @@ public class ImageMenu extends JMenu {
 
         if (image != null) {
             String message = String.format("Image Size: %dx%d pixels\nFile Path: %s",
-                                            image.getWidth(), image.getHeight(),
-                                            filePath != null ? filePath : "Unsaved");
+                    image.getWidth(), image.getHeight(),
+                    filePath != null ? filePath : "Unsaved");
             JOptionPane.showMessageDialog(mainFrame, message, "Image Information", JOptionPane.INFORMATION_MESSAGE);
         } else {
             JOptionPane.showMessageDialog(mainFrame, "No image loaded.", "Image Information", JOptionPane.WARNING_MESSAGE);
         }
     }
 
-   private void handleResize(ActionEvent e) {
+    private void handleResize(ActionEvent e) {
         BufferedImage currentImage = (BufferedImage) canvas.getImage();
         if (currentImage == null) {
             JOptionPane.showMessageDialog(mainFrame, "No image loaded.", "Resize", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        // Create dialog panel with width and height inputs
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 
@@ -85,8 +84,30 @@ public class ImageMenu extends JMenu {
         heightPanel.add(heightLabel);
         heightPanel.add(heightSpinner);
 
+        // Maintain aspect ratio checkbox
+        JPanel ratioPanel = new JPanel();
+        JCheckBox maintainRatioBox = new JCheckBox("Maintain aspect ratio");
+        ratioPanel.add(maintainRatioBox);
+
+        // Add change listeners for aspect ratio maintenance
+        double aspectRatio = (double) currentImage.getWidth() / currentImage.getHeight();
+        widthSpinner.addChangeListener(e1 -> {
+            if (maintainRatioBox.isSelected()) {
+                int width = (Integer) widthSpinner.getValue();
+                heightSpinner.setValue((int) (width / aspectRatio));
+            }
+        });
+
+        heightSpinner.addChangeListener(e1 -> {
+            if (maintainRatioBox.isSelected()) {
+                int height = (Integer) heightSpinner.getValue();
+                widthSpinner.setValue((int) (height * aspectRatio));
+            }
+        });
+
         panel.add(widthPanel);
         panel.add(heightPanel);
+        panel.add(ratioPanel);
 
         int result = JOptionPane.showConfirmDialog(mainFrame, panel,
                 "Resize Image", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
@@ -95,10 +116,8 @@ public class ImageMenu extends JMenu {
             int newWidth = (Integer) widthSpinner.getValue();
             int newHeight = (Integer) heightSpinner.getValue();
 
-            // Create new canvas with current background
             canvas.createNewCanvas(newWidth, newHeight, canvas.getCanvasBackground());
 
-            // Draw the old image centered on the new canvas
             Graphics2D g = (Graphics2D) canvas.getImage().getGraphics();
             int x = (newWidth - currentImage.getWidth()) / 2;
             int y = (newHeight - currentImage.getHeight()) / 2;
@@ -117,45 +136,60 @@ public class ImageMenu extends JMenu {
             return;
         }
 
-        // Create dialog panel with scale percentage input
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 
-        // Scale percentage input
+        // Scale inputs
         JPanel scalePanel = new JPanel();
         JLabel scaleLabel = new JLabel("Scale (%):");
-        JSpinner scaleSpinner = new JSpinner(new SpinnerNumberModel(100, 1, 1000, 1));
-        scalePanel.add(scaleLabel);
-        scalePanel.add(scaleSpinner);
+        JSpinner widthScaleSpinner = new JSpinner(new SpinnerNumberModel(100, 1, 1000, 1));
+        JSpinner heightScaleSpinner = new JSpinner(new SpinnerNumberModel(100, 1, 1000, 1));
+        scalePanel.add(new JLabel("Width %:"));
+        scalePanel.add(widthScaleSpinner);
+        scalePanel.add(new JLabel("Height %:"));
+        scalePanel.add(heightScaleSpinner);
+
+        // Maintain aspect ratio checkbox
+        JPanel ratioPanel = new JPanel();
+        JCheckBox maintainRatioBox = new JCheckBox("Maintain aspect ratio");
+        maintainRatioBox.setSelected(true);
+        ratioPanel.add(maintainRatioBox);
 
         // Preview dimensions
         JPanel previewPanel = new JPanel();
         JLabel dimensionsLabel = new JLabel(String.format("Current: %dx%d", currentImage.getWidth(), currentImage.getHeight()));
         previewPanel.add(dimensionsLabel);
 
-        // Update preview when scale changes
-        scaleSpinner.addChangeListener(change -> {
-            int scale = (Integer) scaleSpinner.getValue();
-            int newWidth = currentImage.getWidth() * scale / 100;
-            int newHeight = currentImage.getHeight() * scale / 100;
-            dimensionsLabel.setText(String.format("New: %dx%d", newWidth, newHeight));
+        // Add change listeners for aspect ratio maintenance
+        widthScaleSpinner.addChangeListener(change -> {
+            if (maintainRatioBox.isSelected()) {
+                heightScaleSpinner.setValue(widthScaleSpinner.getValue());
+            }
+            updateScalePreview(currentImage, dimensionsLabel, widthScaleSpinner, heightScaleSpinner);
+        });
+
+        heightScaleSpinner.addChangeListener(change -> {
+            if (maintainRatioBox.isSelected()) {
+                widthScaleSpinner.setValue(heightScaleSpinner.getValue());
+            }
+            updateScalePreview(currentImage, dimensionsLabel, widthScaleSpinner, heightScaleSpinner);
         });
 
         panel.add(scalePanel);
+        panel.add(ratioPanel);
         panel.add(previewPanel);
 
         int result = JOptionPane.showConfirmDialog(mainFrame, panel,
                 "Scale Image", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
         if (result == JOptionPane.OK_OPTION) {
-            int scale = (Integer) scaleSpinner.getValue();
-            int newWidth = currentImage.getWidth() * scale / 100;
-            int newHeight = currentImage.getHeight() * scale / 100;
+            int widthScale = (Integer) widthScaleSpinner.getValue();
+            int heightScale = (Integer) heightScaleSpinner.getValue();
+            int newWidth = currentImage.getWidth() * widthScale / 100;
+            int newHeight = currentImage.getHeight() * heightScale / 100;
 
-            // Create new canvas with scaled dimensions
             canvas.createNewCanvas(newWidth, newHeight, canvas.getCanvasBackground());
 
-            // Scale and draw the image
             Graphics2D g = (Graphics2D) canvas.getImage().getGraphics();
             g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
             g.drawImage(currentImage, 0, 0, newWidth, newHeight, null);
@@ -164,5 +198,13 @@ public class ImageMenu extends JMenu {
             canvas.repaint();
             canvas.saveToUndoStack();
         }
+    }
+
+    private void updateScalePreview(BufferedImage image, JLabel label, JSpinner widthSpinner, JSpinner heightSpinner) {
+        int widthScale = (Integer) widthSpinner.getValue();
+        int heightScale = (Integer) heightSpinner.getValue();
+        int newWidth = image.getWidth() * widthScale / 100;
+        int newHeight = image.getHeight() * heightScale / 100;
+        label.setText(String.format("New: %dx%d", newWidth, newHeight));
     }
 }
