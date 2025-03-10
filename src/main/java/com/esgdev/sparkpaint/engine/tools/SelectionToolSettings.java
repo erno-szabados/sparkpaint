@@ -18,6 +18,7 @@ public class SelectionToolSettings extends BaseToolSettings {
     @Override
     public JComponent createSettingsPanel() {
         JPanel panel = (JPanel) super.createSettingsPanel();
+        panel.setLayout(new FlowLayout(FlowLayout.LEFT, 5, 5));
 
         // Rotation buttons
         JButton rotateLeftButton = new JButton();
@@ -30,14 +31,10 @@ public class SelectionToolSettings extends BaseToolSettings {
         rotateRightButton.setToolTipText("Rotate Right 90°");
         rotateRightButton.addActionListener(e -> selectionTool.rotateSelection(90));
 
-        JPanel rotationPanel = new JPanel();
-        rotationPanel.setLayout(new BoxLayout(rotationPanel, BoxLayout.X_AXIS));
+        JPanel rotationPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         rotationPanel.add(rotateLeftButton);
-        rotationPanel.add(Box.createHorizontalStrut(5));
         rotationPanel.add(rotateRightButton);
-        rotationPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        panel.add(Box.createVerticalStrut(5));
         panel.add(rotationPanel);
 
         return panel;
