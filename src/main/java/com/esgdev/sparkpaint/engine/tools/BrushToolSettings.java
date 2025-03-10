@@ -12,6 +12,8 @@ public class BrushToolSettings extends BaseToolSettings {
     private final BrushTool brushTool;
     private JSlider sprayDensitySlider;
     private JLabel sprayDensityValueLabel;
+    private JCheckBox antiAliasingCheckbox;
+    private boolean useAntiAliasing = true;  // Default value
 
     public BrushToolSettings(DrawingCanvas canvas) {
         super(canvas);
@@ -68,6 +70,11 @@ public class BrushToolSettings extends BaseToolSettings {
             applySettings();
         });
 
+        // Anti-aliasing checkbox
+        antiAliasingCheckbox = new JCheckBox("Anti-aliasing", useAntiAliasing);
+        antiAliasingCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
+        antiAliasingCheckbox.addActionListener(e -> applySettings());
+
         panel.add(shapeLabel);
         panel.add(Box.createVerticalStrut(2));
         panel.add(shapeComboBox);
@@ -84,7 +91,7 @@ public class BrushToolSettings extends BaseToolSettings {
         panel.add(Box.createVerticalStrut(2));
         panel.add(sprayDensityValueLabel);
         panel.add(Box.createVerticalStrut(5));
-
+        panel.add(antiAliasingCheckbox);
         return panel;
     }
 
@@ -94,6 +101,8 @@ public class BrushToolSettings extends BaseToolSettings {
             brushTool.setSize(sizeSlider.getValue());
             brushTool.setShape((BrushTool.BrushShape) shapeComboBox.getSelectedItem());
             brushTool.setSprayDensity(sprayDensitySlider.getValue());
+            useAntiAliasing = antiAliasingCheckbox.isSelected();
+            brushTool.setAntiAliasing(useAntiAliasing);
         }
     }
 
@@ -104,6 +113,7 @@ public class BrushToolSettings extends BaseToolSettings {
         shapeComboBox.setSelectedItem(BrushTool.BrushShape.SQUARE);
         sprayDensitySlider.setValue(BrushTool.DEFAULT_SPRAY_DENSITY);
         sprayDensityValueLabel.setText(String.valueOf(BrushTool.DEFAULT_SPRAY_DENSITY));
+        antiAliasingCheckbox.setSelected(true);
         applySettings();
     }
 }

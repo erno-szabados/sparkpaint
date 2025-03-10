@@ -12,6 +12,7 @@ public class CircleTool implements DrawingTool {
     private final Cursor cursor = Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR);
     private Point startPoint;
     private boolean isFilled;
+    private boolean useAntiAliasing = true;
 
     public CircleTool(DrawingCanvas canvas) {
         this.canvas = canvas;
@@ -36,7 +37,8 @@ public class CircleTool implements DrawingTool {
         Point point = scalePoint(canvas, e.getPoint());
         BufferedImage tempCanvas = new BufferedImage(canvas.getWidth(), canvas.getHeight(), BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = tempCanvas.createGraphics();
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
         g2d.drawImage(canvas.getImage(), 0, 0, null);
         g2d.setStroke(new BasicStroke(canvas.getLineThickness()));
         g2d.setColor(canvas.getDrawingColor());
@@ -64,7 +66,8 @@ public class CircleTool implements DrawingTool {
             System.out.println("Graphics is null");
             return;
         }
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
         g2d.setStroke(new BasicStroke(canvas.getLineThickness()));
         int radius = (int) Math.sqrt(Math.pow(point.x - startPoint.x, 2) + Math.pow(point.y - startPoint.y, 2));
         int x = startPoint.x - radius;
@@ -99,4 +102,11 @@ public class CircleTool implements DrawingTool {
     public void setFilled(boolean selected) {
         this.isFilled = selected;
     }
+
+    // Add getter/setter for anti-aliasing
+    public void setAntiAliasing(boolean useAntiAliasing) {
+        this.useAntiAliasing = useAntiAliasing;
+    }
+
+
 }

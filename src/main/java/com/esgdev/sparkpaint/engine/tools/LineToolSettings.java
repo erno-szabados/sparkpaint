@@ -61,8 +61,8 @@ public class LineToolSettings extends BaseToolSettings {
     public void applySettings() {
         if (canvas.getCurrentTool() == DrawingCanvas.Tool.LINE) {
             canvas.setLineThickness(thicknessSlider.getValue());
-            useAntiAliasing = antiAliasingCheckbox.isSelected();
             LineTool tool = (LineTool) canvas.getTool(DrawingCanvas.Tool.LINE);
+            useAntiAliasing = antiAliasingCheckbox.isSelected();
             tool.setAntiAliasing(useAntiAliasing);
         }
     }

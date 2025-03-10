@@ -9,6 +9,8 @@ public class EllipseToolSettings extends BaseToolSettings {
     private JCheckBox filledCheckBox;
     private JSlider thicknessSlider;
     private JLabel thicknessValueLabel;
+    private JCheckBox antiAliasingCheckbox;
+    private boolean useAntiAliasing = true;
 
     public EllipseToolSettings(DrawingCanvas canvas) {
         super(canvas);
@@ -44,6 +46,12 @@ public class EllipseToolSettings extends BaseToolSettings {
             applySettings();
         });
 
+        // Add anti-aliasing checkbox
+        antiAliasingCheckbox = new JCheckBox("Anti-aliasing", useAntiAliasing);
+        antiAliasingCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
+        antiAliasingCheckbox.addActionListener(e -> applySettings());
+
+
         // Add components
         panel.add(filledCheckBox);
         panel.add(Box.createVerticalStrut(5));
@@ -53,6 +61,7 @@ public class EllipseToolSettings extends BaseToolSettings {
         panel.add(Box.createVerticalStrut(2));
         panel.add(thicknessValueLabel);
         panel.add(Box.createVerticalStrut(5));
+        panel.add(antiAliasingCheckbox);
 
         return panel;
     }
@@ -64,6 +73,8 @@ public class EllipseToolSettings extends BaseToolSettings {
                 EllipseTool tool = (EllipseTool) canvas.getActiveTool();
                 tool.setFilled(filledCheckBox.isSelected());
                 canvas.setLineThickness(thicknessSlider.getValue());
+                useAntiAliasing = antiAliasingCheckbox.isSelected();
+                tool.setAntiAliasing(useAntiAliasing);
             }
         }
     }
@@ -73,6 +84,7 @@ public class EllipseToolSettings extends BaseToolSettings {
         filledCheckBox.setSelected(false);
         thicknessSlider.setValue(2);
         thicknessValueLabel.setText("2");
+        antiAliasingCheckbox.setSelected(true);
         applySettings();
     }
 }

@@ -9,6 +9,8 @@ public class CircleToolSettings extends BaseToolSettings {
     private JCheckBox filledCheckBox;
     private JSlider thicknessSlider;
     private JLabel thicknessValueLabel;
+    private JCheckBox antiAliasingCheckbox;
+    private boolean useAntiAliasing = true;  // Default value
 
     public CircleToolSettings(DrawingCanvas canvas) {
         super(canvas);
@@ -44,6 +46,11 @@ public class CircleToolSettings extends BaseToolSettings {
             applySettings();
         });
 
+        // Anti-aliasing checkbox
+        antiAliasingCheckbox = new JCheckBox("Anti-aliasing", useAntiAliasing);
+        antiAliasingCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
+        antiAliasingCheckbox.addActionListener(e -> applySettings());
+
         // Add components
         panel.add(filledCheckBox);
         panel.add(Box.createVerticalStrut(5));
@@ -53,6 +60,7 @@ public class CircleToolSettings extends BaseToolSettings {
         panel.add(Box.createVerticalStrut(2));
         panel.add(thicknessValueLabel);
         panel.add(Box.createVerticalStrut(5));
+        panel.add(antiAliasingCheckbox);
 
         return panel;
     }
@@ -63,7 +71,9 @@ public class CircleToolSettings extends BaseToolSettings {
             if (canvas.getActiveTool() instanceof CircleTool) {
                 CircleTool tool = (CircleTool) canvas.getActiveTool();
                 tool.setFilled(filledCheckBox.isSelected());
+                useAntiAliasing = antiAliasingCheckbox.isSelected();
                 canvas.setLineThickness(thicknessSlider.getValue());
+                tool.setAntiAliasing(useAntiAliasing);
             }
         }
     }
@@ -73,6 +83,7 @@ public class CircleToolSettings extends BaseToolSettings {
         filledCheckBox.setSelected(false);
         thicknessSlider.setValue(2);
         thicknessValueLabel.setText("2");
+        antiAliasingCheckbox.setSelected(true);
         applySettings();
     }
 }

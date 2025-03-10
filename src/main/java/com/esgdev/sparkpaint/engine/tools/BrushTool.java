@@ -25,6 +25,7 @@ public class BrushTool implements DrawingTool {
     private BrushShape shape = BrushShape.SQUARE;
     private int size = DEFAULT_SPRAY_SIZE;
     private int sprayDensity = DEFAULT_SPRAY_DENSITY;
+    private boolean useAntiAliasing = true;
 
     public BrushTool(DrawingCanvas canvas) {
         this.canvas = canvas;
@@ -60,7 +61,8 @@ public class BrushTool implements DrawingTool {
             } else if (SwingUtilities.isRightMouseButton(e)) {
                 g2d.setColor(canvas.getFillColor());
             }
-            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
 
             int x = p.x - size / 2;
             int y = p.y - size / 2;
@@ -116,6 +118,11 @@ public class BrushTool implements DrawingTool {
             default:
                 return "Brush tool: Unknown mode";
         }
+    }
+
+    // Add getter/setter for anti-aliasing
+    public void setAntiAliasing(boolean useAntiAliasing) {
+        this.useAntiAliasing = useAntiAliasing;
     }
 
     private void sprayPaint(MouseEvent e, BufferedImage image, Point center) {
