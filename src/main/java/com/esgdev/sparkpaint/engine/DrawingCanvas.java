@@ -9,7 +9,6 @@ import com.esgdev.sparkpaint.ui.ToolChangeListener;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
@@ -38,29 +37,24 @@ public class DrawingCanvas extends JPanel {
     public static final int DEFAULT_CANVAS_WIDTH = 800;
     public static final int DEFAULT_CANVAS_HEIGHT = 600;
     public static final int MAX_LINE_THICKNESS = 20;
-    public static final float MAX_ZOOM_FACTOR = 12.0f;
-    public static final float MIN_ZOOM_FACTOR = 1.0f;
 
     private Image image;
     private Graphics2D graphics;
     private BufferedImage tempCanvas; // Temporary canvas for drawing previews
-    private BufferedImage selectionContent;
-    private Rectangle selectionRectangle;
 
     private Tool currentTool = Tool.PENCIL;
     private Color drawingColor = Color.BLACK;
-    private Color fillColor = Color.WHITE; //
-    private Color canvasBackground = Color.WHITE;
+    private Color fillColor = Color.WHITE;
+    private Color canvasBackground;
     private float lineThickness = 2.0f;
     private float zoomFactor = 1.0f;
-    private BufferedImage zoomGridCache;
-    private float cachedZoomFactor = -1.0f;
-    private Map<Float, BufferedImage> zoomGridCacheMap = new HashMap<>();
+    private final Map<Float, BufferedImage> zoomGridCacheMap = new HashMap<>();
 
     private final List<ToolChangeListener> toolChangeListeners = new ArrayList<>();
     private final List<CanvasPropertyChangeListener> propertyChangeListeners = new ArrayList<>();
     private final EnumMap<Tool, DrawingTool> tools = new EnumMap<>(Tool.class);
     private final HistoryManager historyManager;
+    private final SelectionManager selectionManager;
     private final ClipboardManager clipboardManager;
     private final FileManager fileManager;
 
@@ -72,6 +66,7 @@ public class DrawingCanvas extends JPanel {
         this.canvasBackground = Color.WHITE;
         setBackground(canvasBackground);
         historyManager = new HistoryManager();
+        selectionManager = new SelectionManager(this);
         clipboardManager = new ClipboardManager(this);
         fileManager = new FileManager();
         MouseAdapter canvasMouseAdapter = new CanvasMouseAdapter();
@@ -132,6 +127,14 @@ public class DrawingCanvas extends JPanel {
         repaint();
     }
 
+    public SelectionManager getSelectionManager() {
+        return selectionManager;
+    }
+
+    public ClipboardManager getClipboardManager() {
+        return clipboardManager;
+    }
+
     public Image getImage() {
         return image;
     }
@@ -140,22 +143,6 @@ public class DrawingCanvas extends JPanel {
         Graphics2D g2d = (Graphics2D) graphics.create();
         g2d.scale(zoomFactor, zoomFactor);
         return g2d;
-    }
-
-    public Rectangle getSelectionRectangle() {
-        return selectionRectangle;
-    }
-
-    public void setSelectionRectangle(Rectangle selectionRectangle) {
-        this.selectionRectangle = selectionRectangle;
-    }
-
-    public Image getSelectionContent() {
-        return selectionContent;
-    }
-
-    public void setSelectionContent(BufferedImage selectionContent) {
-        this.selectionContent = selectionContent;
     }
 
     public void setTempCanvas(BufferedImage tempCanvas) {
@@ -309,7 +296,8 @@ public class DrawingCanvas extends JPanel {
         // Restore scale for selection tool
         g2d.scale(zoomFactor, zoomFactor);
 
-        if (currentTool != Tool.SELECTION || selectionRectangle == null)
+        Selection selection = selectionManager.getSelection();
+        if (currentTool != Tool.SELECTION || selection.getRectangle() == null)
             return;
 
         DrawingTool tool = tools.get(currentTool);
@@ -363,24 +351,6 @@ public class DrawingCanvas extends JPanel {
         tools.put(Tool.SELECTION, new SelectionTool(this));
     }
 
-    // Copy - paste
-
-    public void cutSelection() {
-        clipboardManager.cutSelection();
-    }
-
-    public void copySelection() {
-        clipboardManager.copySelection();
-    }
-
-    public void pasteSelection() throws IOException, UnsupportedFlavorException {
-        clipboardManager.pasteSelection();
-    }
-
-    public boolean hasSelection() {
-        return clipboardManager.hasSelection();
-    }
-
     public boolean canPaste() {
         return clipboardManager.canPaste();
     }
@@ -406,14 +376,14 @@ public class DrawingCanvas extends JPanel {
     public void undo() {
         image = historyManager.undo((BufferedImage) image);
         graphics = (Graphics2D) image.getGraphics();
-        selectionRectangle = null;
+        selectionManager.getSelection().setRectangle(null);
         repaint();
     }
 
     public void redo() {
         image = historyManager.redo((BufferedImage) image);
         graphics = (Graphics2D) image.getGraphics();
-        selectionRectangle = null;
+        selectionManager.getSelection().setRectangle(null);
         repaint();
     }
 

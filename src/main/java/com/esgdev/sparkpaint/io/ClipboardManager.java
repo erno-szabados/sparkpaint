@@ -1,6 +1,7 @@
 package com.esgdev.sparkpaint.io;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
+import com.esgdev.sparkpaint.engine.SelectionManager;
 
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
@@ -14,20 +15,23 @@ import java.util.List;
 public class ClipboardManager {
     private final DrawingCanvas canvas;
     private final List<ClipboardChangeListener> clipboardChangeListeners = new ArrayList<>();
+    private final SelectionManager selectionManager;
 
     public ClipboardManager(DrawingCanvas canvas) {
         this.canvas = canvas;
+        this.selectionManager = canvas.getSelectionManager();
     }
 
     public void cutSelection() {
-        if (canvas.getSelectionRectangle() == null
-                || canvas.getSelectionRectangle().width <= 0
-                || canvas.getSelectionRectangle().height <= 0) {
+        Rectangle selectionRectangle = selectionManager.getSelection().getRectangle();
+        if (selectionRectangle == null
+                || selectionRectangle.width <= 0
+                || selectionRectangle.height <= 0) {
             return;
         }
         copySelection(false);
         eraseSelection();
-        canvas.setSelectionRectangle(null); // Clear selection after cutting.
+        selectionManager.getSelection().setRectangle(null); // Clear selection after cutting.
         canvas.repaint();
         notifyClipboardStateChanged();
     }
@@ -37,21 +41,22 @@ public class ClipboardManager {
     }
 
     private void copySelection(boolean clearRectangle) {
-        if (canvas.getSelectionRectangle() == null
-                || canvas.getSelectionRectangle().width <= 0
-                || canvas.getSelectionRectangle().height <= 0) {
+        Rectangle selectionRectangle = selectionManager.getSelection().getRectangle();
+        if (selectionRectangle == null
+                || selectionRectangle.width <= 0
+                || selectionRectangle.height <= 0) {
             return;
         }
         // Extract the selected region from the canvas image.
         BufferedImage canvasImage = (BufferedImage) canvas.getImage();
         BufferedImage selectionImage = canvasImage.getSubimage(
-                canvas.getSelectionRectangle().x,
-                canvas.getSelectionRectangle().y,
-                canvas.getSelectionRectangle().width,
-                canvas.getSelectionRectangle().height);
+                selectionRectangle.x,
+                selectionRectangle.y,
+                selectionRectangle.width,
+                selectionRectangle.height);
         ImageSelection.copyImage(selectionImage);
         if (clearRectangle) {
-            canvas.setSelectionRectangle(null);
+            selectionManager.getSelection().setRectangle(null);
             canvas.repaint();
         }
         notifyClipboardStateChanged();
@@ -74,8 +79,8 @@ public class ClipboardManager {
             }
             canvas.getCanvasGraphics().drawImage(pastedImage, pasteX, pasteY, null);
 
-            canvas.setSelectionRectangle(new Rectangle(pasteX, pasteY, pastedImage.getWidth(), pastedImage.getHeight()));
-            canvas.setSelectionContent(pastedImage);
+            selectionManager.getSelection().setRectangle(new Rectangle(pasteX, pasteY, pastedImage.getWidth(), pastedImage.getHeight()));
+            selectionManager.getSelection().setContent(pastedImage);
 
             canvas.repaint();
             notifyClipboardStateChanged();
@@ -83,7 +88,7 @@ public class ClipboardManager {
     }
 
     public boolean hasSelection() {
-        return canvas.getSelectionRectangle() != null;
+        return selectionManager.getSelection().getRectangle() != null;
     }
 
     public boolean canPaste() {
@@ -121,11 +126,12 @@ public class ClipboardManager {
     }
 
     private void eraseSelection() {
+        Rectangle selectionRectangle = selectionManager.getSelection().getRectangle();
         // Clear the selected region by filling it with the canvas background color.
         Graphics2D graphics = canvas.getCanvasGraphics();
         graphics.setColor(canvas.getCanvasBackground());
-        graphics.fillRect(canvas.getSelectionRectangle().x, canvas.getSelectionRectangle().y, canvas.getSelectionRectangle().width,
-                canvas.getSelectionRectangle().height);
+        graphics.fillRect(selectionRectangle.x, selectionRectangle.y, selectionRectangle.width,
+                selectionRectangle.height);
         graphics.dispose();
     }
 }
