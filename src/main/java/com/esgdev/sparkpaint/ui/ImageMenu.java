@@ -53,7 +53,7 @@ public class ImageMenu extends JMenu {
         if (image != null) {
             String message = String.format("Image Size: %dx%d pixels\nFile Path: %s",
                     image.getWidth(), image.getHeight(),
-                    filePath != null ? filePath : "Unsaved");
+                    filePath != null ? filePath : "Untitled");
             JOptionPane.showMessageDialog(mainFrame, message, "Image Information", JOptionPane.INFORMATION_MESSAGE);
         } else {
             JOptionPane.showMessageDialog(mainFrame, "No image loaded.", "Image Information", JOptionPane.WARNING_MESSAGE);

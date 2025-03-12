@@ -84,7 +84,7 @@ public class FileManager {
      * @return The current file path.
      */
     public String getCurrentFilePath() {
-        return currentFilePath != null ? currentFilePath : "Untitled";
+        return currentFilePath;
     }
 
     /**
