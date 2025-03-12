@@ -297,13 +297,13 @@ public class DrawingCanvas extends JPanel {
         g2d.scale(zoomFactor, zoomFactor);
 
         Selection selection = selectionManager.getSelection();
-        if (currentTool != Tool.SELECTION || selection.getRectangle() == null)
-            return;
-
-        DrawingTool tool = tools.get(currentTool);
-        if (tool instanceof SelectionTool) {
-            ((SelectionTool) tool).drawSelection(g2d);
+        if (currentTool == Tool.SELECTION && selection.getRectangle() != null) {
+            DrawingTool tool = tools.get(currentTool);
+            if (tool instanceof SelectionTool) {
+                ((SelectionTool) tool).drawSelection(g2d);
+            }
         }
+
     }
 
     private void renderZoomGrid(Graphics2D g2d) {
@@ -469,28 +469,20 @@ public class DrawingCanvas extends JPanel {
             }
         }
 
+        ///
         @Override
         public void mouseWheelMoved(MouseWheelEvent e) {
-            Point viewPosition = SwingUtilities.getAncestorOfClass(JScrollPane.class, DrawingCanvas.this)
-                    .getComponent(0).getLocation();
-            Point cursorPoint = e.getPoint();
-
-            // Store the position relative to the image before zooming
-            double relativeX = cursorPoint.x / (image.getWidth(null) * zoomFactor);
-            double relativeY = cursorPoint.y / (image.getHeight(null) * zoomFactor);
-
-
-            // Define valid zoom factors
+            // Apply zoom
             float[] zoomLevels = {1.0f, 2.0f, 4.0f, 8.0f, 12.0f};
 
-            if (e.getWheelRotation() < 0) { // Zoom in
+            if (e.getWheelRotation() < 0) {
                 for (float zoomLevel : zoomLevels) {
                     if (zoomFactor < zoomLevel) {
                         zoomFactor = zoomLevel;
                         break;
                     }
                 }
-            } else { // Zoom out
+            } else {
                 for (int i = zoomLevels.length - 1; i >= 0; i--) {
                     if (zoomFactor > zoomLevels[i]) {
                         zoomFactor = zoomLevels[i];
@@ -499,28 +491,10 @@ public class DrawingCanvas extends JPanel {
                 }
             }
 
-            // Update preferred size based on zoom factor
+            // Calculate new dimensions
             int scaledWidth = (int) (image.getWidth(null) * zoomFactor);
             int scaledHeight = (int) (image.getHeight(null) * zoomFactor);
             setPreferredSize(new Dimension(scaledWidth, scaledHeight));
-
-            // Calculate new scroll position to keep the cursor point fixed
-            JScrollPane scrollPane = (JScrollPane) SwingUtilities.getAncestorOfClass(JScrollPane.class, DrawingCanvas.this);
-            if (scrollPane != null) {
-                JViewport viewport = scrollPane.getViewport();
-                Point newViewPosition = new Point();
-
-                // Calculate the new view position based on cursor position
-                newViewPosition.x = (int) (relativeX * scaledWidth - cursorPoint.x);
-                newViewPosition.y = (int) (relativeY * scaledHeight - cursorPoint.y);
-
-                // Ensure the new position is within bounds
-                newViewPosition.x = Math.max(0, Math.min(newViewPosition.x, scaledWidth - viewport.getWidth()));
-                newViewPosition.y = Math.max(0, Math.min(newViewPosition.y, scaledHeight - viewport.getHeight()));
-
-                viewport.setViewPosition(newViewPosition);
-            }
-
             revalidate();
             repaint();
 
@@ -529,5 +503,6 @@ public class DrawingCanvas extends JPanel {
                 tool.mouseScrolled(e);
             }
         }
+        ///
     }
 }
