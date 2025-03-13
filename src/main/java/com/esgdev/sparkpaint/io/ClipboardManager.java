@@ -48,12 +48,7 @@ public class ClipboardManager {
             return;
         }
         // Extract the selected region from the canvas image.
-        BufferedImage canvasImage = (BufferedImage) canvas.getImage();
-        BufferedImage selectionImage = canvasImage.getSubimage(
-                selectionRectangle.x,
-                selectionRectangle.y,
-                selectionRectangle.width,
-                selectionRectangle.height);
+        BufferedImage selectionImage = selectionManager.getSelection().getContent();
         ImageSelection.copyImage(selectionImage);
         if (clearRectangle) {
             selectionManager.getSelection().setRectangle(null);
@@ -77,7 +72,6 @@ public class ClipboardManager {
                 pasteX = mousePosition.x;
                 pasteY = mousePosition.y;
             }
-            canvas.getCanvasGraphics().drawImage(pastedImage, pasteX, pasteY, null);
 
             selectionManager.getSelection().setRectangle(new Rectangle(pasteX, pasteY, pastedImage.getWidth(), pastedImage.getHeight()));
             selectionManager.getSelection().setContent(pastedImage);
