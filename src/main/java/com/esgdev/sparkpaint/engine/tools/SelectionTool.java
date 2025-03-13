@@ -118,6 +118,7 @@ public class SelectionTool implements DrawingTool {
             return;
         }
         Rectangle selectionRectangle = selectionManager.getSelection().getRectangle();
+        if (selectionRectangle == null) return;
         if (isDragging) {
             int newX = e.getX() - dragOffset.x;
             int newY = e.getY() - dragOffset.y;

@@ -6,6 +6,7 @@ import com.esgdev.sparkpaint.engine.SelectionManager;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -29,31 +30,22 @@ public class ClipboardManager {
                 || selectionRectangle.height <= 0) {
             return;
         }
-        copySelection(false);
+        copySelection();
         eraseSelection();
-        selectionManager.getSelection().setRectangle(null); // Clear selection after cutting.
+        selectionManager.getSelection().setRectangle(null);
         canvas.repaint();
         notifyClipboardStateChanged();
     }
 
     public void copySelection() {
-        copySelection(true);
-    }
-
-    private void copySelection(boolean clearRectangle) {
         Rectangle selectionRectangle = selectionManager.getSelection().getRectangle();
         if (selectionRectangle == null
                 || selectionRectangle.width <= 0
                 || selectionRectangle.height <= 0) {
             return;
         }
-        // Extract the selected region from the canvas image.
         BufferedImage selectionImage = selectionManager.getSelection().getContent();
         ImageSelection.copyImage(selectionImage);
-        if (clearRectangle) {
-            selectionManager.getSelection().setRectangle(null);
-            canvas.repaint();
-        }
         notifyClipboardStateChanged();
     }
 
@@ -75,6 +67,10 @@ public class ClipboardManager {
 
             selectionManager.getSelection().setRectangle(new Rectangle(pasteX, pasteY, pastedImage.getWidth(), pastedImage.getHeight()));
             selectionManager.getSelection().setContent(pastedImage);
+
+            Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+            StringSelection emptyContent = new StringSelection("");
+            clipboard.setContents(emptyContent, null);
 
             canvas.repaint();
             notifyClipboardStateChanged();
