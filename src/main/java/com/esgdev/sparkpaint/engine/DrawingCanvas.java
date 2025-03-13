@@ -117,6 +117,7 @@ public class DrawingCanvas extends JPanel {
         graphics = newGraphics;
         tempCanvas = newTempCanvas;
 
+        zoomFactor = 1.0f;
         precacheZoomGrid(width, height);
 
         notifyDrawingColorChanged();
@@ -154,6 +155,7 @@ public class DrawingCanvas extends JPanel {
     }
 
     public void loadFromFile(File file) throws IOException {
+        zoomFactor = 1.0f;
         BufferedImage loadedImage = fileManager.loadFromFile(file);
 
         Color currentColor = graphics != null ? graphics.getColor() : Color.BLACK;
@@ -168,6 +170,7 @@ public class DrawingCanvas extends JPanel {
         graphics.drawImage(loadedImage, 0, 0, null);
 
         setPreferredSize(new Dimension(image.getWidth(null), image.getHeight(null)));
+        revalidate();
         repaint();
         clearHistory();
     }
@@ -429,6 +432,13 @@ public class DrawingCanvas extends JPanel {
         }
     }
 
+    private void updateCanvasAfterZoom() {
+        // Calculate new dimensions
+        int scaledWidth = (int) (image.getWidth(null) * zoomFactor);
+        int scaledHeight = (int) (image.getHeight(null) * zoomFactor);
+        setPreferredSize(new Dimension(scaledWidth, scaledHeight));
+    }
+
     /**
      * MouseAdapter for handling mouse events on the canvas.
      * Relies on the current tool to handle events.
@@ -491,18 +501,15 @@ public class DrawingCanvas extends JPanel {
                 }
             }
 
-            // Calculate new dimensions
-            int scaledWidth = (int) (image.getWidth(null) * zoomFactor);
-            int scaledHeight = (int) (image.getHeight(null) * zoomFactor);
-            setPreferredSize(new Dimension(scaledWidth, scaledHeight));
-            revalidate();
-            repaint();
-
+            updateCanvasAfterZoom();
             DrawingTool tool = tools.get(currentTool);
             if (tool != null) {
                 tool.mouseScrolled(e);
             }
+            revalidate();
+            repaint();
         }
         ///
     }
+
 }
