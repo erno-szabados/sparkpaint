@@ -32,7 +32,7 @@ public class DrawingCanvas extends JPanel {
         CIRCLE,
         SELECTION,
         FILL,
-        EYEDROPPER
+        TEXT, EYEDROPPER
     }
     public static final int DEFAULT_CANVAS_WIDTH = 800;
     public static final int DEFAULT_CANVAS_HEIGHT = 600;
@@ -352,6 +352,7 @@ public class DrawingCanvas extends JPanel {
         tools.put(Tool.PENCIL, new PencilTool(this));
         tools.put(Tool.BRUSH, new BrushTool(this));
         tools.put(Tool.SELECTION, new SelectionTool(this));
+        tools.put(Tool.TEXT, new TextTool(this));
     }
 
     public boolean canPaste() {
