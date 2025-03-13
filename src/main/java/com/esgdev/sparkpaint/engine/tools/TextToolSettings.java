@@ -12,6 +12,8 @@ public class TextToolSettings extends BaseToolSettings {
     private JLabel fontSizeValueLabel;
     private JButton colorButton;
     private Color textColor = Color.BLACK;
+    private JCheckBox antiAliasingCheckbox;
+    private boolean useAntiAliasing = true;
 
     public TextToolSettings(DrawingCanvas canvas) {
         super(canvas);
@@ -67,6 +69,11 @@ public class TextToolSettings extends BaseToolSettings {
             }
         });
 
+        // Add anti-aliasing checkbox
+        antiAliasingCheckbox = new JCheckBox("Anti-aliasing", useAntiAliasing);
+        antiAliasingCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
+        antiAliasingCheckbox.addActionListener(e -> applySettings());
+
         // Add components
         panel.add(textLabel);
         panel.add(textField);
@@ -80,6 +87,8 @@ public class TextToolSettings extends BaseToolSettings {
         panel.add(Box.createVerticalStrut(5));
         panel.add(colorLabel);
         panel.add(colorButton);
+        panel.add(Box.createVerticalStrut(5));
+        panel.add(antiAliasingCheckbox);
         panel.add(Box.createVerticalGlue());
 
         return panel;
@@ -92,6 +101,8 @@ public class TextToolSettings extends BaseToolSettings {
             tool.setText(textField.getText());
             tool.setFont(new Font((String) fontDropdown.getSelectedItem(), Font.PLAIN, fontSizeSlider.getValue()));
             tool.setColor(textColor);
+            useAntiAliasing = antiAliasingCheckbox.isSelected();
+            tool.setAntiAliasing(useAntiAliasing);
         }
     }
 
@@ -102,6 +113,7 @@ public class TextToolSettings extends BaseToolSettings {
         fontSizeSlider.setValue(24);
         fontSizeValueLabel.setText("24");
         textColor = Color.BLACK;
+        antiAliasingCheckbox.setSelected(true);
         applySettings();
     }
 }

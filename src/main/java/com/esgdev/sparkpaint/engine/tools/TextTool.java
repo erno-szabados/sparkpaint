@@ -15,6 +15,7 @@ public class TextTool implements DrawingTool {
     private String text = "Sample Text";
     private Font font = new Font("Arial", Font.PLAIN, 24);
     private Color color = Color.BLACK;
+    private boolean useAntiAliasing = true;
 
     public TextTool(DrawingCanvas canvas) {
         this.canvas = canvas;
@@ -41,6 +42,7 @@ public class TextTool implements DrawingTool {
         Point point = scalePoint(canvas, e.getPoint());
         BufferedImage image = (BufferedImage) canvas.getImage();
         Graphics2D g2d = image.createGraphics();
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
         g2d.setFont(font);
         g2d.setColor(color);
         g2d.drawString(text, point.x, point.y);
@@ -73,5 +75,9 @@ public class TextTool implements DrawingTool {
 
     public void setColor(Color color) {
         this.color = color;
+    }
+
+    public void setAntiAliasing(boolean useAntiAliasing) {
+        this.useAntiAliasing = useAntiAliasing;
     }
 }
