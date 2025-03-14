@@ -27,12 +27,12 @@ package com.esgdev.sparkpaint.engine.tools;
         public void mousePressed(MouseEvent e) {
             startPoint = scalePoint(canvas, e.getPoint());
             canvas.saveToUndoStack();
-            canvas.saveCanvasState();
         }
 
         @Override
         public void mouseDragged(MouseEvent e) {
             Point point = scalePoint(canvas, e.getPoint());
+            // recreate the temporary canvas for each drag event
             BufferedImage tempCanvas = new BufferedImage(canvas.getWidth(), canvas.getHeight(), BufferedImage.TYPE_INT_ARGB);
             Graphics2D g2d = tempCanvas.createGraphics();
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
@@ -53,7 +53,7 @@ package com.esgdev.sparkpaint.engine.tools;
         @Override
         public void mouseReleased(MouseEvent e) {
             Point point = scalePoint(canvas, e.getPoint());
-            BufferedImage image = (BufferedImage) canvas.getImage();
+            BufferedImage image = canvas.getImage();
             Graphics2D g2d = image.createGraphics();
             if (g2d == null) {
                 System.out.println("Graphics is null");
