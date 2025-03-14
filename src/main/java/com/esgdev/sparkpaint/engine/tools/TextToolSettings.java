@@ -10,8 +10,6 @@ public class TextToolSettings extends BaseToolSettings {
     private JComboBox<String> fontDropdown;
     private JSlider fontSizeSlider;
     private JLabel fontSizeValueLabel;
-    private JButton colorButton;
-    private Color textColor = Color.BLACK;
     private JCheckBox antiAliasingCheckbox;
     private boolean useAntiAliasing = true;
 
@@ -56,19 +54,6 @@ public class TextToolSettings extends BaseToolSettings {
             applySettings();
         });
 
-        // Color button
-        JLabel colorLabel = new JLabel("Text Color:");
-        colorLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        colorButton = new JButton("Choose Color");
-        colorButton.setAlignmentX(Component.LEFT_ALIGNMENT);
-        colorButton.addActionListener(e -> {
-            Color newColor = JColorChooser.showDialog(null, "Choose Text Color", textColor);
-            if (newColor != null) {
-                textColor = newColor;
-                applySettings();
-            }
-        });
-
         // Add anti-aliasing checkbox
         antiAliasingCheckbox = new JCheckBox("Anti-aliasing", useAntiAliasing);
         antiAliasingCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -85,9 +70,6 @@ public class TextToolSettings extends BaseToolSettings {
         panel.add(fontSizeSlider);
         panel.add(fontSizeValueLabel);
         panel.add(Box.createVerticalStrut(5));
-        panel.add(colorLabel);
-        panel.add(colorButton);
-        panel.add(Box.createVerticalStrut(5));
         panel.add(antiAliasingCheckbox);
         panel.add(Box.createVerticalGlue());
 
@@ -100,7 +82,6 @@ public class TextToolSettings extends BaseToolSettings {
             TextTool tool = (TextTool) canvas.getActiveTool();
             tool.setText(textField.getText());
             tool.setFont(new Font((String) fontDropdown.getSelectedItem(), Font.PLAIN, fontSizeSlider.getValue()));
-            tool.setColor(textColor);
             useAntiAliasing = antiAliasingCheckbox.isSelected();
             tool.setAntiAliasing(useAntiAliasing);
         }
@@ -112,7 +93,6 @@ public class TextToolSettings extends BaseToolSettings {
         fontDropdown.setSelectedItem("Arial");
         fontSizeSlider.setValue(24);
         fontSizeValueLabel.setText("24");
-        textColor = Color.BLACK;
         antiAliasingCheckbox.setSelected(true);
         applySettings();
     }
