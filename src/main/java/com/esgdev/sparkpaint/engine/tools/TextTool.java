@@ -2,7 +2,6 @@ package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
@@ -10,7 +9,7 @@ import java.awt.image.BufferedImage;
 
 public class TextTool implements DrawingTool {
     private final DrawingCanvas canvas;
-    private final Cursor cursor = Cursor.getPredefinedCursor(Cursor.TEXT_CURSOR);
+    private final Cursor cursor = Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR);
     private String text = "Sample Text";
     private Font font = new Font("Arial", Font.PLAIN, 24);
     private boolean useAntiAliasing = true;
