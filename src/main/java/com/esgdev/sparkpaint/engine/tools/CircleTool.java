@@ -30,6 +30,7 @@ public class CircleTool implements DrawingTool {
     public void mousePressed(MouseEvent e) {
         startPoint = scalePoint(canvas, e.getPoint());
         canvas.saveToUndoStack();
+        canvas.saveCanvasState();
     }
 
     @Override

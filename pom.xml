@@ -93,7 +93,6 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <arguments>-Xshare:off</arguments>
                     <mainClass>com.esgdev.sparkpaint.Main</mainClass> <!-- Fully qualified Main class name -->
                 </configuration>
             </plugin>
