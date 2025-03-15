@@ -11,12 +11,14 @@ import java.util.Map;
 public class DrawingSettingsToolBox extends Box implements ToolChangeListener {
     public static final int MaxWidth = 200;
     private final Map<DrawingCanvas.Tool, ToolSettings> toolSettings;
+    private final Map<DrawingCanvas.Tool, JComponent> settingsPanels;
     private final JPanel settingsPanel;
 
 
     public DrawingSettingsToolBox(DrawingCanvas canvas, StatusMessageHandler statusMessageHandler) {
         super(BoxLayout.Y_AXIS);
         this.toolSettings = new EnumMap<>(DrawingCanvas.Tool.class);
+        this.settingsPanels = new EnumMap<>(DrawingCanvas.Tool.class);
         this.settingsPanel = new JPanel();
         this.settingsPanel.setLayout(new BoxLayout(settingsPanel, BoxLayout.Y_AXIS));
         JPanel containerPanel = new JPanel(new BorderLayout());
@@ -44,9 +46,16 @@ public class DrawingSettingsToolBox extends Box implements ToolChangeListener {
     @Override
     public void onToolChanged(DrawingCanvas.Tool newTool) {
         settingsPanel.removeAll();
-        ToolSettings settings = toolSettings.get(newTool);
-        if (settings != null) {
-            settingsPanel.add(settings.createSettingsPanel());
+        JComponent panel = settingsPanels.get(newTool);
+        if (panel == null) {
+            ToolSettings settings = toolSettings.get(newTool);
+            if (settings != null) {
+                panel = settings.createSettingsPanel();
+                settingsPanels.put(newTool, panel);
+            }
+        }
+        if (panel != null) {
+            settingsPanel.add(panel);
         }
         settingsPanel.revalidate();
         settingsPanel.repaint();
