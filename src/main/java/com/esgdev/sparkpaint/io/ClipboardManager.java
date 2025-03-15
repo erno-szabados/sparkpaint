@@ -68,10 +68,6 @@ public class ClipboardManager {
             selectionManager.getSelection().setRectangle(new Rectangle(pasteX, pasteY, pastedImage.getWidth(), pastedImage.getHeight()));
             selectionManager.getSelection().setContent(pastedImage);
 
-            Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-            StringSelection emptyContent = new StringSelection("");
-            clipboard.setContents(emptyContent, null);
-
             canvas.repaint();
             notifyClipboardStateChanged();
         }

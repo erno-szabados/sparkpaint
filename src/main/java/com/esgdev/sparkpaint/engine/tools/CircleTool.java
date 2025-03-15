@@ -30,19 +30,18 @@ public class CircleTool implements DrawingTool {
     public void mousePressed(MouseEvent e) {
         startPoint = scalePoint(canvas, e.getPoint());
         canvas.saveToUndoStack();
-        canvas.saveCanvasState();
     }
 
     @Override
     public void mouseDragged(MouseEvent e) {
         Point point = scalePoint(canvas, e.getPoint());
-        BufferedImage tempCanvas = new BufferedImage(canvas.getWidth(), canvas.getHeight(), BufferedImage.TYPE_INT_RGB);
+        BufferedImage tempCanvas = canvas.getTempCanvas();
         Graphics2D g2d = tempCanvas.createGraphics();
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
         g2d.drawImage(canvas.getImage(), 0, 0, null);
         g2d.setStroke(new BasicStroke(canvas.getLineThickness()));
         g2d.setColor(canvas.getDrawingColor());
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
         drawCircle(g2d, startPoint, point);
         g2d.dispose();
         canvas.setTempCanvas(tempCanvas);

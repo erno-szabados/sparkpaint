@@ -147,6 +147,13 @@ public class DrawingCanvas extends JPanel {
         this.tempCanvas = tempCanvas;
     }
 
+    public BufferedImage getTempCanvas() {
+        if (tempCanvas == null ) {
+            tempCanvas = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_RGB);
+        }
+        return tempCanvas;
+    }
+
     public void saveToFile(File file) throws IOException {
         fileManager.saveToFile(file, image);
     }
@@ -180,13 +187,13 @@ public class DrawingCanvas extends JPanel {
         fileManager.setCurrentFilePath(null);
     }
 
-    // Save the current canvas state to a temporary buffer
-    public void saveCanvasState() {
-        tempCanvas = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_RGB);
-        Graphics2D tempGraphics = tempCanvas.createGraphics();
-        tempGraphics.drawImage(image, 0, 0, null); // Copy the permanent canvas to the temporary canvas
-        tempGraphics.dispose();
-    }
+//    // Save the current canvas state to a temporary buffer
+//    public void saveCanvasState() {
+//        tempCanvas = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_RGB);
+//        Graphics2D tempGraphics = tempCanvas.createGraphics();
+//        tempGraphics.drawImage(image, 0, 0, null); // Copy the permanent canvas to the temporary canvas
+//        tempGraphics.dispose();
+//    }
 
     public void setDrawingColor(Color color) {
         if (color != null && !color.equals(this.drawingColor)) {
