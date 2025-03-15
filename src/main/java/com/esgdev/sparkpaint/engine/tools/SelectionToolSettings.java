@@ -9,10 +9,15 @@ import java.awt.*;
 public class SelectionToolSettings extends BaseToolSettings {
     private static final int ICON_SIZE = 16;
     private final SelectionTool selectionTool;
+    private final JCheckBox transparencyCheckbox;
+
 
     public SelectionToolSettings(DrawingCanvas canvas) {
         super(canvas);
         this.selectionTool = (SelectionTool) canvas.getTool(DrawingCanvas.Tool.SELECTION);
+        this.transparencyCheckbox = new JCheckBox("Transparent Background");
+        this.transparencyCheckbox.setToolTipText("Make selection background transparent");
+
     }
 
     @Override
@@ -35,16 +40,13 @@ public class SelectionToolSettings extends BaseToolSettings {
         rotationPanel.add(rotateLeftButton);
         rotationPanel.add(rotateRightButton);
 
-        // Transparency button
-        JButton transparencyButton = new JButton("Transparency");
-       // transparencyButton.setIcon(IconLoader.loadAndScaleIcon("transparency.png", ICON_SIZE, ICON_SIZE));
-        transparencyButton.setToolTipText("Make Background Transparent");
-        transparencyButton.addActionListener(e ->
-                canvas.getSelectionManager().applyTransparencyToSelection(canvas.getFillColor())
+        // Add transparency checkbox
+        transparencyCheckbox.addActionListener(e ->
+                selectionTool.setTransparencyEnabled(transparencyCheckbox.isSelected())
         );
 
         panel.add(rotationPanel);
-        panel.add(transparencyButton);
+        panel.add(transparencyCheckbox);
 
         return panel;
     }

@@ -38,23 +38,4 @@ public class Selection {
         rectangle = null;
         content = null;
     }
-
-   public void applyTransparency(Color transparentColor) {
-        if (content == null) return;
-
-        for (int y = 0; y < content.getHeight(); y++) {
-            for (int x = 0; x < content.getWidth(); x++) {
-                int rgba = content.getRGB(x, y);
-                Color pixelColor = new Color(rgba, true);
-
-                // Make fully transparent if it matches the transparent color
-                if (pixelColor.getRGB() == transparentColor.getRGB()) {
-                    content.setRGB(x, y, 0x00000000);
-                } else {
-                    // Keep color but make fully opaque
-                    content.setRGB(x, y, rgba | 0xFF000000);
-                }
-            }
-        }
-    }
 }

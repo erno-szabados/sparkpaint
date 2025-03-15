@@ -19,10 +19,17 @@ public class SelectionTool implements DrawingTool {
     private Point dragOffset = null;
     private Point originalSelectionLocation = null;
     private final SelectionManager selectionManager;
+    private boolean transparencyEnabled = false;
+
 
     public SelectionTool(DrawingCanvas canvas) {
         this.canvas = canvas;
         this.selectionManager = canvas.getSelectionManager();
+    }
+
+    // Add this method
+    public void setTransparencyEnabled(boolean enabled) {
+        this.transparencyEnabled = enabled;
     }
 
     @Override
@@ -101,6 +108,13 @@ public class SelectionTool implements DrawingTool {
                 Graphics2D g2d = selectionContent.createGraphics();
                 g2d.drawImage(canvas.getImage(), -selectionRectangle.x, -selectionRectangle.y, null);
                 g2d.dispose();
+
+
+                // Apply transparency if enabled
+                if (transparencyEnabled) {
+                    applyTransparencyToContent(selectionContent, canvas.getCanvasBackground());
+                }
+
                 selectionManager.getSelection().setContent(selectionContent);
                 originalSelectionLocation = new Point(selectionRectangle.x, selectionRectangle.y);
                 clearSelectionOriginalLocation();
@@ -110,6 +124,22 @@ public class SelectionTool implements DrawingTool {
             }
         }
         canvas.repaint();
+    }
+
+    // Add this helper method
+    private void applyTransparencyToContent(BufferedImage content, Color transparentColor) {
+        for (int y = 0; y < content.getHeight(); y++) {
+            for (int x = 0; x < content.getWidth(); x++) {
+                int rgba = content.getRGB(x, y);
+                Color pixelColor = new Color(rgba, true);
+
+                if (pixelColor.getRGB() == transparentColor.getRGB()) {
+                    content.setRGB(x, y, 0x00000000);
+                } else {
+                    content.setRGB(x, y, rgba | 0xFF000000);
+                }
+            }
+        }
     }
 
     @Override
