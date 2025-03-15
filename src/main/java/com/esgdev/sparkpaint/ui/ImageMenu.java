@@ -1,6 +1,8 @@
 package com.esgdev.sparkpaint.ui;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
+import com.esgdev.sparkpaint.engine.SelectionManager;
+import com.esgdev.sparkpaint.engine.tools.SelectionTool;
 
 import javax.swing.*;
 import java.awt.*;
@@ -15,6 +17,7 @@ public class ImageMenu extends JMenu {
     private final JMenuItem infoItem;
     private final JMenuItem resizeItem;
     private final JMenuItem scaleItem;
+    private final JMenuItem cropItem;
 
     public ImageMenu(MainFrame mainFrame) {
         super("Image");
@@ -44,6 +47,13 @@ public class ImageMenu extends JMenu {
         scaleItem.addActionListener(this::handleScale);
         scaleItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_MASK | InputEvent.SHIFT_MASK));
         add(scaleItem);
+
+        // Create and add Crop to Selection item
+        cropItem = new JMenuItem("Crop to Selection");
+        cropItem.setMnemonic('C');
+        cropItem.addActionListener(this::handleCrop);
+        cropItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_MASK | InputEvent.SHIFT_MASK));
+        add(cropItem);
     }
 
     private void handleInfo(ActionEvent e) {
@@ -198,6 +208,29 @@ public class ImageMenu extends JMenu {
             canvas.repaint();
             canvas.saveToUndoStack();
         }
+    }
+
+    private void handleCrop(ActionEvent e) {
+        BufferedImage currentImage = (BufferedImage) canvas.getImage();
+        SelectionManager selectionManager = canvas.getSelectionManager();
+        Rectangle selection = selectionManager.getSelection().getRectangle();
+
+        if (currentImage == null || selection == null) {
+            JOptionPane.showMessageDialog(mainFrame, "No image or selection available.", "Crop to Selection", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        SelectionTool selectionTool = (SelectionTool) canvas.getTool(DrawingCanvas.Tool.SELECTION);
+        selectionTool.copySelectionToPermanentCanvas();
+
+        BufferedImage croppedImage = currentImage.getSubimage(selection.x, selection.y, selection.width, selection.height);
+        canvas.createNewCanvas(croppedImage.getWidth(), croppedImage.getHeight(), canvas.getCanvasBackground());
+
+        Graphics2D g = (Graphics2D) canvas.getImage().getGraphics();
+        g.drawImage(croppedImage, 0, 0, null);
+        g.dispose();
+
+        canvas.repaint();
     }
 
     private void updateScalePreview(BufferedImage image, JLabel label, JSpinner widthSpinner, JSpinner heightSpinner) {

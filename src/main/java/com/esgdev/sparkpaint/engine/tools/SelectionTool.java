@@ -259,7 +259,7 @@ public class SelectionTool implements DrawingTool {
         g2d.fillRect(originalSelectionLocation.x, originalSelectionLocation.y, selectionRectangle.width, selectionRectangle.height);
     }
 
-    private void copySelectionToPermanentCanvas() {
+    public void copySelectionToPermanentCanvas() {
         Rectangle selectionRectangle = selectionManager.getSelection().getRectangle();
         if (selectionRectangle == null) return;
         canvas.saveToUndoStack();
