@@ -7,7 +7,7 @@
     <!-- Project information -->
     <groupId>com.esgdev.sparkpaint</groupId>
     <artifactId>sparkpaint</artifactId>
-    <version>0.7-SNAPSHOT</version>
+    <version>0.8-SNAPSHOT</version>
 
     <!-- Define the JDK version you're using -->
     <properties>
