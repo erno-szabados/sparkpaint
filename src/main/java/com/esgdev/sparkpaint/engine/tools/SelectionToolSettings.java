@@ -35,7 +35,16 @@ public class SelectionToolSettings extends BaseToolSettings {
         rotationPanel.add(rotateLeftButton);
         rotationPanel.add(rotateRightButton);
 
+        // Transparency button
+        JButton transparencyButton = new JButton("Transparency");
+       // transparencyButton.setIcon(IconLoader.loadAndScaleIcon("transparency.png", ICON_SIZE, ICON_SIZE));
+        transparencyButton.setToolTipText("Make Background Transparent");
+        transparencyButton.addActionListener(e ->
+                canvas.getSelectionManager().applyTransparencyToSelection(canvas.getFillColor())
+        );
+
         panel.add(rotationPanel);
+        panel.add(transparencyButton);
 
         return panel;
     }

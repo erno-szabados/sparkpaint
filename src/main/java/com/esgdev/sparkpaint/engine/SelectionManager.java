@@ -52,8 +52,8 @@ public class SelectionManager {
         }
     }
 
-    public void applyTransparencyToSelection(int transparency) {
-        selection.applyTransparency(transparency);
+    public void applyTransparencyToSelection(Color transparentColor) {
+        selection.applyTransparency(transparentColor);
         canvas.repaint();
     }
 }

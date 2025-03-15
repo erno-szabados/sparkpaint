@@ -39,16 +39,21 @@ public class Selection {
         content = null;
     }
 
-    public void applyTransparency(int transparency) {
+   public void applyTransparency(Color transparentColor) {
         if (content == null) return;
 
         for (int y = 0; y < content.getHeight(); y++) {
             for (int x = 0; x < content.getWidth(); x++) {
                 int rgba = content.getRGB(x, y);
-                int alpha = (rgba >> 24) & 0xff;
-                alpha = (alpha * transparency) / 255;
-                rgba = (rgba & 0x00ffffff) | (alpha << 24);
-                content.setRGB(x, y, rgba);
+                Color pixelColor = new Color(rgba, true);
+
+                // Make fully transparent if it matches the transparent color
+                if (pixelColor.getRGB() == transparentColor.getRGB()) {
+                    content.setRGB(x, y, 0x00000000);
+                } else {
+                    // Keep color but make fully opaque
+                    content.setRGB(x, y, rgba | 0xFF000000);
+                }
             }
         }
     }

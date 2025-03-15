@@ -235,6 +235,7 @@ public class SelectionTool implements DrawingTool {
         if (selectionRectangle == null) return;
         canvas.saveToUndoStack();
         Graphics2D g2d = canvas.getCanvasGraphics();
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER));
         g2d.drawImage(selectionManager.getSelection().getContent(), selectionRectangle.x, selectionRectangle.y, null);
         g2d.dispose();
         canvas.repaint();
