@@ -235,21 +235,30 @@ public class SelectionTool implements DrawingTool {
         if (selectionRectangle == null ||
                 selectionRectangle.width <= 0 ||
                 selectionRectangle.height <= 0) {
-            System.out.println("Selection rectangle is null or has zero width/height");
             return;
         }
 
-        float[] dashPattern = {5, 5}; // Define a pattern: 5px dash, 5px gap
-        BasicStroke dottedStroke = new BasicStroke(
+
+        float[] dashPattern1 = {5, 5}; // Define the first pattern: 5px dash, 5px gap
+
+        BasicStroke dottedStroke1 = new BasicStroke(
                 1, // Line Width
                 BasicStroke.CAP_BUTT, // End-cap style
                 BasicStroke.JOIN_MITER, // Join style
                 10.0f, // Miter limit
-                dashPattern, // Dash pattern (dotted line)
+                dashPattern1, // Dash pattern (dotted line)
                 0 // Dash phase
         );
-        g2d.setColor(Color.BLACK);
-        g2d.setStroke(dottedStroke);
+
+        BasicStroke dottedStroke2 = new BasicStroke(
+                1, // Line Width
+                BasicStroke.CAP_BUTT, // End-cap style
+                BasicStroke.JOIN_MITER, // Join style
+                10.0f, // Miter limit
+                dashPattern1, // Dash pattern (dotted line)
+                5 // Dash phase
+        );
+
         double zoomFactor = canvas.getZoomFactor();
 
         int x = (int) (selectionRectangle.x * zoomFactor);
@@ -258,6 +267,14 @@ public class SelectionTool implements DrawingTool {
         int height = (int) (selectionRectangle.height * zoomFactor);
 
         scaledSelectionRectangle.setBounds(x, y, width, height);
+        // Draw the selection rectangle with the first dash pattern
+        g2d.setColor(Color.BLACK);
+        g2d.setStroke(dottedStroke1);
+        g2d.draw(scaledSelectionRectangle);
+
+        // Draw the selection rectangle with the second dash pattern
+        g2d.setColor(Color.WHITE);
+        g2d.setStroke(dottedStroke2);
         g2d.draw(scaledSelectionRectangle);
     }
 
