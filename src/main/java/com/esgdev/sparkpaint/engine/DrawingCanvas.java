@@ -294,24 +294,16 @@ public class DrawingCanvas extends JPanel {
             g2d.drawImage(tempCanvas, 0, 0, null);
         }
 
-        // Reset scale for grid drawing
-        g2d.scale(1 / zoomFactor, 1 / zoomFactor);
-
-        // Draw grid when zoom factor is greater than 5
-        //renderZoomGrid(g2d);
-        renderZoomGridRealtime(g2d);
-
-        // Restore scale for selection tool
-        g2d.scale(zoomFactor, zoomFactor);
-
+        SelectionTool tool = (SelectionTool) getTool(Tool.SELECTION);
         Selection selection = selectionManager.getSelection();
-        if (currentTool == Tool.SELECTION && selection.getRectangle() != null) {
-            DrawingTool tool = tools.get(currentTool);
-            if (tool instanceof SelectionTool) {
-                ((SelectionTool) tool).drawSelection(g2d);
-            }
+        if (currentTool == Tool.SELECTION && selection != null) {
+            tool.drawSelection(g2d);
         }
 
+        // Reset scale for grid drawing
+        g2d.scale(1 / zoomFactor, 1 / zoomFactor);
+        renderZoomGridRealtime(g2d);
+        tool.drawSelectionRectangle(g2d);
     }
 
     private void renderZoomGridRealtime(Graphics2D g2d) {

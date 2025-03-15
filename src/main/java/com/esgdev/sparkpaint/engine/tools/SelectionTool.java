@@ -190,7 +190,7 @@ public class SelectionTool implements DrawingTool {
         BufferedImage rotated = new BufferedImage(
                 degrees % 180 == 0 ? width : height,
                 degrees % 180 == 0 ? height : width,
-                BufferedImage.TYPE_INT_RGB
+                BufferedImage.TYPE_INT_ARGB
         );
 
         Graphics2D g2d = rotated.createGraphics();
@@ -226,16 +226,16 @@ public class SelectionTool implements DrawingTool {
                         null);
             }
         }
-
-        if (selectionRectangle != null &&
-                selectionRectangle.width > 0 &&
-                selectionRectangle.height > 0) {
-            drawSelectionRectangle(g2d);
-        }
     }
 
-    private void drawSelectionRectangle(Graphics2D g2d) {
+    public void drawSelectionRectangle(Graphics2D g2d) {
+        Rectangle selectionRectangle = selectionManager.getSelection().getRectangle();
         // Draw the dotted border
+        if (selectionRectangle == null ||
+                selectionRectangle.width <= 0 ||
+                selectionRectangle.height <= 0) {
+            return;
+        }
         float[] dashPattern = {5, 5}; // Define a pattern: 5px dash, 5px gap
         BasicStroke dottedStroke = new BasicStroke(
                 1, // Line Width
@@ -247,7 +247,7 @@ public class SelectionTool implements DrawingTool {
         );
         g2d.setColor(Color.BLACK);
         g2d.setStroke(dottedStroke);
-        g2d.draw(selectionManager.getSelection().getRectangle());
+        g2d.draw(selectionRectangle);
     }
 
     private void clearSelectionOriginalLocation() {
