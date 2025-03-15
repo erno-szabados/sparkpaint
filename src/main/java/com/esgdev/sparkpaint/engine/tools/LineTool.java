@@ -33,7 +33,7 @@ package com.esgdev.sparkpaint.engine.tools;
         @Override
         public void mouseDragged(MouseEvent e) {
             Point point = scalePoint(canvas, e.getPoint());
-            BufferedImage tempCanvas = new BufferedImage(canvas.getWidth(), canvas.getHeight(), BufferedImage.TYPE_INT_ARGB);
+            BufferedImage tempCanvas = new BufferedImage(canvas.getWidth(), canvas.getHeight(), BufferedImage.TYPE_INT_RGB);
             Graphics2D g2d = tempCanvas.createGraphics();
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                     useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);

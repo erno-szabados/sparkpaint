@@ -112,7 +112,7 @@ public class SelectionTool implements DrawingTool {
 
                 // Apply transparency if enabled
                 if (transparencyEnabled) {
-                    applyTransparencyToContent(selectionContent, canvas.getCanvasBackground());
+                    applyTransparencyToContent(selectionContent, canvas.getFillColor());
                 }
 
                 selectionManager.getSelection().setContent(selectionContent);
@@ -126,7 +126,6 @@ public class SelectionTool implements DrawingTool {
         canvas.repaint();
     }
 
-    // Add this helper method
     private void applyTransparencyToContent(BufferedImage content, Color transparentColor) {
         for (int y = 0; y < content.getHeight(); y++) {
             for (int x = 0; x < content.getWidth(); x++) {
@@ -191,7 +190,7 @@ public class SelectionTool implements DrawingTool {
         BufferedImage rotated = new BufferedImage(
                 degrees % 180 == 0 ? width : height,
                 degrees % 180 == 0 ? height : width,
-                BufferedImage.TYPE_INT_ARGB
+                BufferedImage.TYPE_INT_RGB
         );
 
         Graphics2D g2d = rotated.createGraphics();

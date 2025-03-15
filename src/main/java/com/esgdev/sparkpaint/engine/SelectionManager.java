@@ -28,7 +28,7 @@ public class SelectionManager {
         BufferedImage image = (BufferedImage) canvas.getImage();
         if (image != null) {
             Rectangle rect = new Rectangle(0, 0, image.getWidth(), image.getHeight());
-            BufferedImage content = new BufferedImage(rect.width, rect.height, BufferedImage.TYPE_INT_ARGB);
+            BufferedImage content = new BufferedImage(rect.width, rect.height, BufferedImage.TYPE_INT_RGB);
             Graphics2D g2d = content.createGraphics();
             g2d.drawImage(image, -rect.x, -rect.y, null);
             g2d.dispose();

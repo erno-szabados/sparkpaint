@@ -30,14 +30,14 @@ public class HistoryManager {
 
     public void saveToUndoStack(BufferedImage image) {
         if (image != null) {
-            BufferedImage copy = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
+            BufferedImage copy = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
             Graphics2D g2d = copy.createGraphics();
             g2d.drawImage(image, 0, 0, null);
             g2d.dispose();
 
-            System.out.println("uncompressed image size: " + (copy.getWidth() * copy.getHeight() * 4) + " bytes");
+            //System.out.println("uncompressed image size: " + (copy.getWidth() * copy.getHeight() * 3) + " bytes");
             byte[] compressed = compressImage(image);
-            System.out.printf("Compressed image size: %d bytes\n", compressed.length);
+            //System.out.printf("Compressed image size: %d bytes\n", compressed.length);
             CompressedImage compressedImage = new CompressedImage(compressed, image.getWidth(), image.getHeight());
             undoStack.push(compressedImage);
             if (undoStack.size() > MAX_HISTORY_SIZE) {
@@ -155,7 +155,7 @@ public class HistoryManager {
         byteBuffer.asIntBuffer().get(intData);
 
         // Create a BufferedImage and set its raster to use the decompressed int[] data
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         int[] imageRaster = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
 
         // Avoid a deep copy by copying the reference

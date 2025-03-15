@@ -40,7 +40,8 @@ public class DrawingCanvas extends JPanel {
 
     private Image image;
     private Graphics2D graphics;
-    private BufferedImage tempCanvas; // Temporary canvas for drawing previews
+    // Temporary canvas for drawing previews, tools will manage this, paintComponent will draw it
+    private BufferedImage tempCanvas;
 
     private Tool currentTool = Tool.PENCIL;
     private Color drawingColor = Color.BLACK;
@@ -48,7 +49,6 @@ public class DrawingCanvas extends JPanel {
     private Color canvasBackground;
     private float lineThickness = 2.0f;
     private float zoomFactor = 1.0f;
-    private final Map<Float, BufferedImage> zoomGridCacheMap = new HashMap<>();
 
     private final List<ToolChangeListener> toolChangeListeners = new ArrayList<>();
     private final List<CanvasPropertyChangeListener> propertyChangeListeners = new ArrayList<>();
@@ -88,8 +88,7 @@ public class DrawingCanvas extends JPanel {
         this.drawingColor = Color.BLACK;
         this.fillColor = Color.WHITE;
         // Create new buffered images with new dimensions
-        BufferedImage newImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        BufferedImage newTempCanvas = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage newImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 
         // Get graphics context from new image
         Graphics2D newGraphics = (Graphics2D) newImage.getGraphics();
@@ -115,10 +114,8 @@ public class DrawingCanvas extends JPanel {
 
         image = newImage;
         graphics = newGraphics;
-        tempCanvas = newTempCanvas;
 
         zoomFactor = 1.0f;
-        precacheZoomGrid(width, height);
 
         notifyDrawingColorChanged();
         notifyFillColorChanged();
@@ -162,7 +159,7 @@ public class DrawingCanvas extends JPanel {
         Stroke currentStroke = graphics != null ? graphics.getStroke() : new BasicStroke(1);
 
         image = new BufferedImage(loadedImage.getWidth(), loadedImage.getHeight(),
-                BufferedImage.TYPE_INT_ARGB);
+                BufferedImage.TYPE_INT_RGB);
         graphics = (Graphics2D) image.getGraphics();
 
         graphics.setColor(currentColor);
@@ -185,7 +182,7 @@ public class DrawingCanvas extends JPanel {
 
     // Save the current canvas state to a temporary buffer
     public void saveCanvasState() {
-        tempCanvas = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
+        tempCanvas = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_RGB);
         Graphics2D tempGraphics = tempCanvas.createGraphics();
         tempGraphics.drawImage(image, 0, 0, null); // Copy the permanent canvas to the temporary canvas
         tempGraphics.dispose();
@@ -294,7 +291,8 @@ public class DrawingCanvas extends JPanel {
         g2d.scale(1 / zoomFactor, 1 / zoomFactor);
 
         // Draw grid when zoom factor is greater than 5
-        renderZoomGrid(g2d);
+        //renderZoomGrid(g2d);
+        renderZoomGridRealtime(g2d);
 
         // Restore scale for selection tool
         g2d.scale(zoomFactor, zoomFactor);
@@ -309,38 +307,20 @@ public class DrawingCanvas extends JPanel {
 
     }
 
-    private void renderZoomGrid(Graphics2D g2d) {
+    private void renderZoomGridRealtime(Graphics2D g2d) {
         if (zoomFactor <= 5.0f) {
             return;
         }
-
-        BufferedImage cachedGrid = zoomGridCacheMap.get(zoomFactor);
-        if (cachedGrid != null)
-            g2d.drawImage(cachedGrid, 0, 0, null);
-    }
-
-    private void precacheZoomGrid(int width, int height) {
-        // Clear existing cache
-        zoomGridCacheMap.clear();
-
-        // Pre-cache grids for high zoom levels
-        float[] highZoomLevels = {8.0f, 12.0f};
-        for (float zoom : highZoomLevels) {
-            int scaledWidth = (int) (width * zoom);
-            int scaledHeight = (int) (height * zoom);
-            BufferedImage cachedGrid = new BufferedImage(scaledWidth, scaledHeight, BufferedImage.TYPE_INT_ARGB);
-            Graphics2D gridGraphics = cachedGrid.createGraphics();
-
-            gridGraphics.setColor(new Color(200, 200, 200, 100));
-            for (int x = 0; x <= scaledWidth; x += (int) zoom) {
-                gridGraphics.drawLine(x, 0, x, scaledHeight);
-            }
-            for (int y = 0; y <= scaledHeight; y += (int) zoom) {
-                gridGraphics.drawLine(0, y, scaledWidth, y);
-            }
-            gridGraphics.dispose();
-            zoomGridCacheMap.put(zoom, cachedGrid);
+        int scaledWidth = (int) (image.getWidth(null) * zoomFactor);
+        int scaledHeight = (int) (image.getHeight(null) * zoomFactor);
+        g2d.setColor(new Color(200, 200, 200, 100));
+        for (int x = 0; x <= scaledWidth; x += (int) zoomFactor) {
+            g2d.drawLine(x, 0, x, scaledHeight);
         }
+        for (int y = 0; y <= scaledHeight; y += (int) zoomFactor) {
+            g2d.drawLine(0, y, scaledWidth, y);
+        }
+        g2d.dispose();
     }
 
     private void initTools() {

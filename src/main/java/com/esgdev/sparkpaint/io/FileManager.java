@@ -23,7 +23,7 @@ public class FileManager {
         BufferedImage imageToSave = new BufferedImage(
                 canvasImage.getWidth(null),
                 canvasImage.getHeight(null),
-                BufferedImage.TYPE_INT_ARGB);
+                BufferedImage.TYPE_INT_RGB);
 
         Graphics2D g = imageToSave.createGraphics();
         g.drawImage(canvasImage, 0, 0, null);

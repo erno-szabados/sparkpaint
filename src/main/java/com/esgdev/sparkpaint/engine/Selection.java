@@ -8,6 +8,7 @@ import java.awt.image.BufferedImage;
 public class Selection {
     private Rectangle rectangle;
     private BufferedImage content;
+    private Color transparencyColor;
 
     public Selection(Rectangle rectangle, BufferedImage content) {
         this.rectangle = rectangle;
