@@ -153,7 +153,7 @@ public class SelectionTool implements DrawingTool {
     public void rotateSelection(int degrees) {
         if (selectionManager.getSelection().getContent() == null) return;
 
-        BufferedImage original = (BufferedImage) selectionManager.getSelection().getContent();
+        BufferedImage original = selectionManager.getSelection().getContent();
         int width = original.getWidth();
         int height = original.getHeight();
 
@@ -176,17 +176,10 @@ public class SelectionTool implements DrawingTool {
 
         // Clear original area
         Rectangle rect = selectionManager.getSelection().getRectangle();
-        Graphics2D canvasG2d = canvas.getCanvasGraphics();
-        canvasG2d.setColor(canvas.getCanvasBackground());
-        canvasG2d.fillRect(rect.x, rect.y, rect.width, rect.height);
 
         // Update selection content and rectangle
         selectionManager.getSelection().setContent(rotated);
         rect.setSize(rotated.getWidth(), rotated.getHeight());
-
-        // Draw rotated content to canvas
-        canvasG2d.drawImage(rotated, rect.x, rect.y, null);
-        canvasG2d.dispose();
 
         canvas.repaint();
     }
