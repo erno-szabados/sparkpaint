@@ -6,7 +6,6 @@ import com.esgdev.sparkpaint.engine.SelectionManager;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -54,8 +53,8 @@ public class ClipboardManager {
         if (pastedImage != null) {
             if (canvas.getImage() == null || canvas.getCanvasGraphics() == null) {
                 canvas.createNewCanvas(DrawingCanvas.DEFAULT_CANVAS_WIDTH, DrawingCanvas.DEFAULT_CANVAS_HEIGHT, canvas.getCanvasBackground());
-                canvas.saveToUndoStack();
             }
+            canvas.saveToUndoStack();
             Point mousePosition = canvas.getMousePosition();
             int pasteX = 0;
             int pasteY = 0;
