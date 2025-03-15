@@ -20,6 +20,7 @@ public class SelectionTool implements DrawingTool {
     private Point originalSelectionLocation = null;
     private final SelectionManager selectionManager;
     private boolean transparencyEnabled = false;
+    private Rectangle scaledSelectionRectangle = new Rectangle();
 
 
     public SelectionTool(DrawingCanvas canvas) {
@@ -230,12 +231,14 @@ public class SelectionTool implements DrawingTool {
 
     public void drawSelectionRectangle(Graphics2D g2d) {
         Rectangle selectionRectangle = selectionManager.getSelection().getRectangle();
-        // Draw the dotted border
+
         if (selectionRectangle == null ||
                 selectionRectangle.width <= 0 ||
                 selectionRectangle.height <= 0) {
+            System.out.println("Selection rectangle is null or has zero width/height");
             return;
         }
+
         float[] dashPattern = {5, 5}; // Define a pattern: 5px dash, 5px gap
         BasicStroke dottedStroke = new BasicStroke(
                 1, // Line Width
@@ -247,7 +250,15 @@ public class SelectionTool implements DrawingTool {
         );
         g2d.setColor(Color.BLACK);
         g2d.setStroke(dottedStroke);
-        g2d.draw(selectionRectangle);
+        double zoomFactor = canvas.getZoomFactor();
+
+        int x = (int) (selectionRectangle.x * zoomFactor);
+        int y = (int) (selectionRectangle.y * zoomFactor);
+        int width = (int) (selectionRectangle.width * zoomFactor);
+        int height = (int) (selectionRectangle.height * zoomFactor);
+
+        scaledSelectionRectangle.setBounds(x, y, width, height);
+        g2d.draw(scaledSelectionRectangle);
     }
 
     private void clearSelectionOriginalLocation() {

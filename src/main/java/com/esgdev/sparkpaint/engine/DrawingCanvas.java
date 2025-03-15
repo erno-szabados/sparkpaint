@@ -302,24 +302,24 @@ public class DrawingCanvas extends JPanel {
 
         // Reset scale for grid drawing
         g2d.scale(1 / zoomFactor, 1 / zoomFactor);
-        renderZoomGridRealtime(g2d);
+        renderZoomGrid(g2d);
         tool.drawSelectionRectangle(g2d);
+        g2d.dispose();
     }
 
-    private void renderZoomGridRealtime(Graphics2D g2d) {
+    private void renderZoomGrid(Graphics2D g2d) {
         if (zoomFactor <= 5.0f) {
             return;
         }
         int scaledWidth = (int) (image.getWidth(null) * zoomFactor);
         int scaledHeight = (int) (image.getHeight(null) * zoomFactor);
-        g2d.setColor(new Color(200, 200, 200, 100));
+        g2d.setColor(Color.LIGHT_GRAY);
         for (int x = 0; x <= scaledWidth; x += (int) zoomFactor) {
             g2d.drawLine(x, 0, x, scaledHeight);
         }
         for (int y = 0; y <= scaledHeight; y += (int) zoomFactor) {
             g2d.drawLine(0, y, scaledWidth, y);
         }
-        g2d.dispose();
     }
 
     private void initTools() {
