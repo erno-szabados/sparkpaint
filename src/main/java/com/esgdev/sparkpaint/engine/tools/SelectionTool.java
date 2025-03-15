@@ -218,7 +218,7 @@ public class SelectionTool implements DrawingTool {
         Rectangle selectionRectangle = selectionManager.getSelection().getRectangle();
         Image selectionContent = selectionManager.getSelection().getContent();
         // If dragging, draw the selection content at current position
-        if (selectionContent != null) {
+        if (selectionContent != null && selectionRectangle != null) {
             if (selectionContent.getWidth(null) > 0 &&
                     selectionContent.getHeight(null) > 0) {
                 g2d.drawImage(selectionContent,

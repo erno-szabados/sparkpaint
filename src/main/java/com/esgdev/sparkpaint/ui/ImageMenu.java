@@ -225,6 +225,7 @@ public class ImageMenu extends JMenu {
 
         BufferedImage croppedImage = currentImage.getSubimage(selection.x, selection.y, selection.width, selection.height);
         canvas.createNewCanvas(croppedImage.getWidth(), croppedImage.getHeight(), canvas.getCanvasBackground());
+        canvas.getSelectionManager().clearSelection();
 
         Graphics2D g = (Graphics2D) canvas.getImage().getGraphics();
         g.drawImage(croppedImage, 0, 0, null);
