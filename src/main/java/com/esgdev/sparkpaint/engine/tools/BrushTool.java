@@ -38,7 +38,7 @@ public class BrushTool implements DrawingTool {
 
     @Override
     public void mousePressed(MouseEvent e) {
-        lastPoint = scalePoint(canvas, e.getPoint());
+        lastPoint = screenToWorld(canvas.getZoomFactor(), e.getPoint());
         canvas.saveToUndoStack();
         drawShape(e, lastPoint);
         canvas.repaint();
@@ -46,7 +46,7 @@ public class BrushTool implements DrawingTool {
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        Point currentPoint = scalePoint(canvas, e.getPoint());
+        Point currentPoint = screenToWorld(canvas.getZoomFactor(), e.getPoint());
         drawShape(e, currentPoint);
         lastPoint = currentPoint;
         canvas.repaint();

@@ -30,7 +30,7 @@ public class FillTool implements DrawingTool {
 
     @Override
     public void mousePressed(MouseEvent e) {
-        Point point = scalePoint(canvas, e.getPoint());
+        Point point = screenToWorld(canvas.getZoomFactor(), e.getPoint());
         canvas.saveToUndoStack();
         BufferedImage bufferedImage = (BufferedImage) canvas.getImage();
         Color targetColor = new Color(bufferedImage.getRGB(point.x, point.y));

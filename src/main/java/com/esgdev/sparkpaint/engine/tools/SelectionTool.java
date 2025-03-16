@@ -59,7 +59,7 @@ public class SelectionTool implements DrawingTool {
             return;
         }
 
-        startPoint = e.getPoint();
+        startPoint = screenToWorld(canvas.getZoomFactor(), e.getPoint());
         Rectangle selectionRectangle = selectionManager.getSelection().getRectangle();
         if (selectionRectangle != null) {
             if (selectionRectangle.contains(e.getPoint())) {

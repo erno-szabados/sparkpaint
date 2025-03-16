@@ -25,13 +25,13 @@ package com.esgdev.sparkpaint.engine.tools;
 
         @Override
         public void mousePressed(MouseEvent e) {
-            startPoint = scalePoint(canvas, e.getPoint());
+            startPoint = screenToWorld(canvas.getZoomFactor(), e.getPoint());
             canvas.saveToUndoStack();
         }
 
         @Override
         public void mouseDragged(MouseEvent e) {
-            Point point = scalePoint(canvas, e.getPoint());
+            Point point = screenToWorld(canvas.getZoomFactor(), e.getPoint());
             BufferedImage tempCanvas = canvas.getTempCanvas();
             Graphics2D g2d = tempCanvas.createGraphics();
             g2d.drawImage(canvas.getImage(), 0, 0, null);
@@ -51,7 +51,7 @@ package com.esgdev.sparkpaint.engine.tools;
 
         @Override
         public void mouseReleased(MouseEvent e) {
-            Point point = scalePoint(canvas, e.getPoint());
+            Point point = screenToWorld(canvas.getZoomFactor(), e.getPoint());
             BufferedImage image = (BufferedImage) canvas.getImage();
             Graphics2D g2d = image.createGraphics();
             if (g2d == null) {

@@ -23,7 +23,7 @@ public class EyedropperTool implements DrawingTool {
 
     @Override
     public void mousePressed(MouseEvent e) {
-        Point point = scalePoint(canvas, e.getPoint());
+        Point point = screenToWorld(canvas.getZoomFactor(), e.getPoint());
         BufferedImage bufferedImage = (BufferedImage) canvas.getImage();
         if (bufferedImage == null) {
             return;
