@@ -14,13 +14,13 @@ public class SelectionTool implements DrawingTool {
     private final DrawingCanvas canvas;
     private final Cursor handCursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR);
     private final Cursor crosshairCursor = Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR);
-    private Point startPoint;
+    private Point worldStartPoint;
     private boolean isDragging = false;
-    private Point dragOffset = null;
+    private Point worldDragOffset = null;
     private Point originalSelectionLocation = null;
     private final SelectionManager selectionManager;
     private boolean transparencyEnabled = false;
-    private Rectangle scaledSelectionRectangle = new Rectangle();
+    private final Rectangle scaledSelectionRectangle = new Rectangle();
 
 
     public SelectionTool(DrawingCanvas canvas) {
@@ -35,8 +35,9 @@ public class SelectionTool implements DrawingTool {
 
     @Override
     public void mouseMoved(MouseEvent e) {
+        Point worldPoint = screenToWorld(canvas.getZoomFactor(), e.getPoint());
         Rectangle selectionRectangle = selectionManager.getSelection().getRectangle();
-        if (selectionRectangle != null && selectionRectangle.contains(e.getPoint())) {
+        if (selectionRectangle != null && selectionRectangle.contains(worldPoint)) {
             canvas.setCursor(handCursor);
         } else {
             canvas.setCursor(crosshairCursor);
@@ -45,9 +46,6 @@ public class SelectionTool implements DrawingTool {
 
    @Override
     public void mousePressed(MouseEvent e) {
-        if (canvas.getZoomFactor() != 1) {
-            return;
-        }
 
         if (SwingUtilities.isRightMouseButton(e)) {
             // Right-click to clear selection
@@ -59,13 +57,16 @@ public class SelectionTool implements DrawingTool {
             return;
         }
 
-        startPoint = screenToWorld(canvas.getZoomFactor(), e.getPoint());
+        Point screenStartPoint = e.getPoint();
+        worldStartPoint = screenToWorld(canvas.getZoomFactor(), screenStartPoint);
         Rectangle selectionRectangle = selectionManager.getSelection().getRectangle();
         if (selectionRectangle != null) {
-            if (selectionRectangle.contains(e.getPoint())) {
+            if (selectionRectangle.contains(worldStartPoint)) {
                 // Starting a drag operation
                 isDragging = true;
-                dragOffset = new Point(e.getX() - selectionRectangle.x, e.getY() - selectionRectangle.y);
+                worldDragOffset = new Point(
+                        (int) (worldStartPoint.getX() - selectionRectangle.x),
+                        (int) (worldStartPoint.getY() - selectionRectangle.y));
                 // Only set originalSelectionLocation if it hasn't been set yet
                 if (originalSelectionLocation == null) {
                     originalSelectionLocation = new Point(selectionRectangle.x, selectionRectangle.y);
@@ -81,22 +82,20 @@ public class SelectionTool implements DrawingTool {
             }
         } else {
             // Starting a new selection
-            selectionManager.getSelection().setRectangle(new Rectangle(startPoint.x, startPoint.y, 0, 0));
+            selectionManager.getSelection().setRectangle(new Rectangle(worldStartPoint.x, worldStartPoint.y, 0, 0));
             originalSelectionLocation = null;
         }
     }
 
     @Override
     public void mouseReleased(MouseEvent e) {
-        if (canvas.getZoomFactor() != 1) {
-            return;
-        }
         Rectangle selectionRectangle = selectionManager.getSelection().getRectangle();
         if (selectionRectangle == null) return;
 
+        Point worldEndPoint = screenToWorld(canvas.getZoomFactor(), e.getPoint());
         if (isDragging) {
             isDragging = false;  // End drag operation
-            if (selectionRectangle.contains(e.getPoint())) {
+            if (selectionRectangle.contains(worldEndPoint)) {
                 canvas.setCursor(handCursor);
             } else {
                 canvas.setCursor(Cursor.getDefaultCursor());
@@ -144,20 +143,19 @@ public class SelectionTool implements DrawingTool {
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        if (canvas.getZoomFactor() != 1) {
-            return;
-        }
+        Point screenDragPoint = e.getPoint();
+        Point worldDragPoint = screenToWorld(canvas.getZoomFactor(), screenDragPoint);
         Rectangle selectionRectangle = selectionManager.getSelection().getRectangle();
         if (selectionRectangle == null) return;
         if (isDragging) {
-            int newX = e.getX() - dragOffset.x;
-            int newY = e.getY() - dragOffset.y;
+            int newX = (int) (worldDragPoint.getX() - worldDragOffset.x);
+            int newY = (int) (worldDragPoint.getY() - worldDragOffset.y);
             selectionRectangle.setLocation(newX, newY);
         } else {
-            int x = Math.min(startPoint.x, e.getX());
-            int y = Math.min(startPoint.y, e.getY());
-            int width = Math.abs(e.getX() - startPoint.x);
-            int height = Math.abs(e.getY() - startPoint.y);
+            int x = (int) Math.min(worldStartPoint.x, worldDragPoint.getX());
+            int y = (int) Math.min(worldStartPoint.y, worldDragPoint.getY());
+            int width = (int) Math.abs(worldDragPoint.getX() - worldStartPoint.x);
+            int height = (int) Math.abs(worldDragPoint.getY() - worldStartPoint.y);
             selectionRectangle.setBounds(x, y, width, height);
         }
         canvas.repaint();
