@@ -4,7 +4,6 @@ import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.selection.RectangleSelection;
 import com.esgdev.sparkpaint.engine.selection.Selection;
 import com.esgdev.sparkpaint.engine.selection.SelectionManager;
-import com.esgdev.sparkpaint.engine.selection.SelectionRenderer;
 
 import javax.swing.*;
 import java.awt.*;
@@ -13,7 +12,7 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.image.BufferedImage;
 
 /// Handles user interactions for selecting and manipulating an area of the drawing canvas.
-public class RectangleSelectionTool implements DrawingTool, SelectionRenderer {
+public class RectangleSelectionTool implements DrawingTool {
     private final DrawingCanvas canvas;
     private final Cursor handCursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR);
     private final Cursor crosshairCursor = Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR);
@@ -23,15 +22,12 @@ public class RectangleSelectionTool implements DrawingTool, SelectionRenderer {
     private Point originalSelectionLocation = null;
     private final SelectionManager selectionManager;
     private boolean transparencyEnabled = false;
-    private final Rectangle scaledSelectionRectangle = new Rectangle();
-
 
     public RectangleSelectionTool(DrawingCanvas canvas) {
         this.canvas = canvas;
         this.selectionManager = canvas.getSelectionManager();
     }
 
-    // Add this method
     public void setTransparencyEnabled(boolean enabled) {
         this.transparencyEnabled = enabled;
     }
@@ -128,7 +124,6 @@ public class RectangleSelectionTool implements DrawingTool, SelectionRenderer {
                 g2d.drawImage(canvas.getImage(), -selectionRectangle.x, -selectionRectangle.y, null);
                 g2d.dispose();
 
-
                 // Apply transparency if enabled
                 if (transparencyEnabled) {
                     applyTransparencyToContent(selectionContent, canvas.getFillColor());
@@ -186,7 +181,7 @@ public class RectangleSelectionTool implements DrawingTool, SelectionRenderer {
 
     @Override
     public void mouseScrolled(MouseWheelEvent e) {
-
+        // Handle zooming if needed
     }
 
     @Override
@@ -197,80 +192,6 @@ public class RectangleSelectionTool implements DrawingTool, SelectionRenderer {
     @Override
     public String statusMessage() {
         return "Selection tool selected";
-    }
-
-    // Add to SelectionTool class
-
-    public void drawSelectionContent(Graphics2D g2d) {
-        Selection selection = selectionManager.getSelection();
-        if (!(selection instanceof RectangleSelection)) {
-            return;
-        }
-        Rectangle selectionRectangle = ((RectangleSelection) selection).getRectangle();
-        Image selectionContent = selectionManager.getSelection().getContent();
-        // If dragging, draw the selection content at current position
-        if (selectionContent != null && selectionRectangle != null) {
-            if (selectionContent.getWidth(null) > 0 &&
-                    selectionContent.getHeight(null) > 0) {
-                g2d.drawImage(selectionContent,
-                        selectionRectangle.x,
-                        selectionRectangle.y,
-                        null);
-            }
-        }
-    }
-
-    public void drawSelectionOutline(Graphics2D g2d) {
-        Selection selection = selectionManager.getSelection();
-        if (!(selection instanceof RectangleSelection)) {
-            return;
-        }
-        Rectangle selectionRectangle = ((RectangleSelection) selection).getRectangle();
-
-        if (selectionRectangle == null ||
-                selectionRectangle.width <= 0 ||
-                selectionRectangle.height <= 0) {
-            return;
-        }
-
-
-        float[] dashPattern1 = {5, 5}; // Define the first pattern: 5px dash, 5px gap
-
-        BasicStroke dottedStroke1 = new BasicStroke(
-                1, // Line Width
-                BasicStroke.CAP_BUTT, // End-cap style
-                BasicStroke.JOIN_MITER, // Join style
-                10.0f, // Miter limit
-                dashPattern1, // Dash pattern (dotted line)
-                0 // Dash phase
-        );
-
-        BasicStroke dottedStroke2 = new BasicStroke(
-                1, // Line Width
-                BasicStroke.CAP_BUTT, // End-cap style
-                BasicStroke.JOIN_MITER, // Join style
-                10.0f, // Miter limit
-                dashPattern1, // Dash pattern (dotted line)
-                5 // Dash phase
-        );
-
-        double zoomFactor = canvas.getZoomFactor();
-
-        int x = (int) (selectionRectangle.x * zoomFactor);
-        int y = (int) (selectionRectangle.y * zoomFactor);
-        int width = (int) (selectionRectangle.width * zoomFactor);
-        int height = (int) (selectionRectangle.height * zoomFactor);
-
-        scaledSelectionRectangle.setBounds(x, y, width, height);
-        // Draw the selection rectangle with the first dash pattern
-        g2d.setColor(Color.BLACK);
-        g2d.setStroke(dottedStroke1);
-        g2d.draw(scaledSelectionRectangle);
-
-        // Draw the selection rectangle with the second dash pattern
-        g2d.setColor(Color.WHITE);
-        g2d.setStroke(dottedStroke2);
-        g2d.draw(scaledSelectionRectangle);
     }
 
     private void clearSelectionOriginalLocation() {

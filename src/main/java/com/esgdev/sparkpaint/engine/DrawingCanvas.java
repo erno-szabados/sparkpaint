@@ -2,7 +2,6 @@ package com.esgdev.sparkpaint.engine;
 
 import com.esgdev.sparkpaint.engine.selection.Selection;
 import com.esgdev.sparkpaint.engine.selection.SelectionManager;
-import com.esgdev.sparkpaint.engine.selection.SelectionRenderer;
 import com.esgdev.sparkpaint.engine.tools.*;
 import com.esgdev.sparkpaint.engine.tools.DrawingTool;
 import com.esgdev.sparkpaint.io.ClipboardChangeListener;
@@ -289,23 +288,16 @@ public class DrawingCanvas extends JPanel {
             g2d.drawImage(tempCanvas, 0, 0, null);
         }
 
-        SelectionRenderer selectionRenderer = null;
         Selection selection = selectionManager.getSelection();
-        if (currentTool == Tool.RECTANGLE_SELECTION) {
-            selectionRenderer = (SelectionRenderer) getTool(Tool.RECTANGLE_SELECTION);
-        }
-        if (currentTool == Tool.FREEHAND_SELECTION) {
-            selectionRenderer = (SelectionRenderer) getTool(Tool.FREEHAND_SELECTION);
-        }
-        if (selectionRenderer != null && selection != null) {
-            selectionRenderer.drawSelectionContent(g2d);
+        if (selection != null) {
+            selection.drawSelectionContent(g2d, zoomFactor);
         }
 
         // Reset scale for grid drawing
         g2d.scale(1 / zoomFactor, 1 / zoomFactor);
         renderZoomGrid(g2d);
-        if (selectionRenderer != null && selection != null) {
-            selectionRenderer.drawSelectionOutline(g2d);
+        if (selection != null) {
+            selection.drawSelectionOutline(g2d, zoomFactor);
         }
         g2d.dispose();
     }

@@ -11,7 +11,7 @@ import java.awt.geom.AffineTransform;
 import java.awt.geom.GeneralPath;
 import java.awt.image.BufferedImage;
 
-public class FreeHandSelectionTool implements DrawingTool, SelectionRenderer {
+public class FreeHandSelectionTool implements DrawingTool {
     private final DrawingCanvas canvas;
     private final Cursor handCursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR);
     private final Cursor crosshairCursor = Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR);
@@ -228,59 +228,6 @@ public class FreeHandSelectionTool implements DrawingTool, SelectionRenderer {
                 }
             }
         }
-    }
-
-    public void drawSelectionContent(Graphics2D g2d) {
-        Selection selection = selectionManager.getSelection();
-        if (!(selection instanceof PathSelection)) {
-            return;
-        }
-
-        GeneralPath path = ((PathSelection) selection).getPath();
-        BufferedImage selectionContent = selection.getContent();
-
-        if (selectionContent != null && path != null) {
-            Rectangle bounds = path.getBounds();
-            g2d.drawImage(selectionContent, bounds.x, bounds.y, null);
-        }
-    }
-
-    public void drawSelectionOutline(Graphics2D g2d) {
-        Selection selection = selectionManager.getSelection();
-        if (!(selection instanceof PathSelection)) {
-            return;
-        }
-
-        GeneralPath path = ((PathSelection) selection).getPath();
-        if (path == null) {
-            return;
-        }
-
-        float[] dashPattern = {5, 5}; // Dash pattern: 5px dash, 5px gap
-
-        BasicStroke dottedStroke1 = new BasicStroke(
-                1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER,
-                10.0f, dashPattern, 0);
-
-        BasicStroke dottedStroke2 = new BasicStroke(
-                1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER,
-                10.0f, dashPattern, 5);
-
-        double zoomFactor = canvas.getZoomFactor();
-
-        // Scale the path to match the zoom factor
-        GeneralPath scaledPath = new GeneralPath(path);
-        scaledPath.transform(AffineTransform.getScaleInstance(zoomFactor, zoomFactor));
-
-        // Draw the selection outline with the first dash pattern
-        g2d.setColor(Color.BLACK);
-        g2d.setStroke(dottedStroke1);
-        g2d.draw(scaledPath);
-
-        // Draw the selection outline with the second dash pattern
-        g2d.setColor(Color.WHITE);
-        g2d.setStroke(dottedStroke2);
-        g2d.draw(scaledPath);
     }
 
     private void clearSelectionOriginalLocation() {
