@@ -29,12 +29,12 @@ public class SelectionToolSettings extends BaseToolSettings {
         JButton rotateLeftButton = new JButton();
         rotateLeftButton.setIcon(IconLoader.loadAndScaleIcon("rotate-left.png", ICON_SIZE, ICON_SIZE));
         rotateLeftButton.setToolTipText("Rotate Left 90°");
-        rotateLeftButton.addActionListener(e -> rectangleSelectionTool.rotateSelection(-90));
+        rotateLeftButton.addActionListener(e -> canvas.getSelectionManager().rotateSelection(-90));
 
         JButton rotateRightButton = new JButton();
         rotateRightButton.setIcon(IconLoader.loadAndScaleIcon("rotate-right.png", ICON_SIZE, ICON_SIZE));
         rotateRightButton.setToolTipText("Rotate Right 90°");
-        rotateRightButton.addActionListener(e -> rectangleSelectionTool.rotateSelection(90));
+        rotateRightButton.addActionListener(e -> canvas.getSelectionManager().rotateSelection(90));
 
         JPanel rotationPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         rotationPanel.add(rotateLeftButton);
