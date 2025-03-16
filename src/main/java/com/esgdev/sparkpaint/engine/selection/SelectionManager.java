@@ -1,5 +1,7 @@
 
-package com.esgdev.sparkpaint.engine;
+package com.esgdev.sparkpaint.engine.selection;
+
+import com.esgdev.sparkpaint.engine.DrawingCanvas;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -11,7 +13,10 @@ public class SelectionManager {
 
     public SelectionManager(DrawingCanvas canvas) {
         this.canvas = canvas;
-        this.selection = new Selection(null, null);
+    }
+
+    public void setSelection(Selection selection) {
+        this.selection = selection;
     }
 
     public Selection getSelection() {
@@ -24,15 +29,15 @@ public class SelectionManager {
     }
 
     public void selectAll() {
-        canvas.setCurrentTool(DrawingCanvas.Tool.SELECTION);
-        BufferedImage image = (BufferedImage) canvas.getImage();
+        canvas.setCurrentTool(DrawingCanvas.Tool.RECTANGLE_SELECTION);
+        BufferedImage image = canvas.getImage();
         if (image != null) {
             Rectangle rect = new Rectangle(0, 0, image.getWidth(), image.getHeight());
             BufferedImage content = new BufferedImage(rect.width, rect.height, BufferedImage.TYPE_INT_RGB);
             Graphics2D g2d = content.createGraphics();
             g2d.drawImage(image, -rect.x, -rect.y, null);
             g2d.dispose();
-            selection = new Selection(rect, content);
+            selection = new RectangleSelection(rect, content);
             canvas.notifyClipboardStateChanged();
             canvas.repaint();
         }
@@ -41,10 +46,7 @@ public class SelectionManager {
     public void deleteSelection() {
         if (!selection.isEmpty()) {
             canvas.saveToUndoStack();
-            Graphics2D g2d = canvas.getCanvasGraphics();
-            g2d.setColor(canvas.getCanvasBackground());
-            g2d.fillRect(selection.getRectangle().x, selection.getRectangle().y, selection.getRectangle().width, selection.getRectangle().height);
-            g2d.dispose();
+            selection.delete(canvas.getCanvasGraphics(), canvas.getCanvasBackground());
             selection.clear();
             canvas.notifyClipboardStateChanged();
             canvas.saveToUndoStack();

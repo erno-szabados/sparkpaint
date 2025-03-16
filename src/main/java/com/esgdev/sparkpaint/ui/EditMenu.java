@@ -1,6 +1,6 @@
 package com.esgdev.sparkpaint.ui;
 
-import com.esgdev.sparkpaint.engine.SelectionManager;
+import com.esgdev.sparkpaint.engine.selection.SelectionManager;
 import com.esgdev.sparkpaint.io.ClipboardChangeListener;
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.UndoRedoChangeListener;
@@ -8,11 +8,9 @@ import com.esgdev.sparkpaint.io.ClipboardManager;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
-import java.awt.image.BufferedImage;
 import java.io.IOException;
 
 public class EditMenu extends JMenu implements UndoRedoChangeListener, ClipboardChangeListener {

@@ -1,8 +1,8 @@
 package com.esgdev.sparkpaint.ui;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
-import com.esgdev.sparkpaint.engine.SelectionManager;
-import com.esgdev.sparkpaint.engine.tools.SelectionTool;
+import com.esgdev.sparkpaint.engine.selection.SelectionManager;
+import com.esgdev.sparkpaint.engine.tools.RectangleSelectionTool;
 
 import javax.swing.*;
 import java.awt.*;
@@ -211,17 +211,17 @@ public class ImageMenu extends JMenu {
     }
 
     private void handleCrop(ActionEvent e) {
-        BufferedImage currentImage = (BufferedImage) canvas.getImage();
+        BufferedImage currentImage = canvas.getImage();
         SelectionManager selectionManager = canvas.getSelectionManager();
-        Rectangle selection = selectionManager.getSelection().getRectangle();
+        Rectangle selection = selectionManager.getSelection().getBounds();
 
         if (currentImage == null || selection == null) {
             JOptionPane.showMessageDialog(mainFrame, "No image or selection available.", "Crop to Selection", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        SelectionTool selectionTool = (SelectionTool) canvas.getTool(DrawingCanvas.Tool.SELECTION);
-        selectionTool.copySelectionToPermanentCanvas();
+        RectangleSelectionTool rectangleSelectionTool = (RectangleSelectionTool) canvas.getTool(DrawingCanvas.Tool.RECTANGLE_SELECTION);
+        rectangleSelectionTool.copySelectionToPermanentCanvas();
 
         BufferedImage croppedImage = currentImage.getSubimage(selection.x, selection.y, selection.width, selection.height);
         canvas.createNewCanvas(croppedImage.getWidth(), croppedImage.getHeight(), canvas.getCanvasBackground());

@@ -1,5 +1,8 @@
 package com.esgdev.sparkpaint.engine;
 
+import com.esgdev.sparkpaint.engine.selection.Selection;
+import com.esgdev.sparkpaint.engine.selection.SelectionManager;
+import com.esgdev.sparkpaint.engine.selection.SelectionRenderer;
 import com.esgdev.sparkpaint.engine.tools.*;
 import com.esgdev.sparkpaint.engine.tools.DrawingTool;
 import com.esgdev.sparkpaint.io.ClipboardChangeListener;
@@ -30,7 +33,8 @@ public class DrawingCanvas extends JPanel {
         LINE,
         RECTANGLE,
         CIRCLE,
-        SELECTION,
+        RECTANGLE_SELECTION,
+        FREEHAND_SELECTION,
         FILL,
         TEXT, EYEDROPPER
     }
@@ -187,14 +191,6 @@ public class DrawingCanvas extends JPanel {
         fileManager.setCurrentFilePath(null);
     }
 
-//    // Save the current canvas state to a temporary buffer
-//    public void saveCanvasState() {
-//        tempCanvas = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_RGB);
-//        Graphics2D tempGraphics = tempCanvas.createGraphics();
-//        tempGraphics.drawImage(image, 0, 0, null); // Copy the permanent canvas to the temporary canvas
-//        tempGraphics.dispose();
-//    }
-
     public void setDrawingColor(Color color) {
         if (color != null && !color.equals(this.drawingColor)) {
             this.drawingColor = color;
@@ -220,7 +216,6 @@ public class DrawingCanvas extends JPanel {
         repaint();
     }
 
-    // New Method: Get background color
     public Color getFillColor() {
         return fillColor;
     }
@@ -252,7 +247,6 @@ public class DrawingCanvas extends JPanel {
         toolChangeListeners.remove(listener);
     }
 
-    // Getter for the current tool
     public Tool getCurrentTool() {
         return currentTool;
     }
@@ -295,16 +289,16 @@ public class DrawingCanvas extends JPanel {
             g2d.drawImage(tempCanvas, 0, 0, null);
         }
 
-        SelectionTool tool = (SelectionTool) getTool(Tool.SELECTION);
+        SelectionRenderer selectionRenderer = (SelectionRenderer) getTool(Tool.RECTANGLE_SELECTION);
         Selection selection = selectionManager.getSelection();
-        if (currentTool == Tool.SELECTION && selection != null) {
-            tool.drawSelection(g2d);
+        if (currentTool == Tool.RECTANGLE_SELECTION && selection != null) {
+            selectionRenderer.drawSelectionContent(g2d);
         }
 
         // Reset scale for grid drawing
         g2d.scale(1 / zoomFactor, 1 / zoomFactor);
         renderZoomGrid(g2d);
-        tool.drawSelectionRectangle(g2d);
+        selectionRenderer.drawSelectionOutline(g2d);
         g2d.dispose();
     }
 
@@ -331,7 +325,7 @@ public class DrawingCanvas extends JPanel {
         tools.put(Tool.EYEDROPPER, new EyedropperTool(this));
         tools.put(Tool.PENCIL, new PencilTool(this));
         tools.put(Tool.BRUSH, new BrushTool(this));
-        tools.put(Tool.SELECTION, new SelectionTool(this));
+        tools.put(Tool.RECTANGLE_SELECTION, new RectangleSelectionTool(this));
         tools.put(Tool.TEXT, new TextTool(this));
     }
 
@@ -358,16 +352,20 @@ public class DrawingCanvas extends JPanel {
     }
 
     public void undo() {
-        image = historyManager.undo((BufferedImage) image);
-        graphics = (Graphics2D) image.getGraphics();
-        selectionManager.getSelection().setRectangle(null);
+        image = historyManager.undo(image);
+        Selection selection = selectionManager.getSelection();
+        if (selection != null) {
+            selection.clearOutline();
+        }
         repaint();
     }
 
     public void redo() {
-        image = historyManager.redo((BufferedImage) image);
-        graphics = (Graphics2D) image.getGraphics();
-        selectionManager.getSelection().setRectangle(null);
+        image = historyManager.redo(image);
+        Selection selection = selectionManager.getSelection();
+        if (selection != null) {
+            selection.clearOutline();
+        }
         repaint();
     }
 

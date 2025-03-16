@@ -1,7 +1,10 @@
 package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
-import com.esgdev.sparkpaint.engine.SelectionManager;
+import com.esgdev.sparkpaint.engine.selection.RectangleSelection;
+import com.esgdev.sparkpaint.engine.selection.Selection;
+import com.esgdev.sparkpaint.engine.selection.SelectionManager;
+import com.esgdev.sparkpaint.engine.selection.SelectionRenderer;
 
 import javax.swing.*;
 import java.awt.*;
@@ -10,7 +13,7 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.image.BufferedImage;
 
 /// Handles user interactions for selecting and manipulating an area of the drawing canvas.
-public class SelectionTool implements DrawingTool {
+public class RectangleSelectionTool implements DrawingTool, SelectionRenderer {
     private final DrawingCanvas canvas;
     private final Cursor handCursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR);
     private final Cursor crosshairCursor = Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR);
@@ -23,7 +26,7 @@ public class SelectionTool implements DrawingTool {
     private final Rectangle scaledSelectionRectangle = new Rectangle();
 
 
-    public SelectionTool(DrawingCanvas canvas) {
+    public RectangleSelectionTool(DrawingCanvas canvas) {
         this.canvas = canvas;
         this.selectionManager = canvas.getSelectionManager();
     }
@@ -35,8 +38,12 @@ public class SelectionTool implements DrawingTool {
 
     @Override
     public void mouseMoved(MouseEvent e) {
+        Selection selection = selectionManager.getSelection();
+        if (!(selection instanceof RectangleSelection)) {
+            return;
+        }
         Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
-        Rectangle selectionRectangle = selectionManager.getSelection().getRectangle();
+        Rectangle selectionRectangle = ((RectangleSelection) (selection)).getRectangle();
         if (selectionRectangle != null && selectionRectangle.contains(worldPoint)) {
             canvas.setCursor(handCursor);
         } else {
@@ -44,10 +51,13 @@ public class SelectionTool implements DrawingTool {
         }
     }
 
-   @Override
+    @Override
     public void mousePressed(MouseEvent e) {
-
         if (SwingUtilities.isRightMouseButton(e)) {
+            Selection selection = selectionManager.getSelection();
+            if (!(selection instanceof RectangleSelection)) {
+                return;
+            }
             // Right-click to clear selection
             copySelectionToPermanentCanvas();
             selectionManager.clearSelection();
@@ -59,8 +69,17 @@ public class SelectionTool implements DrawingTool {
 
         Point screenStartPoint = e.getPoint();
         worldStartPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), screenStartPoint);
-        Rectangle selectionRectangle = selectionManager.getSelection().getRectangle();
-        if (selectionRectangle != null) {
+        Selection selection = selectionManager.getSelection();
+        if (!(selection instanceof RectangleSelection)) {
+            // No selection or different selection type, start new rectangle selection
+            selection = new RectangleSelection(new Rectangle(worldStartPoint.x, worldStartPoint.y, 0, 0), null);
+            selectionManager.setSelection(selection);
+        }
+        Rectangle selectionRectangle = ((RectangleSelection) (selection)).getRectangle();
+        if (selectionRectangle == null) {
+            ((RectangleSelection) selection).setRectangle(new Rectangle(worldStartPoint.x, worldStartPoint.y, 0, 0));
+            originalSelectionLocation = null;
+        } else {
             if (selectionRectangle.contains(worldStartPoint)) {
                 // Starting a drag operation
                 isDragging = true;
@@ -80,16 +99,16 @@ public class SelectionTool implements DrawingTool {
                     originalSelectionLocation = null;
                 }
             }
-        } else {
-            // Starting a new selection
-            selectionManager.getSelection().setRectangle(new Rectangle(worldStartPoint.x, worldStartPoint.y, 0, 0));
-            originalSelectionLocation = null;
         }
     }
 
     @Override
     public void mouseReleased(MouseEvent e) {
-        Rectangle selectionRectangle = selectionManager.getSelection().getRectangle();
+        Selection selection = selectionManager.getSelection();
+        if (!(selection instanceof RectangleSelection)) {
+            return;
+        }
+        Rectangle selectionRectangle = ((RectangleSelection) selection).getRectangle();
         if (selectionRectangle == null) return;
 
         Point worldEndPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
@@ -145,7 +164,11 @@ public class SelectionTool implements DrawingTool {
     public void mouseDragged(MouseEvent e) {
         Point screenDragPoint = e.getPoint();
         Point worldDragPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), screenDragPoint);
-        Rectangle selectionRectangle = selectionManager.getSelection().getRectangle();
+        Selection selection = selectionManager.getSelection();
+        if (!(selection instanceof RectangleSelection)) {
+            return;
+        }
+        Rectangle selectionRectangle = ((RectangleSelection) selection).getRectangle();
         if (selectionRectangle == null) return;
         if (isDragging) {
             int newX = (int) (worldDragPoint.getX() - worldDragOffset.x);
@@ -203,17 +226,25 @@ public class SelectionTool implements DrawingTool {
         canvas.saveToUndoStack();
 
         // Clear original area
-        Rectangle rect = selectionManager.getSelection().getRectangle();
+        Selection selection = selectionManager.getSelection();
+        if (!(selection instanceof RectangleSelection)) {
+            return;
+        }
+        Rectangle selectionRectangle = ((RectangleSelection) selection).getRectangle();
 
         // Update selection content and rectangle
         selectionManager.getSelection().setContent(rotated);
-        rect.setSize(rotated.getWidth(), rotated.getHeight());
+        selectionRectangle.setSize(rotated.getWidth(), rotated.getHeight());
 
         canvas.repaint();
     }
 
-    public void drawSelection(Graphics2D g2d) {
-        Rectangle selectionRectangle = selectionManager.getSelection().getRectangle();
+    public void drawSelectionContent(Graphics2D g2d) {
+        Selection selection = selectionManager.getSelection();
+        if (!(selection instanceof RectangleSelection)) {
+            return;
+        }
+        Rectangle selectionRectangle = ((RectangleSelection) selection).getRectangle();
         Image selectionContent = selectionManager.getSelection().getContent();
         // If dragging, draw the selection content at current position
         if (selectionContent != null && selectionRectangle != null) {
@@ -227,8 +258,12 @@ public class SelectionTool implements DrawingTool {
         }
     }
 
-    public void drawSelectionRectangle(Graphics2D g2d) {
-        Rectangle selectionRectangle = selectionManager.getSelection().getRectangle();
+    public void drawSelectionOutline(Graphics2D g2d) {
+        Selection selection = selectionManager.getSelection();
+        if (!(selection instanceof RectangleSelection)) {
+            return;
+        }
+        Rectangle selectionRectangle = ((RectangleSelection) selection).getRectangle();
 
         if (selectionRectangle == null ||
                 selectionRectangle.width <= 0 ||
@@ -277,7 +312,11 @@ public class SelectionTool implements DrawingTool {
     }
 
     private void clearSelectionOriginalLocation() {
-        Rectangle selectionRectangle = selectionManager.getSelection().getRectangle();
+        Selection selection = selectionManager.getSelection();
+        if (!(selection instanceof RectangleSelection)) {
+            return;
+        }
+        Rectangle selectionRectangle = ((RectangleSelection) selection).getRectangle();
         if (selectionRectangle == null) return;
         canvas.saveToUndoStack();
         Graphics2D g2d = canvas.getImage().createGraphics();
@@ -285,10 +324,14 @@ public class SelectionTool implements DrawingTool {
         g2d.setColor(canvas.getCanvasBackground());
         g2d.fill(originalRect);
         g2d.dispose();
-      }
+    }
 
     public void copySelectionToPermanentCanvas() {
-        Rectangle selectionRectangle = selectionManager.getSelection().getRectangle();
+        Selection selection = selectionManager.getSelection();
+        if (!(selection instanceof RectangleSelection)) {
+            return;
+        }
+        Rectangle selectionRectangle = ((RectangleSelection) selection).getRectangle();
         if (selectionRectangle == null) return;
         canvas.saveToUndoStack();
         Graphics2D g2d = canvas.getImage().createGraphics();

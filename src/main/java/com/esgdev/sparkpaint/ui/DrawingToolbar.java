@@ -221,7 +221,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         JToggleButton button = new JToggleButton(icon);
         button.setToolTipText("Selection Tool");
         button.addActionListener(e -> {
-            canvas.setCurrentTool(DrawingCanvas.Tool.SELECTION);
+            canvas.setCurrentTool(DrawingCanvas.Tool.RECTANGLE_SELECTION);
             statusMessageHandler.setStatusMessage("Selection tool selected.");});
         toolGroup.add(button);
         return button;
