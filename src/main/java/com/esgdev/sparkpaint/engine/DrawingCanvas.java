@@ -289,16 +289,24 @@ public class DrawingCanvas extends JPanel {
             g2d.drawImage(tempCanvas, 0, 0, null);
         }
 
-        SelectionRenderer selectionRenderer = (SelectionRenderer) getTool(Tool.RECTANGLE_SELECTION);
+        SelectionRenderer selectionRenderer = null;
         Selection selection = selectionManager.getSelection();
-        if (currentTool == Tool.RECTANGLE_SELECTION && selection != null) {
+        if (currentTool == Tool.RECTANGLE_SELECTION) {
+            selectionRenderer = (SelectionRenderer) getTool(Tool.RECTANGLE_SELECTION);
+        }
+        if (currentTool == Tool.FREEHAND_SELECTION) {
+            selectionRenderer = (SelectionRenderer) getTool(Tool.FREEHAND_SELECTION);
+        }
+        if (selectionRenderer != null && selection != null) {
             selectionRenderer.drawSelectionContent(g2d);
         }
 
         // Reset scale for grid drawing
         g2d.scale(1 / zoomFactor, 1 / zoomFactor);
         renderZoomGrid(g2d);
-        selectionRenderer.drawSelectionOutline(g2d);
+        if (selectionRenderer != null && selection != null) {
+            selectionRenderer.drawSelectionOutline(g2d);
+        }
         g2d.dispose();
     }
 
@@ -326,6 +334,7 @@ public class DrawingCanvas extends JPanel {
         tools.put(Tool.PENCIL, new PencilTool(this));
         tools.put(Tool.BRUSH, new BrushTool(this));
         tools.put(Tool.RECTANGLE_SELECTION, new RectangleSelectionTool(this));
+        tools.put(Tool.FREEHAND_SELECTION, new FreeHandSelectionTool(this));
         tools.put(Tool.TEXT, new TextTool(this));
     }
 

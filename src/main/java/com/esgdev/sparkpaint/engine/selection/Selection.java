@@ -18,7 +18,13 @@ public interface Selection {
 
     boolean hasOutline();
 
+    void rotate(int degrees);
+
     Rectangle getBounds();
 
     void delete(Graphics2D g2d, Color canvasBackground);
+
+    void drawSelectionContent(Graphics2D g2d, double zoomFactor);
+
+    void drawSelectionOutline(Graphics2D g2d, double zoomFactor);
 }

@@ -76,6 +76,7 @@ public class ClipboardManager {
             Selection selection = selectionManager.getSelection();
             Rectangle selectionRectangle = new Rectangle(pasteX, pasteY, pastedImage.getWidth(), pastedImage.getHeight());
             if (!(selection instanceof RectangleSelection)) {
+                canvas.setCurrentTool(DrawingCanvas.Tool.RECTANGLE_SELECTION);
                 selection = new RectangleSelection(selectionRectangle, pastedImage);
             } else {
                 ((RectangleSelection) selection).setRectangle(selectionRectangle);

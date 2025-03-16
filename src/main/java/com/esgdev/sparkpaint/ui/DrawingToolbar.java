@@ -48,11 +48,11 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
     }
 
     private void initializeToolbar() {
-        // toolGroup = new ButtonGroup();
         this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         this.setFloatable(false); // Disable floating toolbar
 
         this.add(createSelectButton());
+        this.add(createFreehandSelectButton());
         // Undo/redo tools
         undoButton = createUndoButton();
         this.add(undoButton);
@@ -219,10 +219,22 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
     private JToggleButton createSelectButton() {
         ImageIcon icon = IconLoader.loadAndScaleIcon("select.png", IconWidth, IconHeight);
         JToggleButton button = new JToggleButton(icon);
-        button.setToolTipText("Selection Tool");
+        button.setToolTipText("Rectrangle Selection Tool");
         button.addActionListener(e -> {
             canvas.setCurrentTool(DrawingCanvas.Tool.RECTANGLE_SELECTION);
-            statusMessageHandler.setStatusMessage("Selection tool selected.");});
+            statusMessageHandler.setStatusMessage("Rectangle selection tool selected.");});
+        toolGroup.add(button);
+        return button;
+    }
+
+    private JToggleButton createFreehandSelectButton() {
+        // FIXME new icon
+        ImageIcon icon = IconLoader.loadAndScaleIcon("select.png", IconWidth, IconHeight);
+        JToggleButton button = new JToggleButton(icon);
+        button.setToolTipText("Freehand Selection Tool");
+        button.addActionListener(e -> {
+            canvas.setCurrentTool(DrawingCanvas.Tool.FREEHAND_SELECTION);
+            statusMessageHandler.setStatusMessage("Freehand Selection tool selected.");});
         toolGroup.add(button);
         return button;
     }
