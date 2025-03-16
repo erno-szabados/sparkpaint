@@ -267,6 +267,7 @@ public class DrawingCanvas extends JPanel {
 
     public void setCurrentTool(Tool tool) {
         this.currentTool = tool;
+        getActiveTool().setCursor();
         // Notify all listeners
         for (ToolChangeListener listener : toolChangeListeners) {
             listener.onToolChanged(tool);
@@ -428,7 +429,6 @@ public class DrawingCanvas extends JPanel {
         public void mouseMoved(MouseEvent e) {
             DrawingTool tool = tools.get(currentTool);
             if (tool != null) {
-                tool.setCursor();
                 tool.mouseMoved(e);
             }
         }
@@ -459,7 +459,6 @@ public class DrawingCanvas extends JPanel {
             }
         }
 
-        ///
         @Override
         public void mouseWheelMoved(MouseWheelEvent e) {
             // Apply zoom
@@ -489,7 +488,5 @@ public class DrawingCanvas extends JPanel {
             revalidate();
             repaint();
         }
-        ///
     }
-
 }
