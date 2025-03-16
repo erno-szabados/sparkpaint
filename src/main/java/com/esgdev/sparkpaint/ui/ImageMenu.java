@@ -57,7 +57,7 @@ public class ImageMenu extends JMenu {
     }
 
     private void handleInfo(ActionEvent e) {
-        BufferedImage image = (BufferedImage) canvas.getImage();
+        BufferedImage image = canvas.getImage();
         String filePath = canvas.getCurrentFilePath();
 
         if (image != null) {
@@ -71,7 +71,7 @@ public class ImageMenu extends JMenu {
     }
 
     private void handleResize(ActionEvent e) {
-        BufferedImage currentImage = (BufferedImage) canvas.getImage();
+        BufferedImage currentImage = canvas.getImage();
         if (currentImage == null) {
             JOptionPane.showMessageDialog(mainFrame, "No image loaded.", "Resize", JOptionPane.WARNING_MESSAGE);
             return;
@@ -140,7 +140,7 @@ public class ImageMenu extends JMenu {
     }
 
     private void handleScale(ActionEvent e) {
-        BufferedImage currentImage = (BufferedImage) canvas.getImage();
+        BufferedImage currentImage = canvas.getImage();
         if (currentImage == null) {
             JOptionPane.showMessageDialog(mainFrame, "No image loaded.", "Scale", JOptionPane.WARNING_MESSAGE);
             return;

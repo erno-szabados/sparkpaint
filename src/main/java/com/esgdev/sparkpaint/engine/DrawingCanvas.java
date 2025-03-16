@@ -348,7 +348,7 @@ public class DrawingCanvas extends JPanel {
     // Undo - redo
 
     public void saveToUndoStack() {
-        historyManager.saveToUndoStack((BufferedImage) image);
+        historyManager.saveToUndoStack(image);
     }
 
     public void undo() {
