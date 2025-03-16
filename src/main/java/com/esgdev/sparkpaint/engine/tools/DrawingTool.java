@@ -13,24 +13,24 @@ public interface DrawingTool {
     void setCursor();
     String statusMessage();
 
-    default Point screenToWorld(float zoomFactor, Point point) {
+    static Point screenToWorld(float zoomFactor, Point point) {
         return new Point((int) (point.x / zoomFactor), (int) (point.y / zoomFactor));
     }
 
-    default Point worldToScreen(Point worldPoint, float zoomFactor) {
+    static Point worldToScreen(Point worldPoint, float zoomFactor) {
         return new Point((int) (worldPoint.x * zoomFactor), (int) (worldPoint.y * zoomFactor));
     }
 
     // Scale a rectangle from screen space to world space
-    default Rectangle screenToWorld(Rectangle screenRect, float zoomFactor) {
-        int x = (int) (screenRect.x / zoomFactor);
-        int y = (int) (screenRect.y / zoomFactor);
-        int width = (int) (screenRect.width / zoomFactor);
-        int height = (int) (screenRect.height / zoomFactor);
-        return new Rectangle(x, y, width, height);
+    static Rectangle screenToWorld(Rectangle screenRect, float zoomFactor) {
+        double x = (screenRect.x / zoomFactor);
+        double y =  (screenRect.y / zoomFactor);
+        double width = (screenRect.width / zoomFactor);
+        double height = (screenRect.height / zoomFactor);
+        return new Rectangle((int) x, (int) y, (int) width, (int) height);
     }
 
-    default void worldToScreen(float zoomFactor, Rectangle rectangle) {
+    static void worldToScreen(float zoomFactor, Rectangle rectangle) {
         int x = (int) (rectangle.x * zoomFactor);
         int y = (int) (rectangle.y * zoomFactor);
         int width = (int) (rectangle.width * zoomFactor);
@@ -40,7 +40,7 @@ public interface DrawingTool {
     }
 
     // Scale a rectangle from world space to screen space
-    default Rectangle worldToScreen(Rectangle worldRect, float zoomFactor) {
+    static Rectangle worldToScreen(Rectangle worldRect, float zoomFactor) {
         int x = (int) (worldRect.x * zoomFactor);
         int y = (int) (worldRect.y * zoomFactor);
         int width = (int) (worldRect.width * zoomFactor);

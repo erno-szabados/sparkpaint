@@ -38,7 +38,7 @@ public class BrushTool implements DrawingTool {
 
     @Override
     public void mousePressed(MouseEvent e) {
-        lastPoint = screenToWorld(canvas.getZoomFactor(), e.getPoint());
+        lastPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
         canvas.saveToUndoStack();
         drawShape(e, lastPoint);
         canvas.repaint();
@@ -46,14 +46,14 @@ public class BrushTool implements DrawingTool {
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        Point currentPoint = screenToWorld(canvas.getZoomFactor(), e.getPoint());
+        Point currentPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
         drawShape(e, currentPoint);
         lastPoint = currentPoint;
         canvas.repaint();
     }
 
     private void drawShape(MouseEvent e, Point p) {
-        BufferedImage image = (BufferedImage) canvas.getImage();
+        BufferedImage image = canvas.getImage();
         if (image != null) {
             Graphics2D g2d = image.createGraphics();
             if (SwingUtilities.isLeftMouseButton(e)) {

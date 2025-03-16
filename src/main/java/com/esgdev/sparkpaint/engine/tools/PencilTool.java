@@ -25,14 +25,14 @@ public class PencilTool implements DrawingTool {
 
     @Override
     public void mousePressed(MouseEvent e) {
-        startPoint = screenToWorld(canvas.getZoomFactor(), e.getPoint());
+        startPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
         canvas.saveToUndoStack();
     }
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        Point point = screenToWorld(canvas.getZoomFactor(), e.getPoint());
-        BufferedImage image = (BufferedImage) canvas.getImage();
+        Point point = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
+        BufferedImage image = canvas.getImage();
         Graphics2D g2d = image.createGraphics();
         if (g2d == null) {
             System.out.println("Graphics is null");

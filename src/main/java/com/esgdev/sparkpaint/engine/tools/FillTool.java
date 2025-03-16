@@ -30,9 +30,9 @@ public class FillTool implements DrawingTool {
 
     @Override
     public void mousePressed(MouseEvent e) {
-        Point point = screenToWorld(canvas.getZoomFactor(), e.getPoint());
+        Point point = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
         canvas.saveToUndoStack();
-        BufferedImage bufferedImage = (BufferedImage) canvas.getImage();
+        BufferedImage bufferedImage = canvas.getImage();
         Color targetColor = new Color(bufferedImage.getRGB(point.x, point.y));
         Color replacementColor = SwingUtilities.isLeftMouseButton(e) ? canvas.getDrawingColor() : canvas.getFillColor();
         floodFill(bufferedImage, point.x, point.y, targetColor, replacementColor, epsilon);

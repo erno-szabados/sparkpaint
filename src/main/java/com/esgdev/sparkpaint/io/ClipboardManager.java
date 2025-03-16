@@ -2,6 +2,7 @@ package com.esgdev.sparkpaint.io;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.SelectionManager;
+import com.esgdev.sparkpaint.engine.tools.DrawingTool;
 
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
@@ -59,9 +60,13 @@ public class ClipboardManager {
             int pasteX = 0;
             int pasteY = 0;
 
-            if (mousePosition != null && canvas.contains(mousePosition)) {
-                pasteX = mousePosition.x;
-                pasteY = mousePosition.y;
+
+            if (mousePosition != null ) {
+                Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), mousePosition);
+                if (canvas.contains(worldPoint)) {
+                    pasteX = worldPoint.x;
+                    pasteY = worldPoint.y;
+                }
             }
 
             selectionManager.getSelection().setRectangle(new Rectangle(pasteX, pasteY, pastedImage.getWidth(), pastedImage.getHeight()));

@@ -35,8 +35,8 @@ public class TextTool implements DrawingTool {
 
     @Override
     public void mouseReleased(MouseEvent e) {
-        Point point = screenToWorld(canvas.getZoomFactor(), e.getPoint());
-        BufferedImage image = (BufferedImage) canvas.getImage();
+        Point point = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
+        BufferedImage image = canvas.getImage();
         Graphics2D g2d = image.createGraphics();
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
         g2d.setFont(font);

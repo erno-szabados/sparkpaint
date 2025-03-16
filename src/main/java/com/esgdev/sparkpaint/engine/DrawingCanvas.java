@@ -38,7 +38,7 @@ public class DrawingCanvas extends JPanel {
     public static final int DEFAULT_CANVAS_HEIGHT = 600;
     public static final int MAX_LINE_THICKNESS = 20;
 
-    private Image image;
+    private BufferedImage image;
     private Graphics2D graphics;
     // Temporary canvas for drawing previews, tools will manage this, paintComponent will draw it
     private BufferedImage tempCanvas;
@@ -133,7 +133,7 @@ public class DrawingCanvas extends JPanel {
         return clipboardManager;
     }
 
-    public Image getImage() {
+    public BufferedImage getImage() {
         return image;
     }
 
