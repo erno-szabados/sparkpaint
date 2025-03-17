@@ -46,7 +46,9 @@ public class SelectionManager {
     public void deleteSelection() {
         if (!selection.isEmpty()) {
             canvas.saveToUndoStack();
-            selection.delete(canvas.getCanvasGraphics(), canvas.getCanvasBackground());
+            Graphics2D g2d = canvas.getCanvasGraphics();
+            selection.delete(g2d, canvas.getCanvasBackground());
+            g2d.dispose();
             selection.clear();
             canvas.notifyClipboardStateChanged();
             canvas.saveToUndoStack();

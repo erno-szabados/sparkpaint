@@ -10,6 +10,7 @@ import java.awt.image.BufferedImage;
 public class PathSelection implements Selection {
     private GeneralPath path;
     private BufferedImage content;
+    private boolean transparent;
 
     public PathSelection(GeneralPath path, BufferedImage content) {
         this.path = path;
@@ -34,6 +35,16 @@ public class PathSelection implements Selection {
 
     public boolean isEmpty() {
         return path == null || content == null;
+    }
+
+    @Override
+    public boolean isTransparent() {
+        return this.transparent;
+    }
+
+    @Override
+    public void setTransparent(boolean transparent) {
+        this.transparent = transparent;
     }
 
     public boolean contains(Point point) {
@@ -99,10 +110,8 @@ public class PathSelection implements Selection {
         if (path == null) {
             return;
         }
-
         // Set the fill color to the canvas background
         g2d.setColor(canvasBackground);
-
         // Fill the path with the background color
         g2d.fill(path);
     }

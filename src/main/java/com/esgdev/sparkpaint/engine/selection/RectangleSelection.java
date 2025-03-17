@@ -8,6 +8,7 @@ import java.awt.image.BufferedImage;
 public class RectangleSelection implements Selection {
     private Rectangle rectangle;
     private BufferedImage content;
+    private boolean transparent;
 
     public RectangleSelection(Rectangle rectangle, BufferedImage content) {
         this.rectangle = rectangle;
@@ -93,9 +94,11 @@ public class RectangleSelection implements Selection {
 
     @Override
     public void delete(Graphics2D g2d, Color canvasBackground) {
+        if (rectangle == null) {
+            return;
+        }
         g2d.setColor(canvasBackground);
-        g2d.fillRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
-        g2d.dispose();
+        g2d.fill(rectangle);
     }
 
     @Override
@@ -138,5 +141,15 @@ public class RectangleSelection implements Selection {
         g2d.setColor(Color.WHITE);
         g2d.setStroke(dottedStroke2);
         g2d.draw(scaledRectangle);
+    }
+
+    @Override
+    public boolean isTransparent() {
+        return this.transparent;
+    }
+
+    @Override
+    public void setTransparent(boolean transparent) {
+        this.transparent = transparent;
     }
 }

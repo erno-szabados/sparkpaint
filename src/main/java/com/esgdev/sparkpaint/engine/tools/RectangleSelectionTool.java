@@ -128,10 +128,11 @@ public class RectangleSelectionTool implements DrawingTool {
                 if (transparencyEnabled) {
                     applyTransparencyToContent(selectionContent, canvas.getFillColor());
                 }
+                selection.setTransparent(transparencyEnabled);
 
                 selectionManager.getSelection().setContent(selectionContent);
                 originalSelectionLocation = new Point(selectionRectangle.x, selectionRectangle.y);
-                clearSelectionOriginalLocation();
+                clearSelectionOriginalLocation((transparencyEnabled ? canvas.getFillColor() : canvas.getCanvasBackground()));
             } else {
                 selectionManager.getSelection().setContent(null);
                 originalSelectionLocation = null;
@@ -194,7 +195,7 @@ public class RectangleSelectionTool implements DrawingTool {
         return "Selection tool selected";
     }
 
-    private void clearSelectionOriginalLocation() {
+    private void clearSelectionOriginalLocation(Color color) {
         Selection selection = selectionManager.getSelection();
         if (!(selection instanceof RectangleSelection)) {
             return;
@@ -204,7 +205,7 @@ public class RectangleSelectionTool implements DrawingTool {
         canvas.saveToUndoStack();
         Graphics2D g2d = canvas.getImage().createGraphics();
         Rectangle originalRect = new Rectangle(originalSelectionLocation.x, originalSelectionLocation.y, selectionRectangle.width, selectionRectangle.height);
-        g2d.setColor(canvas.getCanvasBackground());
+        g2d.setColor(color);
         g2d.fill(originalRect);
         g2d.dispose();
     }

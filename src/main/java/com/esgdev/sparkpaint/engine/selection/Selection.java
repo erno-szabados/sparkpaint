@@ -10,6 +10,10 @@ public interface Selection {
 
     boolean isEmpty();
 
+    boolean isTransparent();
+
+    void setTransparent(boolean transparent);
+
     boolean contains(Point point);
 
     void clear();

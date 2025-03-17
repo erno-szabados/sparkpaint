@@ -130,6 +130,8 @@ public class ClipboardManager {
     private void eraseSelection() {
         canvas.saveToUndoStack();
         Selection selection = selectionManager.getSelection();
-        selection.delete(canvas.getCanvasGraphics(), canvas.getCanvasBackground());
+        Graphics2D g2d = canvas.getCanvasGraphics();
+        selection.delete(g2d, canvas.getCanvasBackground());
+        g2d.dispose();
     }
 }

@@ -136,11 +136,12 @@ public class FreeHandSelectionTool implements DrawingTool {
                 if (transparencyEnabled) {
                     applyTransparencyToContent(selectionContent, canvas.getFillColor());
                 }
+                selection.setTransparent(transparencyEnabled);
 
                 // Set the selection content
                 selection.setContent(selectionContent);
                 originalSelectionLocation = new Point(selectionBounds.x, selectionBounds.y);
-                clearSelectionOriginalLocation();
+                clearSelectionOriginalLocation((transparencyEnabled ? canvas.getFillColor() : canvas.getCanvasBackground()));
                 // Notify that clipboard state has changed
                 canvas.notifyClipboardStateChanged();
             } else {
@@ -230,7 +231,7 @@ public class FreeHandSelectionTool implements DrawingTool {
         }
     }
 
-    private void clearSelectionOriginalLocation() {
+    private void clearSelectionOriginalLocation(Color color) {
         Selection selection = selectionManager.getSelection();
         if (!(selection instanceof PathSelection)) {
             return;
@@ -242,7 +243,7 @@ public class FreeHandSelectionTool implements DrawingTool {
 
         canvas.saveToUndoStack();
         Graphics2D g2d = canvas.getImage().createGraphics();
-        g2d.setColor(canvas.getCanvasBackground());
+        g2d.setColor(color);
 
         GeneralPath originalPath = ((PathSelection) selection).getPath();
         if (originalPath != null) {
