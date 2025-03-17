@@ -39,6 +39,7 @@ public class HistoryManager {
             byte[] compressed = compressImage(image);
             //System.out.printf("Compressed image size: %d bytes\n", compressed.length);
             CompressedImage compressedImage = new CompressedImage(compressed, image.getWidth(), image.getHeight());
+            redoStack.clear();
             undoStack.push(compressedImage);
             if (undoStack.size() > MAX_HISTORY_SIZE) {
                 undoStack.removeLast(); // Keep the stack size within the limit
