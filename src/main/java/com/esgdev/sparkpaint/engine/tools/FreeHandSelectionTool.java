@@ -246,9 +246,7 @@ public class FreeHandSelectionTool implements DrawingTool {
 
         GeneralPath originalPath = ((PathSelection) selection).getPath();
         if (originalPath != null) {
-            Rectangle bounds = originalPath.getBounds();
-            g2d.fillRect(originalSelectionLocation.x, originalSelectionLocation.y,
-                    bounds.width, bounds.height);
+            g2d.fill(originalPath);
         }
 
         g2d.dispose();
