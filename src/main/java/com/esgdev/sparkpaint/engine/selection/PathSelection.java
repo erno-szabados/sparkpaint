@@ -104,7 +104,7 @@ public class PathSelection implements Selection {
         g2d.setColor(canvasBackground);
 
         // Fill the path with the background color
-        g2d.fill(path.getBounds());
+        g2d.fill(path);
     }
 
 
