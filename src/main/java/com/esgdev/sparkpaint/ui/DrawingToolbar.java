@@ -229,7 +229,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
 
     private JToggleButton createFreehandSelectButton() {
         // FIXME new icon
-        ImageIcon icon = IconLoader.loadAndScaleIcon("select.png", IconWidth, IconHeight);
+        ImageIcon icon = IconLoader.loadAndScaleIcon("freehand-select.png", IconWidth, IconHeight);
         JToggleButton button = new JToggleButton(icon);
         button.setToolTipText("Freehand Selection Tool");
         button.addActionListener(e -> {
