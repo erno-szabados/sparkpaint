@@ -26,6 +26,8 @@ public class BrushTool implements DrawingTool {
     private int size = DEFAULT_SPRAY_SIZE;
     private int sprayDensity = DEFAULT_SPRAY_DENSITY;
     private boolean useAntiAliasing = true;
+    private float maxBlendStrength = 0.1f;  // Range: 0.01f to 1.0f
+
 
     public BrushTool(DrawingCanvas canvas) {
         this.canvas = canvas;
@@ -55,31 +57,81 @@ public class BrushTool implements DrawingTool {
     private void drawShape(MouseEvent e, Point p) {
         BufferedImage image = canvas.getImage();
         if (image != null) {
-            Graphics2D g2d = image.createGraphics();
+            Color paintColor;
             if (SwingUtilities.isLeftMouseButton(e)) {
-                g2d.setColor(canvas.getDrawingColor());
+                paintColor = canvas.getDrawingColor();
             } else if (SwingUtilities.isRightMouseButton(e)) {
-                g2d.setColor(canvas.getFillColor());
+                paintColor = canvas.getFillColor();
+            } else {
+                return;
             }
-            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                    useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
 
             int x = p.x - size / 2;
             int y = p.y - size / 2;
 
             switch (shape) {
                 case SQUARE:
-                    g2d.fillRect(x, y, size, size);
+                    drawBlendedShape(image, x, y, size, size, paintColor, true);
                     break;
                 case CIRCLE:
-                    g2d.fillOval(x, y, size, size);
+                    drawBlendedShape(image, x, y, size, size, paintColor, false);
                     break;
                 case SPRAY:
                     sprayPaint(e, image, p);
                     break;
             }
-            g2d.dispose();
         }
+    }
+
+    private void drawBlendedShape(BufferedImage image, int x, int y, int width, int height, Color paintColor, boolean isSquare) {
+        // Create a temporary image for the shape
+        BufferedImage tempImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = tempImage.createGraphics();
+        g2d.setColor(paintColor);
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+
+        // Draw the shape to the temporary image
+        if (isSquare) {
+            g2d.fillRect(x, y, width, height);
+        } else {
+            g2d.fillOval(x, y, width, height);
+        }
+        g2d.dispose();
+
+        // Apply blending to the main image
+        int startX = Math.max(0, x);
+        int startY = Math.max(0, y);
+        int endX = Math.min(image.getWidth(), x + width);
+        int endY = Math.min(image.getHeight(), y + height);
+
+        for (int i = startX; i < endX; i++) {
+            for (int j = startY; j < endY; j++) {
+                int tempRGB = tempImage.getRGB(i, j);
+                // Only process non-transparent pixels from the shape
+                if ((tempRGB & 0xFF000000) != 0) {
+                    int currentRGB = image.getRGB(i, j);
+                    Color currentColor = new Color(currentRGB, true);
+
+                    // Apply blending with a consistent strength
+                    float blend = maxBlendStrength;
+                    int r = (int) ((1 - blend) * currentColor.getRed() + blend * paintColor.getRed());
+                    int g = (int) ((1 - blend) * currentColor.getGreen() + blend * paintColor.getGreen());
+                    int b = (int) ((1 - blend) * currentColor.getBlue() + blend * paintColor.getBlue());
+
+                    Color blendedColor = new Color(r, g, b);
+                    image.setRGB(i, j, blendedColor.getRGB());
+                }
+            }
+        }
+    }
+
+    public void setMaxBlendStrength(float strength) {
+        this.maxBlendStrength = Math.max(0.01f, Math.min(1.0f, strength));
+    }
+
+    public float getMaxBlendStrength() {
+        return maxBlendStrength;
     }
 
     public void setShape(BrushShape shape) {
@@ -126,27 +178,39 @@ public class BrushTool implements DrawingTool {
     }
 
     private void sprayPaint(MouseEvent e, BufferedImage image, Point center) {
-        int color;
+        Color paintColor;
         if (SwingUtilities.isLeftMouseButton(e)) {
-            color = canvas.getDrawingColor().getRGB();
+            paintColor = canvas.getDrawingColor();
         } else if (SwingUtilities.isRightMouseButton(e)) {
-            color = canvas.getFillColor().getRGB();
+            paintColor = canvas.getFillColor();
         } else return;
 
         int radius = size / 2;
+        double area = Math.PI * radius * radius;
+        int effectiveDensity = (int) (sprayDensity * (area / (Math.PI * DEFAULT_SPRAY_SIZE * DEFAULT_SPRAY_SIZE)));
 
-        for (int i = 0; i < sprayDensity; i++) {
-            double angle = random.nextDouble() * 2 * Math.PI;
-            double distance = random.nextDouble() * radius;
+        for (int i = 0; i < effectiveDensity; i++) {
+            double x_offset = (random.nextDouble() * 2 - 1) * radius;
+            double y_offset = (random.nextDouble() * 2 - 1) * radius;
 
-            int dx = (int) (distance * Math.cos(angle));
-            int dy = (int) (distance * Math.sin(angle));
+            if (x_offset * x_offset + y_offset * y_offset > radius * radius) {
+                continue;
+            }
 
-            int x = center.x + dx;
-            int y = center.y + dy;
+            int x = center.x + (int)x_offset;
+            int y = center.y + (int)y_offset;
 
             if (x >= 0 && x < image.getWidth() && y >= 0 && y < image.getHeight()) {
-                image.setRGB(x, y, color);
+                int currentRGB = image.getRGB(x, y);
+                Color currentColor = new Color(currentRGB, true);
+
+                float blend = random.nextFloat() * maxBlendStrength;
+                int r = (int) ((1 - blend) * currentColor.getRed() + blend * paintColor.getRed());
+                int g = (int) ((1 - blend) * currentColor.getGreen() + blend * paintColor.getGreen());
+                int b = (int) ((1 - blend) * currentColor.getBlue() + blend * paintColor.getBlue());
+
+                Color blendedColor = new Color(r, g, b);
+                image.setRGB(x, y, blendedColor.getRGB());
             }
         }
     }

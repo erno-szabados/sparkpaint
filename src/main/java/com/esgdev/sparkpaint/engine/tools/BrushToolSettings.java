@@ -14,6 +14,8 @@ public class BrushToolSettings extends BaseToolSettings {
     private JLabel sprayDensityValueLabel;
     private JCheckBox antiAliasingCheckbox;
     private boolean useAntiAliasing = true;  // Default value
+    private JSlider blendStrengthSlider;
+    private JLabel blendStrengthValueLabel;
 
     public BrushToolSettings(DrawingCanvas canvas) {
         super(canvas);
@@ -70,6 +72,26 @@ public class BrushToolSettings extends BaseToolSettings {
             applySettings();
         });
 
+        // Blend strength slider
+        JLabel blendStrengthLabel = new JLabel("Blend Strength:");
+        blendStrengthLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        blendStrengthSlider = new JSlider(JSlider.HORIZONTAL, 1, 100, 10);  // 1-100 maps to 0.01-1.0
+        blendStrengthSlider.setMaximumSize(new Dimension(150, 25));
+        blendStrengthSlider.setAlignmentX(Component.LEFT_ALIGNMENT);
+        blendStrengthSlider.setPaintTicks(true);
+        blendStrengthSlider.setMajorTickSpacing(20);
+        blendStrengthSlider.setMinorTickSpacing(5);
+
+        blendStrengthValueLabel = new JLabel("0.10");
+        blendStrengthValueLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        blendStrengthSlider.addChangeListener(e -> {
+            float value = blendStrengthSlider.getValue() / 100f;
+            blendStrengthValueLabel.setText(String.format("%.2f", value));
+            applySettings();
+        });
+
         // Anti-aliasing checkbox
         antiAliasingCheckbox = new JCheckBox("Anti-aliasing", useAntiAliasing);
         antiAliasingCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -91,6 +113,12 @@ public class BrushToolSettings extends BaseToolSettings {
         panel.add(Box.createVerticalStrut(2));
         panel.add(sprayDensityValueLabel);
         panel.add(Box.createVerticalStrut(5));
+        panel.add(blendStrengthLabel);
+        panel.add(Box.createVerticalStrut(2));
+        panel.add(blendStrengthSlider);
+        panel.add(Box.createVerticalStrut(2));
+        panel.add(blendStrengthValueLabel);
+        panel.add(Box.createVerticalStrut(5));
         panel.add(antiAliasingCheckbox);
         return panel;
     }
@@ -101,6 +129,7 @@ public class BrushToolSettings extends BaseToolSettings {
             brushTool.setSize(sizeSlider.getValue());
             brushTool.setShape((BrushTool.BrushShape) shapeComboBox.getSelectedItem());
             brushTool.setSprayDensity(sprayDensitySlider.getValue());
+            brushTool.setMaxBlendStrength(blendStrengthSlider.getValue() / 100f);
             useAntiAliasing = antiAliasingCheckbox.isSelected();
             brushTool.setAntiAliasing(useAntiAliasing);
         }
@@ -113,6 +142,8 @@ public class BrushToolSettings extends BaseToolSettings {
         shapeComboBox.setSelectedItem(BrushTool.BrushShape.SQUARE);
         sprayDensitySlider.setValue(BrushTool.DEFAULT_SPRAY_DENSITY);
         sprayDensityValueLabel.setText(String.valueOf(BrushTool.DEFAULT_SPRAY_DENSITY));
+        blendStrengthSlider.setValue(10);  // 0.10 default
+        blendStrengthValueLabel.setText("0.10");
         antiAliasingCheckbox.setSelected(true);
         applySettings();
     }
