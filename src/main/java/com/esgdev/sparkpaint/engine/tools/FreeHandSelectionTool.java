@@ -55,12 +55,11 @@ public class FreeHandSelectionTool implements DrawingTool {
                 return;
             }
             // Right-click to clear selection
-            copySelectionToPermanentCanvas();
             selectionManager.clearSelection();
+            canvas.undo();
             isDragging = false;
             isDrawingPath = false;
             originalSelectionLocation = null;
-            canvas.repaint();
             return;
         }
 
@@ -86,7 +85,15 @@ public class FreeHandSelectionTool implements DrawingTool {
         } else {
             // Clicked outside the selection, finalize the current selection
             if (!selection.isEmpty()) {
-                copySelectionToPermanentCanvas();
+                Rectangle currentBounds = selection.getBounds();
+                if (originalSelectionLocation != null &&
+                        currentBounds.x == originalSelectionLocation.x &&
+                        currentBounds.y == originalSelectionLocation.y) {
+                    // Selection wasn't moved, undo the last operation
+                    canvas.undo();
+                } else {
+                    copySelectionToPermanentCanvas();
+                }
                 selectionManager.clearSelection();
                 isDragging = false;
                 isDrawingPath = false;
@@ -150,7 +157,6 @@ public class FreeHandSelectionTool implements DrawingTool {
             }
         } else if (isDragging) {
             isDragging = false;
-
             Point worldEndPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
             if (selection.contains(worldEndPoint)) {
                 canvas.setCursor(handCursor);
