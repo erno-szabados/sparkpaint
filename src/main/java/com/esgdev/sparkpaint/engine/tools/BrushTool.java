@@ -1,6 +1,7 @@
 package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
+import com.esgdev.sparkpaint.engine.selection.Selection;
 
 import javax.swing.*;
 import java.awt.*;
@@ -111,19 +112,22 @@ public class BrushTool implements DrawingTool {
                 // Only process non-transparent pixels from the shape
                 if ((tempRGB & 0xFF000000) != 0) {
                     int currentRGB = image.getRGB(i, j);
-                    Color currentColor = new Color(currentRGB, true);
-
-                    // Apply blending with a consistent strength
-                    float blend = maxBlendStrength;
-                    int r = (int) ((1 - blend) * currentColor.getRed() + blend * paintColor.getRed());
-                    int g = (int) ((1 - blend) * currentColor.getGreen() + blend * paintColor.getGreen());
-                    int b = (int) ((1 - blend) * currentColor.getBlue() + blend * paintColor.getBlue());
-
-                    Color blendedColor = new Color(r, g, b);
+                    Color blendedColor = getBlendedColor(currentRGB, maxBlendStrength, paintColor);
                     image.setRGB(i, j, blendedColor.getRGB());
                 }
             }
         }
+    }
+
+    private Color getBlendedColor(int currentRGB, float maxBlendStrength, Color paintColor) {
+        Color currentColor = new Color(currentRGB, true);
+
+        // Apply blending with a consistent strength
+        int r = (int) ((1 - maxBlendStrength) * currentColor.getRed() + maxBlendStrength * paintColor.getRed());
+        int g = (int) ((1 - maxBlendStrength) * currentColor.getGreen() + maxBlendStrength * paintColor.getGreen());
+        int b = (int) ((1 - maxBlendStrength) * currentColor.getBlue() + maxBlendStrength * paintColor.getBlue());
+
+        return new Color(r, g, b);
     }
 
     public void setMaxBlendStrength(float strength) {
@@ -204,14 +208,7 @@ public class BrushTool implements DrawingTool {
 
             if (x >= 0 && x < image.getWidth() && y >= 0 && y < image.getHeight()) {
                 int currentRGB = image.getRGB(x, y);
-                Color currentColor = new Color(currentRGB, true);
-
-                float blend = random.nextFloat() * maxBlendStrength;
-                int r = (int) ((1 - blend) * currentColor.getRed() + blend * paintColor.getRed());
-                int g = (int) ((1 - blend) * currentColor.getGreen() + blend * paintColor.getGreen());
-                int b = (int) ((1 - blend) * currentColor.getBlue() + blend * paintColor.getBlue());
-
-                Color blendedColor = new Color(r, g, b);
+                Color blendedColor = getBlendedColor(currentRGB, random.nextFloat() * maxBlendStrength, paintColor);
                 image.setRGB(x, y, blendedColor.getRGB());
             }
         }
