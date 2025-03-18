@@ -1,5 +1,7 @@
 package com.esgdev.sparkpaint.engine;
 
+import com.esgdev.sparkpaint.engine.selection.Selection;
+import com.esgdev.sparkpaint.engine.selection.SelectionManager;
 import com.esgdev.sparkpaint.engine.tools.*;
 import com.esgdev.sparkpaint.engine.tools.DrawingTool;
 import com.esgdev.sparkpaint.io.ClipboardChangeListener;
@@ -9,7 +11,6 @@ import com.esgdev.sparkpaint.ui.ToolChangeListener;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
@@ -25,33 +26,31 @@ import java.util.List;
  */
 public class DrawingCanvas extends JPanel {
 
+
     public enum Tool {
         BRUSH,
         PENCIL,
         LINE,
         RECTANGLE,
         CIRCLE,
-        ELLIPSE,
-        SELECTION,
+        RECTANGLE_SELECTION,
+        FREEHAND_SELECTION,
         FILL,
-        EYEDROPPER
+        TEXT, EYEDROPPER
     }
     public static final int DEFAULT_CANVAS_WIDTH = 800;
     public static final int DEFAULT_CANVAS_HEIGHT = 600;
     public static final int MAX_LINE_THICKNESS = 20;
-    public static final float MAX_ZOOM_FACTOR = 10.0f;
-    public static final float MIN_ZOOM_FACTOR = 1.0f;
 
-    private Image image;
+    private BufferedImage image;
     private Graphics2D graphics;
-    private BufferedImage tempCanvas; // Temporary canvas for drawing previews
-    private BufferedImage selectionContent;
-    private Rectangle selectionRectangle;
+    // Temporary canvas for drawing previews, tools will manage this, paintComponent will draw it
+    private BufferedImage tempCanvas;
 
     private Tool currentTool = Tool.PENCIL;
     private Color drawingColor = Color.BLACK;
-    private Color fillColor = Color.WHITE; //
-    private Color canvasBackground = Color.WHITE;
+    private Color fillColor = Color.WHITE;
+    private Color canvasBackground;
     private float lineThickness = 2.0f;
     private float zoomFactor = 1.0f;
 
@@ -59,8 +58,13 @@ public class DrawingCanvas extends JPanel {
     private final List<CanvasPropertyChangeListener> propertyChangeListeners = new ArrayList<>();
     private final EnumMap<Tool, DrawingTool> tools = new EnumMap<>(Tool.class);
     private final HistoryManager historyManager;
+    private final SelectionManager selectionManager;
     private final ClipboardManager clipboardManager;
     private final FileManager fileManager;
+    private boolean showBrushCursor = false;
+    private Point cursorShapeCenter = new Point(0, 0);
+    private int cursorSize = 0;
+    private BrushTool.BrushShape cursorShape;
 
     /**
      * Default constructor for the DrawingCanvas class.
@@ -70,6 +74,7 @@ public class DrawingCanvas extends JPanel {
         this.canvasBackground = Color.WHITE;
         setBackground(canvasBackground);
         historyManager = new HistoryManager();
+        selectionManager = new SelectionManager(this);
         clipboardManager = new ClipboardManager(this);
         fileManager = new FileManager();
         MouseAdapter canvasMouseAdapter = new CanvasMouseAdapter();
@@ -91,8 +96,7 @@ public class DrawingCanvas extends JPanel {
         this.drawingColor = Color.BLACK;
         this.fillColor = Color.WHITE;
         // Create new buffered images with new dimensions
-        BufferedImage newImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        BufferedImage newTempCanvas = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage newImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 
         // Get graphics context from new image
         Graphics2D newGraphics = (Graphics2D) newImage.getGraphics();
@@ -118,7 +122,8 @@ public class DrawingCanvas extends JPanel {
 
         image = newImage;
         graphics = newGraphics;
-        tempCanvas = newTempCanvas;
+
+        zoomFactor = 1.0f;
 
         notifyDrawingColorChanged();
         notifyFillColorChanged();
@@ -128,7 +133,15 @@ public class DrawingCanvas extends JPanel {
         repaint();
     }
 
-    public Image getImage() {
+    public SelectionManager getSelectionManager() {
+        return selectionManager;
+    }
+
+    public ClipboardManager getClipboardManager() {
+        return clipboardManager;
+    }
+
+    public BufferedImage getImage() {
         return image;
     }
 
@@ -138,24 +151,15 @@ public class DrawingCanvas extends JPanel {
         return g2d;
     }
 
-    public Rectangle getSelectionRectangle() {
-        return selectionRectangle;
-    }
-
-    public void setSelectionRectangle(Rectangle selectionRectangle) {
-        this.selectionRectangle = selectionRectangle;
-    }
-
-    public Image getSelectionContent() {
-        return selectionContent;
-    }
-
-    public void setSelectionContent(BufferedImage selectionContent) {
-        this.selectionContent = selectionContent;
-    }
-
     public void setTempCanvas(BufferedImage tempCanvas) {
         this.tempCanvas = tempCanvas;
+    }
+
+    public BufferedImage getTempCanvas() {
+        if (tempCanvas == null ) {
+            tempCanvas = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_RGB);
+        }
+        return tempCanvas;
     }
 
     public void saveToFile(File file) throws IOException {
@@ -163,13 +167,14 @@ public class DrawingCanvas extends JPanel {
     }
 
     public void loadFromFile(File file) throws IOException {
+        zoomFactor = 1.0f;
         BufferedImage loadedImage = fileManager.loadFromFile(file);
 
         Color currentColor = graphics != null ? graphics.getColor() : Color.BLACK;
         Stroke currentStroke = graphics != null ? graphics.getStroke() : new BasicStroke(1);
 
         image = new BufferedImage(loadedImage.getWidth(), loadedImage.getHeight(),
-                BufferedImage.TYPE_INT_ARGB);
+                BufferedImage.TYPE_INT_RGB);
         graphics = (Graphics2D) image.getGraphics();
 
         graphics.setColor(currentColor);
@@ -177,6 +182,7 @@ public class DrawingCanvas extends JPanel {
         graphics.drawImage(loadedImage, 0, 0, null);
 
         setPreferredSize(new Dimension(image.getWidth(null), image.getHeight(null)));
+        revalidate();
         repaint();
         clearHistory();
     }
@@ -185,12 +191,8 @@ public class DrawingCanvas extends JPanel {
         return fileManager.getCurrentFilePath();
     }
 
-    // Save the current canvas state to a temporary buffer
-    public void saveCanvasState() {
-        tempCanvas = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
-        Graphics2D tempGraphics = tempCanvas.createGraphics();
-        tempGraphics.drawImage(image, 0, 0, null); // Copy the permanent canvas to the temporary canvas
-        tempGraphics.dispose();
+    public void resetCurrentFilePath() {
+        fileManager.setCurrentFilePath(null);
     }
 
     public void setDrawingColor(Color color) {
@@ -218,7 +220,6 @@ public class DrawingCanvas extends JPanel {
         repaint();
     }
 
-    // New Method: Get background color
     public Color getFillColor() {
         return fillColor;
     }
@@ -232,6 +233,25 @@ public class DrawingCanvas extends JPanel {
         if (graphics != null) {
             graphics.setStroke(new BasicStroke(thickness));
         }
+    }
+
+
+    public void setCursorSize(int size) {
+        cursorSize = size;
+        repaint();
+    }
+
+    public int getCursorSize() {
+        return cursorSize;
+    }
+
+    public void setCursorShape(BrushTool.BrushShape cursorShape) {
+        this.cursorShape = cursorShape;
+        repaint();
+    }
+
+    public BrushTool.BrushShape getCursorShape() {
+        return cursorShape;
     }
 
     public float getLineThickness() {
@@ -250,7 +270,6 @@ public class DrawingCanvas extends JPanel {
         toolChangeListeners.remove(listener);
     }
 
-    // Getter for the current tool
     public Tool getCurrentTool() {
         return currentTool;
     }
@@ -265,6 +284,8 @@ public class DrawingCanvas extends JPanel {
 
     public void setCurrentTool(Tool tool) {
         this.currentTool = tool;
+        getActiveTool().setCursor();
+        showBrushCursor = tool == Tool.BRUSH;
         // Notify all listeners
         for (ToolChangeListener listener : toolChangeListeners) {
             listener.onToolChanged(tool);
@@ -292,43 +313,83 @@ public class DrawingCanvas extends JPanel {
             g2d.drawImage(tempCanvas, 0, 0, null);
         }
 
-        if (currentTool != Tool.SELECTION || selectionRectangle == null)
-            return;
-
-        DrawingTool tool = tools.get(currentTool);
-        if (tool instanceof SelectionTool) {
-            ((SelectionTool) tool).drawSelection(g2d);
+        Selection selection = selectionManager.getSelection();
+        if (selection != null) {
+            selection.drawSelectionContent(g2d, zoomFactor);
         }
+
+        // Reset scale for grid drawing
+        g2d.scale(1 / zoomFactor, 1 / zoomFactor);
+        renderZoomGrid(g2d);
+        if (selection != null) {
+            selection.drawSelectionOutline(g2d, zoomFactor);
+        }
+
+        // Draw the brush cursor
+        if (showBrushCursor) {
+            drawCursorShape(g2d);
+        }
+
+        g2d.dispose();
+    }
+
+    private void renderZoomGrid(Graphics2D g2d) {
+        if (zoomFactor <= 5.0f) {
+            return;
+        }
+        int scaledWidth = (int) (image.getWidth(null) * zoomFactor);
+        int scaledHeight = (int) (image.getHeight(null) * zoomFactor);
+        g2d.setColor(Color.LIGHT_GRAY);
+        for (int x = 0; x <= scaledWidth; x += (int) zoomFactor) {
+            g2d.drawLine(x, 0, x, scaledHeight);
+        }
+        for (int y = 0; y <= scaledHeight; y += (int) zoomFactor) {
+            g2d.drawLine(0, y, scaledWidth, y);
+        }
+    }
+
+    private void drawCursorShape(Graphics2D g2d) {
+        if (cursorShape == null) return;
+        g2d.setColor(Color.BLACK);
+        float[] dottedPattern = {3, 3};
+        BasicStroke dottedStroke = new BasicStroke(
+                1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER,
+                10.0f, dottedPattern, 0);
+        g2d.setStroke(dottedStroke);
+        switch (cursorShape) {
+            case SPRAY:
+            case CIRCLE:
+                Point circleCenter = cursorShapeCenter;
+                int x = (int) (circleCenter.x - (cursorSize / 2.0 ) * zoomFactor);
+                int y = (int) (circleCenter.y - (cursorSize / 2.0 ) * zoomFactor);
+                int diameter = (int) (cursorSize * zoomFactor);
+                g2d.drawOval(x, y, diameter, diameter);
+                break;
+            case SQUARE:
+                Point squareCenter = cursorShapeCenter;
+                int squareX = (int) (squareCenter.x - (cursorSize / 2.0) * zoomFactor);
+                int squareY = (int) (squareCenter.y - (cursorSize / 2.0) * zoomFactor);
+                int squareSide = (int) (cursorSize * zoomFactor);
+                g2d.drawRect(squareX, squareY, squareSide, squareSide);
+                break;
+            default:
+                // unsupported
+                break;
+        }
+
     }
 
     private void initTools() {
         tools.put(Tool.LINE, new LineTool(this));
         tools.put(Tool.RECTANGLE, new RectangleTool(this));
         tools.put(Tool.CIRCLE, new CircleTool(this));
-        tools.put(Tool.ELLIPSE, new EllipseTool(this));
         tools.put(Tool.FILL, new FillTool(this));
         tools.put(Tool.EYEDROPPER, new EyedropperTool(this));
         tools.put(Tool.PENCIL, new PencilTool(this));
         tools.put(Tool.BRUSH, new BrushTool(this));
-        tools.put(Tool.SELECTION, new SelectionTool(this));
-    }
-
-    // Copy - paste
-
-    public void cutSelection() {
-        clipboardManager.cutSelection();
-    }
-
-    public void copySelection() {
-        clipboardManager.copySelection();
-    }
-
-    public void pasteSelection() throws IOException, UnsupportedFlavorException {
-        clipboardManager.pasteSelection();
-    }
-
-    public boolean hasSelection() {
-        return clipboardManager.hasSelection();
+        tools.put(Tool.RECTANGLE_SELECTION, new RectangleSelectionTool(this));
+        tools.put(Tool.FREEHAND_SELECTION, new FreeHandSelectionTool(this));
+        tools.put(Tool.TEXT, new TextTool(this));
     }
 
     public boolean canPaste() {
@@ -350,20 +411,24 @@ public class DrawingCanvas extends JPanel {
     // Undo - redo
 
     public void saveToUndoStack() {
-        historyManager.saveToUndoStack((BufferedImage) image);
+        historyManager.saveToUndoStack(image);
     }
 
     public void undo() {
-        image = historyManager.undo((BufferedImage) image);
-        graphics = (Graphics2D) image.getGraphics();
-        selectionRectangle = null;
+        image = historyManager.undo(image);
+        Selection selection = selectionManager.getSelection();
+        if (selection != null) {
+            selection.clearOutline();
+        }
         repaint();
     }
 
     public void redo() {
-        image = historyManager.redo((BufferedImage) image);
-        graphics = (Graphics2D) image.getGraphics();
-        selectionRectangle = null;
+        image = historyManager.redo(image);
+        Selection selection = selectionManager.getSelection();
+        if (selection != null) {
+            selection.clearOutline();
+        }
         repaint();
     }
 
@@ -409,6 +474,13 @@ public class DrawingCanvas extends JPanel {
         }
     }
 
+    private void updateCanvasAfterZoom() {
+        // Calculate new dimensions
+        int scaledWidth = (int) (image.getWidth(null) * zoomFactor);
+        int scaledHeight = (int) (image.getHeight(null) * zoomFactor);
+        setPreferredSize(new Dimension(scaledWidth, scaledHeight));
+    }
+
     /**
      * MouseAdapter for handling mouse events on the canvas.
      * Relies on the current tool to handle events.
@@ -418,9 +490,11 @@ public class DrawingCanvas extends JPanel {
         public void mouseMoved(MouseEvent e) {
             DrawingTool tool = tools.get(currentTool);
             if (tool != null) {
-                tool.setCursor();
                 tool.mouseMoved(e);
             }
+            //cursorCircleCenter = DrawingTool.screenToWorld(zoomFactor,  e.getPoint());
+            cursorShapeCenter = e.getPoint();
+            repaint();
         }
 
         @Override
@@ -429,6 +503,10 @@ public class DrawingCanvas extends JPanel {
             if (tool != null) {
                 tool.mouseDragged(e);
             }
+
+            //cursorCircleCenter = DrawingTool.screenToWorld(zoomFactor,  e.getPoint());
+            cursorShapeCenter = e.getPoint();
+            repaint();
         }
 
         @Override
@@ -451,54 +529,34 @@ public class DrawingCanvas extends JPanel {
 
         @Override
         public void mouseWheelMoved(MouseWheelEvent e) {
-            Point viewPosition = SwingUtilities.getAncestorOfClass(JScrollPane.class, DrawingCanvas.this)
-                    .getComponent(0).getLocation();
-            Point cursorPoint = e.getPoint();
+            // Apply zoom
+            float[] zoomLevels = {1.0f, 2.0f, 4.0f, 8.0f, 12.0f};
 
-            // Store the position relative to the image before zooming
-            double relativeX = cursorPoint.x / (image.getWidth(null) * zoomFactor);
-            double relativeY = cursorPoint.y / (image.getHeight(null) * zoomFactor);
-
-
-            if (e.getWheelRotation() < 0) { // Zoom in
-                zoomFactor *= 1.1f;
-                zoomFactor = (float) (Math.round(zoomFactor * 10.0) / 10.0);
-                zoomFactor = Math.min(zoomFactor, MAX_ZOOM_FACTOR);
-            } else { // Zoom out
-                zoomFactor /= 1.1f;
-                zoomFactor = (float) (Math.round(zoomFactor * 10.0) / 10.0);
-                zoomFactor = Math.max(zoomFactor, MIN_ZOOM_FACTOR);
+            if (e.getWheelRotation() < 0) {
+                for (float zoomLevel : zoomLevels) {
+                    if (zoomFactor < zoomLevel) {
+                        zoomFactor = zoomLevel;
+                        break;
+                    }
+                }
+            } else {
+                for (int i = zoomLevels.length - 1; i >= 0; i--) {
+                    if (zoomFactor > zoomLevels[i]) {
+                        zoomFactor = zoomLevels[i];
+                        break;
+                    }
+                }
             }
 
-            // Update preferred size based on zoom factor
-            int scaledWidth = (int) (image.getWidth(null) * zoomFactor);
-            int scaledHeight = (int) (image.getHeight(null) * zoomFactor);
-            setPreferredSize(new Dimension(scaledWidth, scaledHeight));
-
-            // Calculate new scroll position to keep the cursor point fixed
-            JScrollPane scrollPane = (JScrollPane) SwingUtilities.getAncestorOfClass(JScrollPane.class, DrawingCanvas.this);
-            if (scrollPane != null) {
-                JViewport viewport = scrollPane.getViewport();
-                Point newViewPosition = new Point();
-
-                // Calculate the new view position based on cursor position
-                newViewPosition.x = (int) (relativeX * scaledWidth - cursorPoint.x);
-                newViewPosition.y = (int) (relativeY * scaledHeight - cursorPoint.y);
-
-                // Ensure the new position is within bounds
-                newViewPosition.x = Math.max(0, Math.min(newViewPosition.x, scaledWidth - viewport.getWidth()));
-                newViewPosition.y = Math.max(0, Math.min(newViewPosition.y, scaledHeight - viewport.getHeight()));
-
-                viewport.setViewPosition(newViewPosition);
-            }
-
-            revalidate();
-            repaint();
-
+            updateCanvasAfterZoom();
             DrawingTool tool = tools.get(currentTool);
             if (tool != null) {
                 tool.mouseScrolled(e);
             }
+            //cursorCircleCenter = DrawingTool.screenToWorld(zoomFactor,  e.getPoint());
+            cursorShapeCenter = e.getPoint();
+            revalidate();
+            repaint();
         }
     }
 }

@@ -2,6 +2,7 @@ package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
@@ -11,6 +12,7 @@ public class PencilTool implements DrawingTool {
     private final DrawingCanvas canvas;
     private final Cursor cursor = Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR);
     private Point startPoint;
+    private boolean useAntiAliasing = true;
 
     public PencilTool(DrawingCanvas canvas) {
         this.canvas = canvas;
@@ -23,21 +25,27 @@ public class PencilTool implements DrawingTool {
 
     @Override
     public void mousePressed(MouseEvent e) {
-        startPoint = scalePoint(canvas, e.getPoint());
+        startPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
         canvas.saveToUndoStack();
     }
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        Point point = scalePoint(canvas, e.getPoint());
-        BufferedImage image = (BufferedImage) canvas.getImage();
+        Point point = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
+        BufferedImage image = canvas.getImage();
         Graphics2D g2d = image.createGraphics();
         if (g2d == null) {
             System.out.println("Graphics is null");
             return;
         }
         g2d.setStroke(new BasicStroke(canvas.getLineThickness()));
-        g2d.setColor(canvas.getDrawingColor());
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+        if (SwingUtilities.isLeftMouseButton(e)) {
+            g2d.setColor(canvas.getDrawingColor());
+        } else if (SwingUtilities.isRightMouseButton(e)) {
+            g2d.setColor(canvas.getFillColor());
+        }
         g2d.drawLine(startPoint.x, startPoint.y, point.x, point.y);
         startPoint = point;
         canvas.repaint();
@@ -61,5 +69,9 @@ public class PencilTool implements DrawingTool {
     @Override
     public String statusMessage() {
         return "Pencil tool selected";
+    }
+
+    public void setAntiAliasing(boolean useAntiAliasing) {
+        this.useAntiAliasing = useAntiAliasing;
     }
 }

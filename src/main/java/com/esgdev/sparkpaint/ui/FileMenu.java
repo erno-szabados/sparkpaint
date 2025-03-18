@@ -66,6 +66,7 @@ public class FileMenu extends JMenu {
                     dialog.getImageHeight(),
                     dialog.getBackgroundColor()
             );
+            mainFrame.getCanvas().resetCurrentFilePath();
             mainFrame.pack();  // Adjust frame size to new canvas size
 
             mainFrame.setStatusMessage(String.format("New image created (%dx%d)",

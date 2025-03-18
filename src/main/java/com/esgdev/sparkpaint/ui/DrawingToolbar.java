@@ -14,6 +14,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
     private final StatusMessageHandler statusMessageHandler;
     private final DrawingCanvas canvas;
     private final JColorChooser colorChooser;
+    private final ButtonGroup toolGroup = new ButtonGroup();
 
     private JButton colorButton;
     private JButton fillColorButton;
@@ -47,11 +48,11 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
     }
 
     private void initializeToolbar() {
-        // toolGroup = new ButtonGroup();
         this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         this.setFloatable(false); // Disable floating toolbar
 
         this.add(createSelectButton());
+        this.add(createFreehandSelectButton());
         // Undo/redo tools
         undoButton = createUndoButton();
         this.add(undoButton);
@@ -61,10 +62,10 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         canvas.addUndoRedoChangeListener(this);
         this.add(createBrushButton());
         this.add(createPencilButton());
+        this.add(createTextButton());
         this.add(createLineButton());
         this.add(createRectangleButton());
         this.add(createCircleButton());
-        this.add(createEllipseButton());
         this.addSeparator();
         this.add(createFillButton());
         this.add(createEyedropperButton());
@@ -98,8 +99,8 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         return button;
     }
 
-    private JButton createBrushButton() {
-        JButton button = new JButton();
+    private JToggleButton createBrushButton() {
+        JToggleButton button = new JToggleButton();
         ImageIcon icon = IconLoader.loadAndScaleIcon("brush.png", IconWidth, IconHeight);
         button.setIcon(icon);
         button.setToolTipText("Draw with Brush");
@@ -107,12 +108,13 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
             canvas.setCurrentTool(DrawingCanvas.Tool.BRUSH);
             statusMessageHandler.setStatusMessage("Brush selected.");
         });
+        toolGroup.add(button);
 
         return button;
     }
 
-    private JButton createPencilButton() {
-        JButton button = new JButton();
+    private JToggleButton createPencilButton() {
+        JToggleButton button = new JToggleButton();
         ImageIcon icon = IconLoader.loadAndScaleIcon("pencil.png", IconWidth, IconHeight);
         button.setIcon(icon);
         button.setToolTipText("Draw with Pencil");
@@ -120,12 +122,27 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
             canvas.setCurrentTool(DrawingCanvas.Tool.PENCIL);
             statusMessageHandler.setStatusMessage("Pencil selected.");
         });
+        toolGroup.add(button);
 
         return button;
     }
 
-    private JButton createLineButton() {
-        JButton button = new JButton();
+    private JToggleButton createTextButton() {
+        JToggleButton button = new JToggleButton();
+        ImageIcon icon = IconLoader.loadAndScaleIcon("text.png", IconWidth, IconHeight);
+        button.setIcon(icon);
+        button.setToolTipText("Draw text");
+        button.addActionListener(e -> {
+            canvas.setCurrentTool(DrawingCanvas.Tool.TEXT);
+            statusMessageHandler.setStatusMessage("Text tool selected.");
+        });
+        toolGroup.add(button);
+
+        return button;
+    }
+
+    private JToggleButton createLineButton() {
+        JToggleButton button = new JToggleButton();
         ImageIcon icon = IconLoader.loadAndScaleIcon("line.png", IconWidth, IconHeight);
         button.setIcon(icon);
         button.setToolTipText("Draw a Line");
@@ -133,6 +150,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
             canvas.setCurrentTool(DrawingCanvas.Tool.LINE);
             statusMessageHandler.setStatusMessage("Line selected.");
         });
+        toolGroup.add(button);
 
         return button;
     }
@@ -143,7 +161,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         // Set the icon to the button
         Color color = canvas.getDrawingColor();
         button.setIcon(getColorIcon(color));
-        button.setToolTipText(String.format("#%02X%02X%02X",
+        button.setToolTipText(String.format("Draw color - #%02X%02X%02X",
                 color.getRed(), color.getGreen(), color.getBlue()));
         button.addActionListener(e -> {
             // Use the shared colorChooser instance
@@ -155,7 +173,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
                 action -> {
                     Color newColor = colorChooser.getColor();
                     button.setIcon(getColorIcon(newColor));
-                    button.setToolTipText(String.format("#%02X%02X%02X",
+                    button.setToolTipText(String.format("Draw color - #%02X%02X%02X",
                             newColor.getRed(), newColor.getGreen(), newColor.getBlue()));
                     canvas.setDrawingColor(newColor);
                 },
@@ -171,7 +189,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         JButton button = new JButton();
         Color color = canvas.getFillColor();
         button.setIcon(getColorIcon(color));
-        button.setToolTipText(String.format("#%02X%02X%02X",
+        button.setToolTipText(String.format("Fill color - #%02X%02X%02X",
                 color.getRed(), color.getGreen(), color.getBlue()));
 
 
@@ -185,7 +203,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
                 action -> {
                     Color newColor = colorChooser.getColor();
                     button.setIcon(getColorIcon(newColor));
-                    button.setToolTipText(String.format("#%02X%02X%02X",
+                    button.setToolTipText(String.format("Fill color - #%02X%02X%02X",
                             newColor.getRed(), newColor.getGreen(), newColor.getBlue()));
                     canvas.setFillColor(newColor);
                 },
@@ -198,67 +216,72 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         return button;
     }
 
-    private JButton createSelectButton() {
+    private JToggleButton createSelectButton() {
         ImageIcon icon = IconLoader.loadAndScaleIcon("select.png", IconWidth, IconHeight);
-        JButton button = new JButton(icon);
-        button.setToolTipText("Selection Tool");
+        JToggleButton button = new JToggleButton(icon);
+        button.setToolTipText("Rectrangle Selection Tool");
         button.addActionListener(e -> {
-            canvas.setCurrentTool(DrawingCanvas.Tool.SELECTION);
-            statusMessageHandler.setStatusMessage("Selection tool selected.");});
+            canvas.setCurrentTool(DrawingCanvas.Tool.RECTANGLE_SELECTION);
+            statusMessageHandler.setStatusMessage("Rectangle selection tool selected.");});
+        toolGroup.add(button);
         return button;
     }
 
-    private JButton createEyedropperButton() {
+    private JToggleButton createFreehandSelectButton() {
+        // FIXME new icon
+        ImageIcon icon = IconLoader.loadAndScaleIcon("freehand-select.png", IconWidth, IconHeight);
+        JToggleButton button = new JToggleButton(icon);
+        button.setToolTipText("Freehand Selection Tool");
+        button.addActionListener(e -> {
+            canvas.setCurrentTool(DrawingCanvas.Tool.FREEHAND_SELECTION);
+            statusMessageHandler.setStatusMessage("Freehand Selection tool selected.");});
+        toolGroup.add(button);
+        return button;
+    }
+
+    private JToggleButton createEyedropperButton() {
         ImageIcon icon = IconLoader.loadAndScaleIcon("eyedropper.png", IconWidth, IconHeight);
-        JButton button = new JButton(icon);
+        JToggleButton button = new JToggleButton(icon);
         button.setToolTipText("Eyedropper Tool");
         button.addActionListener(e -> {
             canvas.setCurrentTool(DrawingCanvas.Tool.EYEDROPPER);
             statusMessageHandler.setStatusMessage("Eyedropper tool selected.");});
+        toolGroup.add(button);
         return button;
     }
 
-    private JButton createRectangleButton() {
+    private JToggleButton createRectangleButton() {
         ImageIcon icon = IconLoader.loadAndScaleIcon("rect-outline.png", IconWidth, IconHeight);
-        JButton button = new JButton(icon);
+        JToggleButton button = new JToggleButton(icon);
         button.setToolTipText("Rectangle Tool");
         button.addActionListener(e -> {
             canvas.setCurrentTool(DrawingCanvas.Tool.RECTANGLE);
             statusMessageHandler.setStatusMessage("Rectangle tool selected.");});
+        toolGroup.add(button);
         return button;
     }
 
-    private JButton createCircleButton() {
+    private JToggleButton createCircleButton() {
         ImageIcon icon = IconLoader.loadAndScaleIcon("circle-outline.png", IconWidth, IconHeight);
-        JButton button = new JButton(icon);
+        JToggleButton button = new JToggleButton(icon);
         button.setToolTipText("Circle Tool");
         button.addActionListener(e -> {
             canvas.setCurrentTool(DrawingCanvas.Tool.CIRCLE);
             statusMessageHandler.setStatusMessage("Circle tool selected.");});
+        toolGroup.add(button);
         return button;
     }
 
-    private JButton createEllipseButton() {
-        ImageIcon icon = IconLoader.loadAndScaleIcon("ellipse-outline.png", IconWidth, IconHeight);
-        JButton button = new JButton(icon);
-        button.setToolTipText("Ellipse Tool");
+    private JToggleButton createFillButton() {
+        JToggleButton button = new JToggleButton();
+        button.setIcon(IconLoader.loadAndScaleIcon("floodfill.png", IconWidth, IconHeight));
+        button.setToolTipText("Fill Tool");
         button.addActionListener(e -> {
-            canvas.setCurrentTool(DrawingCanvas.Tool.ELLIPSE);
-            statusMessageHandler.setStatusMessage("Ellipse tool selected.");});
-        return button;
-    }
-
-
-    private JButton createFillButton() {
-        JButton fillButton = new JButton();
-        fillButton.setIcon(IconLoader.loadAndScaleIcon("floodfill.png", IconWidth, IconHeight));
-        fillButton.setToolTipText("Fill Tool");
-        fillButton.addActionListener(e -> {
             canvas.setCurrentTool(DrawingCanvas.Tool.FILL);
             statusMessageHandler.setStatusMessage("Fill tool selected");
         });
-        //toolGroup.add(fillButton);
-        return fillButton;
+        toolGroup.add(button);
+        return button;
     }
 
 

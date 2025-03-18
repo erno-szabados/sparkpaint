@@ -9,6 +9,8 @@ package com.esgdev.sparkpaint.engine.tools;
                     private JCheckBox filledCheckBox;
                     private JSlider thicknessSlider;
                     private JLabel thicknessValueLabel;
+                    private JCheckBox antiAliasingCheckbox;
+                    private boolean useAntiAliasing = true;
 
                     public RectangleToolSettings(DrawingCanvas canvas) {
                         super(canvas);
@@ -44,6 +46,12 @@ package com.esgdev.sparkpaint.engine.tools;
                             applySettings();
                         });
 
+                        // Add anti-aliasing checkbox
+                        antiAliasingCheckbox = new JCheckBox("Anti-aliasing", useAntiAliasing);
+                        antiAliasingCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
+                        antiAliasingCheckbox.addActionListener(e -> applySettings());
+
+
                         // Add components
                         panel.add(filledCheckBox);
                         panel.add(Box.createVerticalStrut(5));
@@ -53,6 +61,7 @@ package com.esgdev.sparkpaint.engine.tools;
                         panel.add(Box.createVerticalStrut(2));
                         panel.add(thicknessValueLabel);
                         panel.add(Box.createVerticalStrut(5));
+                        panel.add(antiAliasingCheckbox);
 
                         return panel;
                     }
@@ -64,6 +73,8 @@ package com.esgdev.sparkpaint.engine.tools;
                                 RectangleTool tool = (RectangleTool) canvas.getActiveTool();
                                 tool.setFilled(filledCheckBox.isSelected());
                                 canvas.setLineThickness(thicknessSlider.getValue());
+                                useAntiAliasing = antiAliasingCheckbox.isSelected();
+                                tool.setAntiAliasing(useAntiAliasing);
                             }
                         }
                     }
@@ -73,6 +84,7 @@ package com.esgdev.sparkpaint.engine.tools;
                         filledCheckBox.setSelected(false);
                         thicknessSlider.setValue(2);
                         thicknessValueLabel.setText("2");
+                        antiAliasingCheckbox.setSelected(true);
                         applySettings();
                     }
                 }

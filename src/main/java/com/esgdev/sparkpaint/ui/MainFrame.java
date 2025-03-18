@@ -104,7 +104,6 @@ public class MainFrame extends JFrame {
 
         // Add the container to the center of the BorderLayout
         add(splitPane, BorderLayout.CENTER);
-        //contentPane.add(splitPane, BorderLayout.EAST);
 
         // Add color palette (just before status bar)
         palette = new ColorPalette(canvas);
@@ -115,11 +114,22 @@ public class MainFrame extends JFrame {
         statusMessage = new JLabel("Ready");
         statusBar.add(statusMessage, BorderLayout.WEST);
 
+        // Center: Add zoom factor display
+        JLabel zoomLabel = new JLabel("100%");
+        zoomLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        statusBar.add(zoomLabel, BorderLayout.CENTER);
+
         // Add cursor position label on the right side of the status bar
         cursorPositionLabel = new JLabel("Cursor: (0, 0)");
         cursorPositionLabel.setHorizontalAlignment(SwingConstants.RIGHT); // Align text to the right
         statusBar.add(cursorPositionLabel, BorderLayout.EAST);
         contentPane.add(statusBar, BorderLayout.SOUTH);
+
+        // Update zoom label when zoom changes
+        canvas.addMouseWheelListener(e -> {
+            int zoomPercentage = Math.round(canvas.getZoomFactor() * 100);
+            zoomLabel.setText(String.format("%d%%", zoomPercentage));
+        });
 
         // Attach a listener to update the cursor position label
         addCursorTracking();
@@ -129,23 +139,25 @@ public class MainFrame extends JFrame {
         statusMessage.setText(message);
     }
 
-    // Add a mouse motion listener to track and update cursor position
     private void addCursorTracking() {
         canvas.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
             @Override
             public void mouseMoved(java.awt.event.MouseEvent e) {
-                // Update the label with current cursor position
-                cursorPositionLabel.setText("Cursor: (" + e.getX() + ", " + e.getY() + ")");
+                float zoomFactor = canvas.getZoomFactor();
+                int x = (int) (e.getX() / zoomFactor);
+                int y = (int) (e.getY() / zoomFactor);
+                cursorPositionLabel.setText(String.format("Cursor: (%d, %d)", x, y));
             }
 
             @Override
             public void mouseDragged(java.awt.event.MouseEvent e) {
-                // Keep updating the label while dragging
-                cursorPositionLabel.setText("Cursor: (" + e.getX() + ", " + e.getY() + ")");
+                float zoomFactor = canvas.getZoomFactor();
+                int x = (int) (e.getX() / zoomFactor);
+                int y = (int) (e.getY() / zoomFactor);
+                cursorPositionLabel.setText(String.format("Cursor: (%d, %d)", x, y));
             }
         });
 
-        // Optional: Add a listener for when the mouse exits the canvas
         canvas.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseExited(java.awt.event.MouseEvent e) {

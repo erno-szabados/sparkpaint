@@ -1,7 +1,9 @@
 package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
+import com.esgdev.sparkpaint.engine.selection.Selection;
 
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
@@ -21,9 +23,12 @@ public class BrushTool implements DrawingTool {
     private final DrawingCanvas canvas;
     private final Cursor cursor = Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR);
     private Point lastPoint;
-    private BrushShape shape = BrushShape.SQUARE;
+    private BrushShape shape = BrushShape.SPRAY;
     private int size = DEFAULT_SPRAY_SIZE;
     private int sprayDensity = DEFAULT_SPRAY_DENSITY;
+    private boolean useAntiAliasing = true;
+    private float maxBlendStrength = 0.1f;  // Range: 0.01f to 1.0f
+
 
     public BrushTool(DrawingCanvas canvas) {
         this.canvas = canvas;
@@ -36,51 +41,111 @@ public class BrushTool implements DrawingTool {
 
     @Override
     public void mousePressed(MouseEvent e) {
-        lastPoint = scalePoint(canvas, e.getPoint());
+        lastPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
         canvas.saveToUndoStack();
-        drawShape(lastPoint);
+        drawShape(e, lastPoint);
         canvas.repaint();
     }
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        Point currentPoint = scalePoint(canvas, e.getPoint());
-        drawShape(currentPoint);
+        Point currentPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
+        drawShape(e, currentPoint);
         lastPoint = currentPoint;
         canvas.repaint();
     }
 
-    private void drawShape(Point p) {
-        BufferedImage image = (BufferedImage) canvas.getImage();
+    private void drawShape(MouseEvent e, Point p) {
+        BufferedImage image = canvas.getImage();
         if (image != null) {
-            Graphics2D g2d = image.createGraphics();
-            g2d.setColor(canvas.getDrawingColor());
-            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            Color paintColor;
+            if (SwingUtilities.isLeftMouseButton(e)) {
+                paintColor = canvas.getDrawingColor();
+            } else if (SwingUtilities.isRightMouseButton(e)) {
+                paintColor = canvas.getFillColor();
+            } else {
+                return;
+            }
 
             int x = p.x - size / 2;
             int y = p.y - size / 2;
 
             switch (shape) {
                 case SQUARE:
-                    g2d.fillRect(x, y, size, size);
+                    drawBlendedShape(image, x, y, size, size, paintColor, true);
                     break;
                 case CIRCLE:
-                    g2d.fillOval(x, y, size, size);
+                    drawBlendedShape(image, x, y, size, size, paintColor, false);
                     break;
                 case SPRAY:
-                    sprayPaint(image, p);
+                    sprayPaint(e, image, p);
                     break;
             }
-            g2d.dispose();
         }
+    }
+
+    private void drawBlendedShape(BufferedImage image, int x, int y, int width, int height, Color paintColor, boolean isSquare) {
+        // Create a temporary image for the shape
+        BufferedImage tempImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = tempImage.createGraphics();
+        g2d.setColor(paintColor);
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+
+        // Draw the shape to the temporary image
+        if (isSquare) {
+            g2d.fillRect(x, y, width, height);
+        } else {
+            g2d.fillOval(x, y, width, height);
+        }
+        g2d.dispose();
+
+        // Apply blending to the main image
+        int startX = Math.max(0, x);
+        int startY = Math.max(0, y);
+        int endX = Math.min(image.getWidth(), x + width);
+        int endY = Math.min(image.getHeight(), y + height);
+
+        for (int i = startX; i < endX; i++) {
+            for (int j = startY; j < endY; j++) {
+                int tempRGB = tempImage.getRGB(i, j);
+                // Only process non-transparent pixels from the shape
+                if ((tempRGB & 0xFF000000) != 0) {
+                    int currentRGB = image.getRGB(i, j);
+                    Color blendedColor = getBlendedColor(currentRGB, maxBlendStrength, paintColor);
+                    image.setRGB(i, j, blendedColor.getRGB());
+                }
+            }
+        }
+    }
+
+    private Color getBlendedColor(int currentRGB, float maxBlendStrength, Color paintColor) {
+        Color currentColor = new Color(currentRGB, true);
+
+        // Apply blending with a consistent strength
+        int r = (int) ((1 - maxBlendStrength) * currentColor.getRed() + maxBlendStrength * paintColor.getRed());
+        int g = (int) ((1 - maxBlendStrength) * currentColor.getGreen() + maxBlendStrength * paintColor.getGreen());
+        int b = (int) ((1 - maxBlendStrength) * currentColor.getBlue() + maxBlendStrength * paintColor.getBlue());
+
+        return new Color(r, g, b);
+    }
+
+    public void setMaxBlendStrength(float strength) {
+        this.maxBlendStrength = Math.max(0.01f, Math.min(1.0f, strength));
+    }
+
+    public float getMaxBlendStrength() {
+        return maxBlendStrength;
     }
 
     public void setShape(BrushShape shape) {
         this.shape = shape;
+        canvas.setCursorShape(shape);
     }
 
     public void setSize(int size) {
         this.size = size;
+        canvas.setCursorSize(size);
     }
 
     public void setSprayDensity(int sprayDensity) {
@@ -113,22 +178,38 @@ public class BrushTool implements DrawingTool {
         }
     }
 
-    private void sprayPaint(BufferedImage image, Point center) {
-        int color = canvas.getDrawingColor().getRGB();
+    // Add getter/setter for anti-aliasing
+    public void setAntiAliasing(boolean useAntiAliasing) {
+        this.useAntiAliasing = useAntiAliasing;
+    }
+
+    private void sprayPaint(MouseEvent e, BufferedImage image, Point center) {
+        Color paintColor;
+        if (SwingUtilities.isLeftMouseButton(e)) {
+            paintColor = canvas.getDrawingColor();
+        } else if (SwingUtilities.isRightMouseButton(e)) {
+            paintColor = canvas.getFillColor();
+        } else return;
+
         int radius = size / 2;
+        double area = Math.PI * radius * radius;
+        int effectiveDensity = (int) (sprayDensity * (area / (Math.PI * DEFAULT_SPRAY_SIZE * DEFAULT_SPRAY_SIZE)));
 
-        for (int i = 0; i < sprayDensity; i++) {
-            double angle = random.nextDouble() * 2 * Math.PI;
-            double distance = random.nextDouble() * radius;
+        for (int i = 0; i < effectiveDensity; i++) {
+            double x_offset = (random.nextDouble() * 2 - 1) * radius;
+            double y_offset = (random.nextDouble() * 2 - 1) * radius;
 
-            int dx = (int) (distance * Math.cos(angle));
-            int dy = (int) (distance * Math.sin(angle));
+            if (x_offset * x_offset + y_offset * y_offset > radius * radius) {
+                continue;
+            }
 
-            int x = center.x + dx;
-            int y = center.y + dy;
+            int x = center.x + (int)x_offset;
+            int y = center.y + (int)y_offset;
 
             if (x >= 0 && x < image.getWidth() && y >= 0 && y < image.getHeight()) {
-                image.setRGB(x, y, color);
+                int currentRGB = image.getRGB(x, y);
+                Color blendedColor = getBlendedColor(currentRGB, random.nextFloat() * maxBlendStrength, paintColor);
+                image.setRGB(x, y, blendedColor.getRGB());
             }
         }
     }

@@ -1,6 +1,10 @@
 package com.esgdev.sparkpaint.io;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
+import com.esgdev.sparkpaint.engine.selection.RectangleSelection;
+import com.esgdev.sparkpaint.engine.selection.Selection;
+import com.esgdev.sparkpaint.engine.selection.SelectionManager;
+import com.esgdev.sparkpaint.engine.tools.DrawingTool;
 
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
@@ -14,46 +18,39 @@ import java.util.List;
 public class ClipboardManager {
     private final DrawingCanvas canvas;
     private final List<ClipboardChangeListener> clipboardChangeListeners = new ArrayList<>();
+    private final SelectionManager selectionManager;
 
     public ClipboardManager(DrawingCanvas canvas) {
         this.canvas = canvas;
+        this.selectionManager = canvas.getSelectionManager();
     }
 
     public void cutSelection() {
-        if (canvas.getSelectionRectangle() == null
-                || canvas.getSelectionRectangle().width <= 0
-                || canvas.getSelectionRectangle().height <= 0) {
+        Selection selection = selectionManager.getSelection();
+
+        Rectangle selectionRectangle = selection.getBounds();
+        if (selectionRectangle == null
+                || selectionRectangle.width <= 0
+                || selectionRectangle.height <= 0) {
             return;
         }
-        copySelection(false);
+        copySelection();
         eraseSelection();
-        canvas.setSelectionRectangle(null); // Clear selection after cutting.
+        selectionManager.getSelection().clearOutline();
         canvas.repaint();
         notifyClipboardStateChanged();
     }
 
     public void copySelection() {
-        copySelection(true);
-    }
-
-    private void copySelection(boolean clearRectangle) {
-        if (canvas.getSelectionRectangle() == null
-                || canvas.getSelectionRectangle().width <= 0
-                || canvas.getSelectionRectangle().height <= 0) {
+        Selection selection = selectionManager.getSelection();
+        Rectangle selectionRectangle = selection.getBounds();
+        if (selectionRectangle == null
+                || selectionRectangle.width <= 0
+                || selectionRectangle.height <= 0) {
             return;
         }
-        // Extract the selected region from the canvas image.
-        BufferedImage canvasImage = (BufferedImage) canvas.getImage();
-        BufferedImage selectionImage = canvasImage.getSubimage(
-                canvas.getSelectionRectangle().x,
-                canvas.getSelectionRectangle().y,
-                canvas.getSelectionRectangle().width,
-                canvas.getSelectionRectangle().height);
+        BufferedImage selectionImage = selectionManager.getSelection().getContent();
         ImageSelection.copyImage(selectionImage);
-        if (clearRectangle) {
-            canvas.setSelectionRectangle(null);
-            canvas.repaint();
-        }
         notifyClipboardStateChanged();
     }
 
@@ -62,20 +59,30 @@ public class ClipboardManager {
         if (pastedImage != null) {
             if (canvas.getImage() == null || canvas.getCanvasGraphics() == null) {
                 canvas.createNewCanvas(DrawingCanvas.DEFAULT_CANVAS_WIDTH, DrawingCanvas.DEFAULT_CANVAS_HEIGHT, canvas.getCanvasBackground());
-                canvas.saveToUndoStack();
             }
+            canvas.saveToUndoStack();
             Point mousePosition = canvas.getMousePosition();
             int pasteX = 0;
             int pasteY = 0;
 
-            if (mousePosition != null && canvas.contains(mousePosition)) {
-                pasteX = mousePosition.x;
-                pasteY = mousePosition.y;
-            }
-            canvas.getCanvasGraphics().drawImage(pastedImage, pasteX, pasteY, null);
 
-            canvas.setSelectionRectangle(new Rectangle(pasteX, pasteY, pastedImage.getWidth(), pastedImage.getHeight()));
-            canvas.setSelectionContent(pastedImage);
+            if (mousePosition != null ) {
+                Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), mousePosition);
+                if (canvas.contains(worldPoint)) {
+                    pasteX = worldPoint.x;
+                    pasteY = worldPoint.y;
+                }
+            }
+            Selection selection = selectionManager.getSelection();
+            Rectangle selectionRectangle = new Rectangle(pasteX, pasteY, pastedImage.getWidth(), pastedImage.getHeight());
+            if (!(selection instanceof RectangleSelection)) {
+                canvas.setCurrentTool(DrawingCanvas.Tool.RECTANGLE_SELECTION);
+                selection = new RectangleSelection(selectionRectangle, pastedImage);
+            } else {
+                ((RectangleSelection) selection).setRectangle(selectionRectangle);
+                selection.setContent(pastedImage);
+            }
+            selectionManager.setSelection(selection);
 
             canvas.repaint();
             notifyClipboardStateChanged();
@@ -83,7 +90,7 @@ public class ClipboardManager {
     }
 
     public boolean hasSelection() {
-        return canvas.getSelectionRectangle() != null;
+        return selectionManager.getSelection().hasOutline();
     }
 
     public boolean canPaste() {
@@ -121,11 +128,10 @@ public class ClipboardManager {
     }
 
     private void eraseSelection() {
-        // Clear the selected region by filling it with the canvas background color.
-        Graphics2D graphics = canvas.getCanvasGraphics();
-        graphics.setColor(canvas.getCanvasBackground());
-        graphics.fillRect(canvas.getSelectionRectangle().x, canvas.getSelectionRectangle().y, canvas.getSelectionRectangle().width,
-                canvas.getSelectionRectangle().height);
-        graphics.dispose();
+        canvas.saveToUndoStack();
+        Selection selection = selectionManager.getSelection();
+        Graphics2D g2d = canvas.getCanvasGraphics();
+        selection.delete(g2d, canvas.getCanvasBackground());
+        g2d.dispose();
     }
 }

@@ -1,8 +1,10 @@
 package com.esgdev.sparkpaint.ui;
 
+import com.esgdev.sparkpaint.engine.selection.SelectionManager;
 import com.esgdev.sparkpaint.io.ClipboardChangeListener;
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.UndoRedoChangeListener;
+import com.esgdev.sparkpaint.io.ClipboardManager;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -13,6 +15,8 @@ import java.io.IOException;
 
 public class EditMenu extends JMenu implements UndoRedoChangeListener, ClipboardChangeListener {
     private final DrawingCanvas canvas;
+    private final SelectionManager selectionManager;
+    private final ClipboardManager clipboardManager;
     private final JMenuItem undoItem;
     private final JMenuItem redoItem;
     private final JMenuItem cutItem; // New Cut menu item
@@ -28,27 +32,61 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener, Clipboard
         super("Edit");
         this.mainFrame = mainFrame;
         this.canvas = mainFrame.getCanvas();
+        this.selectionManager = canvas.getSelectionManager();
+        this.clipboardManager = canvas.getClipboardManager();
+
 
         // Create and add Cut item
         cutItem = new JMenuItem("Cut");
         cutItem.setMnemonic('T'); // Shortcut for accessibility (Alt+T)
-        cutItem.addActionListener(this::handleCut);
+        // Update action listeners to use selectionManager and clipboardManager
+        cutItem.addActionListener(e -> clipboardManager.cutSelection());
         cutItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.CTRL_MASK)); // Ctrl+X
         add(cutItem);
 
         // Create and add Copy item
         copyItem = new JMenuItem("Copy");
         copyItem.setMnemonic('C'); // Shortcut for accessibility (Alt+C)
-        copyItem.addActionListener(this::handleCopy);
+        copyItem.addActionListener(e -> clipboardManager.copySelection());
         copyItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_MASK)); // Ctrl+C
         add(copyItem);
 
         // Create and add Paste item
         pasteItem = new JMenuItem("Paste");
         pasteItem.setMnemonic('P'); // Shortcut for accessibility (Alt+P)
-        pasteItem.addActionListener(this::handlePaste);
+        pasteItem.addActionListener(e -> {
+            try {
+                clipboardManager.pasteSelection();
+            } catch (Exception ex) {
+                mainFrame.setStatusMessage("Error pasting clipboard content!");
+                JOptionPane.showMessageDialog(mainFrame,
+                        "Error pasting clipboard content!: " + ex.getMessage(),
+                        "Clipboard Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
         pasteItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_MASK)); // Ctrl+V
         add(pasteItem);
+
+        // In EditMenu class constructor, after the paste item
+        addSeparator();
+
+        // Add Select All item
+        JMenuItem selectAllItem = new JMenuItem("Select All");
+        selectAllItem.setMnemonic('A');
+        selectAllItem.addActionListener(e -> selectionManager.selectAll());
+
+        selectAllItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_MASK));
+        add(selectAllItem);
+
+        // Add Delete item
+        JMenuItem deleteItem = new JMenuItem("Delete");
+        deleteItem.setMnemonic('D');
+        deleteItem.addActionListener(e -> selectionManager.deleteSelection());
+        deleteItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0));
+        add(deleteItem);
+
         // Register for clipboard changes
         canvas.addClipboardChangeListener(this);
 
@@ -135,26 +173,6 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener, Clipboard
 
         // Initialize enabled state of menu items
         updateMenuItems(canvas.canUndo(), canvas.canRedo());
-    }
-
-    private void handleCut(ActionEvent e) {
-        canvas.cutSelection(); // Assuming canvas handles the cut logic
-    }
-
-    private void handleCopy(ActionEvent e) {
-        canvas.copySelection(); // Assuming canvas handles the copy logic
-    }
-
-    private void handlePaste(ActionEvent e) {
-        try {
-            canvas.pasteSelection(); // Assuming canvas handles the paste logic
-        } catch (Exception ex) {
-            mainFrame.setStatusMessage("Error pasting clipboard content!");
-            JOptionPane.showMessageDialog(mainFrame,
-                    "Error pasting clipboard content!: " + ex.getMessage(),
-                    "Clipboard Error",
-                    JOptionPane.ERROR_MESSAGE);
-        }
     }
 
     private void handleUndo(ActionEvent e) {
