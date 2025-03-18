@@ -22,7 +22,7 @@ public class BrushTool implements DrawingTool {
     private final DrawingCanvas canvas;
     private final Cursor cursor = Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR);
     private Point lastPoint;
-    private BrushShape shape = BrushShape.SQUARE;
+    private BrushShape shape = BrushShape.SPRAY;
     private int size = DEFAULT_SPRAY_SIZE;
     private int sprayDensity = DEFAULT_SPRAY_DENSITY;
     private boolean useAntiAliasing = true;

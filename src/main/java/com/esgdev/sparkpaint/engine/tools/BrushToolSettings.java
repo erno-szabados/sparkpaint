@@ -120,6 +120,7 @@ public class BrushToolSettings extends BaseToolSettings {
         panel.add(blendStrengthValueLabel);
         panel.add(Box.createVerticalStrut(5));
         panel.add(antiAliasingCheckbox);
+        resetToDefaults();
         return panel;
     }
 
@@ -139,7 +140,7 @@ public class BrushToolSettings extends BaseToolSettings {
     public void resetToDefaults() {
         sizeSlider.setValue(BrushTool.DEFAULT_SPRAY_SIZE);
         sizeValueLabel.setText(String.valueOf(BrushTool.DEFAULT_SPRAY_SIZE));
-        shapeComboBox.setSelectedItem(BrushTool.BrushShape.SQUARE);
+        shapeComboBox.setSelectedItem(BrushTool.BrushShape.SPRAY);
         sprayDensitySlider.setValue(BrushTool.DEFAULT_SPRAY_DENSITY);
         sprayDensityValueLabel.setText(String.valueOf(BrushTool.DEFAULT_SPRAY_DENSITY));
         blendStrengthSlider.setValue(10);  // 0.10 default
