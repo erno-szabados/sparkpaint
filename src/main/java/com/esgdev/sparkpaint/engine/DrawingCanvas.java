@@ -26,6 +26,7 @@ import java.util.List;
  */
 public class DrawingCanvas extends JPanel {
 
+
     public enum Tool {
         BRUSH,
         PENCIL,
@@ -60,6 +61,10 @@ public class DrawingCanvas extends JPanel {
     private final SelectionManager selectionManager;
     private final ClipboardManager clipboardManager;
     private final FileManager fileManager;
+    private boolean showBrushCursor = false;
+    private Point cursorShapeCenter = new Point(0, 0);
+    private int cursorSize = 0;
+    private BrushTool.BrushShape cursorShape;
 
     /**
      * Default constructor for the DrawingCanvas class.
@@ -230,6 +235,25 @@ public class DrawingCanvas extends JPanel {
         }
     }
 
+
+    public void setCursorSize(int size) {
+        cursorSize = size;
+        repaint();
+    }
+
+    public int getCursorSize() {
+        return cursorSize;
+    }
+
+    public void setCursorShape(BrushTool.BrushShape cursorShape) {
+        this.cursorShape = cursorShape;
+        repaint();
+    }
+
+    public BrushTool.BrushShape getCursorShape() {
+        return cursorShape;
+    }
+
     public float getLineThickness() {
         return lineThickness;
     }
@@ -261,6 +285,7 @@ public class DrawingCanvas extends JPanel {
     public void setCurrentTool(Tool tool) {
         this.currentTool = tool;
         getActiveTool().setCursor();
+        showBrushCursor = tool == Tool.BRUSH;
         // Notify all listeners
         for (ToolChangeListener listener : toolChangeListeners) {
             listener.onToolChanged(tool);
@@ -299,6 +324,12 @@ public class DrawingCanvas extends JPanel {
         if (selection != null) {
             selection.drawSelectionOutline(g2d, zoomFactor);
         }
+
+        // Draw the brush cursor
+        if (showBrushCursor) {
+            drawCursorShape(g2d);
+        }
+
         g2d.dispose();
     }
 
@@ -315,6 +346,37 @@ public class DrawingCanvas extends JPanel {
         for (int y = 0; y <= scaledHeight; y += (int) zoomFactor) {
             g2d.drawLine(0, y, scaledWidth, y);
         }
+    }
+
+    private void drawCursorShape(Graphics2D g2d) {
+        if (cursorShape == null) return;
+        g2d.setColor(Color.BLACK);
+        float[] dottedPattern = {3, 3};
+        BasicStroke dottedStroke = new BasicStroke(
+                1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER,
+                10.0f, dottedPattern, 0);
+        g2d.setStroke(dottedStroke);
+        switch (cursorShape) {
+            case SPRAY:
+            case CIRCLE:
+                Point circleCenter = cursorShapeCenter;
+                int x = (int) (circleCenter.x - (cursorSize / 2.0 ) * zoomFactor);
+                int y = (int) (circleCenter.y - (cursorSize / 2.0 ) * zoomFactor);
+                int diameter = (int) (cursorSize * zoomFactor);
+                g2d.drawOval(x, y, diameter, diameter);
+                break;
+            case SQUARE:
+                Point squareCenter = cursorShapeCenter;
+                int squareX = (int) (squareCenter.x - (cursorSize / 2.0) * zoomFactor);
+                int squareY = (int) (squareCenter.y - (cursorSize / 2.0) * zoomFactor);
+                int squareSide = (int) (cursorSize * zoomFactor);
+                g2d.drawRect(squareX, squareY, squareSide, squareSide);
+                break;
+            default:
+                // unsupported
+                break;
+        }
+
     }
 
     private void initTools() {
@@ -430,6 +492,9 @@ public class DrawingCanvas extends JPanel {
             if (tool != null) {
                 tool.mouseMoved(e);
             }
+            //cursorCircleCenter = DrawingTool.screenToWorld(zoomFactor,  e.getPoint());
+            cursorShapeCenter = e.getPoint();
+            repaint();
         }
 
         @Override
@@ -438,6 +503,10 @@ public class DrawingCanvas extends JPanel {
             if (tool != null) {
                 tool.mouseDragged(e);
             }
+
+            //cursorCircleCenter = DrawingTool.screenToWorld(zoomFactor,  e.getPoint());
+            cursorShapeCenter = e.getPoint();
+            repaint();
         }
 
         @Override
@@ -484,6 +553,8 @@ public class DrawingCanvas extends JPanel {
             if (tool != null) {
                 tool.mouseScrolled(e);
             }
+            //cursorCircleCenter = DrawingTool.screenToWorld(zoomFactor,  e.getPoint());
+            cursorShapeCenter = e.getPoint();
             revalidate();
             repaint();
         }

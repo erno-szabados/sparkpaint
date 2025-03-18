@@ -136,10 +136,12 @@ public class BrushTool implements DrawingTool {
 
     public void setShape(BrushShape shape) {
         this.shape = shape;
+        canvas.setCursorShape(shape);
     }
 
     public void setSize(int size) {
         this.size = size;
+        canvas.setCursorSize(size);
     }
 
     public void setSprayDensity(int sprayDensity) {
