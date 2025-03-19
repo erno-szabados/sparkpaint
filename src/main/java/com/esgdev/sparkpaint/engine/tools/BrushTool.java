@@ -15,6 +15,8 @@ import java.awt.image.BufferedImage;
 import java.util.Random;
 
 public class BrushTool implements DrawingTool {
+
+
     public enum BrushShape {
         SQUARE,
         CIRCLE,
@@ -22,8 +24,10 @@ public class BrushTool implements DrawingTool {
     }
 
     private final Random random = new Random();
-    public static final int DEFAULT_SPRAY_DENSITY = 20;
-    public static final int DEFAULT_SPRAY_SIZE = 5;
+    public static final int DEFAULT_BLEND_STRENGTH = 25;
+    public static final int DEFAULT_SPRAY_DENSITY = 25;
+    public static final int DEFAULT_SPRAY_SIZE = 25;
+    public static final int SPRAY_REFERENCE_SIZE = 5; // Keep this at 5 regardless of DEFAULT_SPRAY_SIZE
     private final DrawingCanvas canvas;
     private final Cursor cursor = Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR);
     private Point lastPoint;
@@ -265,8 +269,7 @@ public class BrushTool implements DrawingTool {
 
         int radius = size / 2;
         double area = Math.PI * radius * radius;
-        int effectiveDensity = (int) (sprayDensity * (area / (Math.PI * DEFAULT_SPRAY_SIZE * DEFAULT_SPRAY_SIZE)));
-
+        int effectiveDensity = (int) (sprayDensity * (area / (Math.PI * SPRAY_REFERENCE_SIZE * SPRAY_REFERENCE_SIZE)));
         for (int i = 0; i < effectiveDensity; i++) {
             double x_offset = (random.nextDouble() * 2 - 1) * radius;
             double y_offset = (random.nextDouble() * 2 - 1) * radius;
