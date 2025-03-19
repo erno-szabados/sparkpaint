@@ -1,7 +1,7 @@
 package com.esgdev.sparkpaint.io;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
-import com.esgdev.sparkpaint.engine.selection.RectangleSelection;
+import com.esgdev.sparkpaint.engine.selection.PathSelection;
 import com.esgdev.sparkpaint.engine.selection.Selection;
 import com.esgdev.sparkpaint.engine.selection.SelectionManager;
 import com.esgdev.sparkpaint.engine.tools.DrawingTool;
@@ -10,6 +10,7 @@ import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.geom.GeneralPath;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -73,15 +74,12 @@ public class ClipboardManager {
                     pasteY = worldPoint.y;
                 }
             }
-            Selection selection = selectionManager.getSelection();
+            PathSelection selection = (PathSelection) selectionManager.getSelection();
             Rectangle selectionRectangle = new Rectangle(pasteX, pasteY, pastedImage.getWidth(), pastedImage.getHeight());
-            if (!(selection instanceof RectangleSelection)) {
-                canvas.setCurrentTool(DrawingCanvas.Tool.RECTANGLE_SELECTION);
-                selection = new RectangleSelection(selectionRectangle, pastedImage);
-            } else {
-                ((RectangleSelection) selection).setRectangle(selectionRectangle);
-                selection.setContent(pastedImage);
-            }
+            canvas.setCurrentTool(DrawingCanvas.Tool.RECTANGLE_SELECTION);
+            GeneralPath path = new GeneralPath(selectionRectangle);
+            selection.setPath(path);
+            selection.setContent(pastedImage);
             selectionManager.setSelection(selection);
 
             canvas.repaint();

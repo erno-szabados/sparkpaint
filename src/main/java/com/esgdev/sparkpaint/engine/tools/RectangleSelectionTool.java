@@ -1,12 +1,14 @@
 package com.esgdev.sparkpaint.engine.tools;
 
         import com.esgdev.sparkpaint.engine.DrawingCanvas;
-        import com.esgdev.sparkpaint.engine.selection.RectangleSelection;
+        import com.esgdev.sparkpaint.engine.selection.PathSelection;
         import com.esgdev.sparkpaint.engine.selection.Selection;
 
         import java.awt.*;
         import java.awt.event.MouseEvent;
         import java.awt.event.MouseWheelEvent;
+        import java.awt.geom.AffineTransform;
+        import java.awt.geom.GeneralPath;
         import java.awt.image.BufferedImage;
 
         public class RectangleSelectionTool extends AbstractSelectionTool {
@@ -18,14 +20,18 @@ package com.esgdev.sparkpaint.engine.tools;
 
             @Override
             protected boolean isValidSelectionType(Selection selection) {
-                return selection instanceof RectangleSelection;
+                return selection instanceof PathSelection;
             }
 
             @Override
             protected void handleSelectionStart(MouseEvent e) {
                 Selection selection = selectionManager.getSelection();
+                if (selection == null) {
+                    selection = new PathSelection(new Rectangle(), null);
+                    selectionManager.setSelection(selection);
+                }
 
-                if (!(selection instanceof RectangleSelection) || !selection.hasOutline()) {
+                if (!selection.hasOutline()) {
                     // Start new rectangle selection
                     startNewRectangle();
                 } else if (selection.contains(worldStartPoint)) {
@@ -38,15 +44,15 @@ package com.esgdev.sparkpaint.engine.tools;
             }
 
             private void startNewRectangle() {
-                Selection selection = new RectangleSelection(
-                        new Rectangle(worldStartPoint.x, worldStartPoint.y, 0, 0), null);
+                Rectangle initialRect = new Rectangle(worldStartPoint.x, worldStartPoint.y, 0, 0);
+                Selection selection = PathSelection.createRectangular(initialRect, null);
                 selectionManager.setSelection(selection);
                 originalSelectionLocation = null;
             }
 
             private void startDragging(Selection selection) {
                 isDragging = true;
-                Rectangle selectionRectangle = ((RectangleSelection) selection).getRectangle();
+                Rectangle selectionRectangle =  selection.getBounds();
                 worldDragOffset = new Point(
                         worldStartPoint.x - selectionRectangle.x,
                         worldStartPoint.y - selectionRectangle.y);
@@ -60,11 +66,8 @@ package com.esgdev.sparkpaint.engine.tools;
             @Override
             public void mouseReleased(MouseEvent e) {
                 Selection selection = selectionManager.getSelection();
-                if (!(selection instanceof RectangleSelection)) {
-                    return;
-                }
 
-                Rectangle selectionRectangle = ((RectangleSelection) selection).getRectangle();
+                Rectangle selectionRectangle = selection.getBounds();
                 if (selectionRectangle == null) return;
 
                 Point worldEndPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
@@ -127,36 +130,44 @@ package com.esgdev.sparkpaint.engine.tools;
             @Override
             public void mouseDragged(MouseEvent e) {
                 Point worldDragPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
-                Selection selection = selectionManager.getSelection();
+                PathSelection selection = (PathSelection) selectionManager.getSelection();
 
-                if (!(selection instanceof RectangleSelection)) {
-                    return;
-                }
-
-                Rectangle selectionRectangle = ((RectangleSelection) selection).getRectangle();
+                Rectangle selectionRectangle = selection.getBounds();
                 if (selectionRectangle == null) return;
 
                 if (isDragging) {
-                    updateRectangleLocation(worldDragPoint, selectionRectangle);
+                    updateRectangleLocation(worldDragPoint, selection);
                 } else {
-                    updateRectangleSize(worldDragPoint, selectionRectangle);
+                    // size the rectangle
+                    updateRectangleSize(worldDragPoint, selection);
                 }
 
                 canvas.repaint();
             }
 
-            private void updateRectangleLocation(Point worldDragPoint, Rectangle selectionRectangle) {
+            private void updateRectangleLocation(Point worldDragPoint, PathSelection selection) {
                 int newX = worldDragPoint.x - worldDragOffset.x;
                 int newY = worldDragPoint.y - worldDragOffset.y;
-                selectionRectangle.setLocation(newX, newY);
+                GeneralPath path = selection.getPath();
+                Rectangle bounds = path.getBounds();
+                int deltaX = newX - bounds.x;
+                int deltaY = newY - bounds.y;
+                AffineTransform transform = AffineTransform.getTranslateInstance(deltaX, deltaY);
+                path.transform(transform);
             }
 
-            private void updateRectangleSize(Point worldDragPoint, Rectangle selectionRectangle) {
+            /// Update (resize) the selection's path (rectangle) based on the drag point
+            /// @param worldDragPoint The current drag point in world coordinates
+            /// @param selection The current selection
+           private void updateRectangleSize(Point worldDragPoint, PathSelection selection) {
                 int x = Math.min(worldStartPoint.x, worldDragPoint.x);
                 int y = Math.min(worldStartPoint.y, worldDragPoint.y);
                 int width = Math.abs(worldDragPoint.x - worldStartPoint.x);
                 int height = Math.abs(worldDragPoint.y - worldStartPoint.y);
-                selectionRectangle.setBounds(x, y, width, height);
+                Rectangle rect = new Rectangle(x, y, width, height);
+                GeneralPath path = selection.getPath();
+                path.reset();
+                path.append(rect, false);
             }
 
             @Override
@@ -172,11 +183,11 @@ package com.esgdev.sparkpaint.engine.tools;
             @Override
             protected void clearSelectionOriginalLocation(Color color) {
                 Selection selection = selectionManager.getSelection();
-                if (!(selection instanceof RectangleSelection) || originalSelectionLocation == null) {
+                if (originalSelectionLocation == null) {
                     return;
                 }
 
-                Rectangle selectionRectangle = ((RectangleSelection) selection).getRectangle();
+                Rectangle selectionRectangle = selection.getBounds();
                 if (selectionRectangle == null) return;
 
                 canvas.saveToUndoStack();
@@ -193,7 +204,7 @@ package com.esgdev.sparkpaint.engine.tools;
 
             @Override
             protected void drawSelectionToCanvas(Graphics2D g2d, Selection selection, BufferedImage content) {
-                Rectangle selectionRectangle = ((RectangleSelection) selection).getRectangle();
+                Rectangle selectionRectangle = selection.getBounds();
                 g2d.drawImage(content, selectionRectangle.x, selectionRectangle.y, null);
             }
         }
