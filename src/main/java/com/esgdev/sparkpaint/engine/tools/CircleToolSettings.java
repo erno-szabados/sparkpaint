@@ -21,13 +21,16 @@ public class CircleToolSettings extends BaseToolSettings {
     @Override
     public JComponent createSettingsPanel() {
         JPanel panel = (JPanel) super.createSettingsPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+
+        // Draw Mode panel
         ButtonGroup drawModeGroup = new ButtonGroup();
         JPanel drawModePanel = new JPanel();
         drawModePanel.setLayout(new BoxLayout(drawModePanel, BoxLayout.Y_AXIS));
         drawModePanel.setBorder(BorderFactory.createTitledBorder("Draw Mode"));
-        JPanel containerPanel = new JPanel(new BorderLayout());
-        containerPanel.add(drawModePanel, BorderLayout.CENTER);
-        containerPanel.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 80));
+        drawModePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        // Make the panel fill the horizontal space
+        drawModePanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, drawModePanel.getMaximumSize().height));
 
         cornerBasedButton = new JRadioButton("Ellipse", true);
         cornerBasedButton.setToolTipText("Draws an ellipse based on the corner points");
@@ -77,8 +80,8 @@ public class CircleToolSettings extends BaseToolSettings {
         antiAliasingCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
         antiAliasingCheckbox.addActionListener(e -> applySettings());
 
-        // Add components
-        panel.add(containerPanel);
+        // Add components directly to the panel
+        panel.add(drawModePanel);
         panel.add(Box.createVerticalStrut(5));
         panel.add(filledCheckBox);
         panel.add(Box.createVerticalStrut(5));
@@ -92,6 +95,8 @@ public class CircleToolSettings extends BaseToolSettings {
 
         return panel;
     }
+
+    // Anti-aliasing checkbox
 
     @Override
     public void applySettings() {
