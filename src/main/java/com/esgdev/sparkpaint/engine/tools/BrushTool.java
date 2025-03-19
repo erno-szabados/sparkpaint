@@ -43,7 +43,7 @@ public class BrushTool implements DrawingTool {
         // No action needed for mouse moved
     }
 
-  @Override
+    @Override
     public void mousePressed(MouseEvent e) {
         SelectionManager selectionManager = canvas.getSelectionManager();
         Selection selection = selectionManager.getSelection();
@@ -172,15 +172,31 @@ public class BrushTool implements DrawingTool {
         }
     }
 
-    private Color getBlendedColor(int currentRGB, float maxBlendStrength, Color paintColor) {
+    private Color getBlendedColor(int currentRGB, float blendStrength, Color paintColor) {
         Color currentColor = new Color(currentRGB, true);
 
-        // Apply blending with a consistent strength
-        int r = (int) ((1 - maxBlendStrength) * currentColor.getRed() + maxBlendStrength * paintColor.getRed());
-        int g = (int) ((1 - maxBlendStrength) * currentColor.getGreen() + maxBlendStrength * paintColor.getGreen());
-        int b = (int) ((1 - maxBlendStrength) * currentColor.getBlue() + maxBlendStrength * paintColor.getBlue());
+        // Extract alpha channel
+        int currentAlpha = currentColor.getAlpha();
 
-        return new Color(r, g, b);
+        // If completely transparent, just use the paint color with some opacity
+        if (currentAlpha == 0) {
+            return new Color(
+                    paintColor.getRed(),
+                    paintColor.getGreen(),
+                    paintColor.getBlue(),
+                    (int) (255 * blendStrength)
+            );
+        }
+
+        // For partially or fully opaque pixels, blend color components
+        int r = (int) ((1 - blendStrength) * currentColor.getRed() + blendStrength * paintColor.getRed());
+        int g = (int) ((1 - blendStrength) * currentColor.getGreen() + blendStrength * paintColor.getGreen());
+        int b = (int) ((1 - blendStrength) * currentColor.getBlue() + blendStrength * paintColor.getBlue());
+
+        // Blend the alpha channel as well
+        int a = Math.min(255, currentAlpha + (int) (blendStrength * (255 - currentAlpha)));
+
+        return new Color(r, g, b, a);
     }
 
     public void setMaxBlendStrength(float strength) {
@@ -223,9 +239,12 @@ public class BrushTool implements DrawingTool {
     @Override
     public String statusMessage() {
         switch (shape) {
-            case SQUARE: return "Brush tool: Square mode";
-            case CIRCLE: return  "Brush tool: Circle mode";
-            case SPRAY: return "Brush tool: Spray mode";
+            case SQUARE:
+                return "Brush tool: Square mode";
+            case CIRCLE:
+                return "Brush tool: Circle mode";
+            case SPRAY:
+                return "Brush tool: Spray mode";
             default:
                 return "Brush tool: Unknown mode";
         }
@@ -256,8 +275,8 @@ public class BrushTool implements DrawingTool {
                 continue;
             }
 
-            int x = center.x + (int)x_offset;
-            int y = center.y + (int)y_offset;
+            int x = center.x + (int) x_offset;
+            int y = center.y + (int) y_offset;
 
             if (x >= 0 && x < image.getWidth() && y >= 0 && y < image.getHeight()) {
                 // Check if this point is within the clipping region
