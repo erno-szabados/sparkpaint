@@ -1,6 +1,8 @@
 package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
+import com.esgdev.sparkpaint.engine.selection.Selection;
+import com.esgdev.sparkpaint.engine.selection.SelectionManager;
 
 import javax.swing.*;
 import java.awt.*;
@@ -28,14 +30,41 @@ public class FillTool implements DrawingTool {
         // No action needed for mouse moved
     }
 
-    @Override
+   @Override
     public void mousePressed(MouseEvent e) {
-        Point point = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
+        SelectionManager selectionManager = canvas.getSelectionManager();
+        Selection selection = selectionManager.getSelection();
+
+        // Convert to world coordinates to check selection containment
+        Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
+
+        // If there's a selection with outline, only allow drawing inside it
+        if (selection != null && selection.hasOutline() && !selection.contains(worldPoint)) {
+            return; // Don't fill outside selection when one exists
+        }
+
+        // Get appropriate coordinates for filling
+        Point fillPoint = selectionManager.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
+
+        // Get the target image for filling - either selection content or main canvas
+        BufferedImage targetImage;
+        if (selection != null && selection.hasOutline() && selection.contains(worldPoint)) {
+            targetImage = selection.getContent();
+        } else {
+            targetImage = canvas.getImage();
+        }
+
+        // Save to undo stack before modifying
         canvas.saveToUndoStack();
-        BufferedImage bufferedImage = canvas.getImage();
-        Color targetColor = new Color(bufferedImage.getRGB(point.x, point.y));
-        Color replacementColor = SwingUtilities.isLeftMouseButton(e) ? canvas.getDrawingColor() : canvas.getFillColor();
-        floodFill(bufferedImage, point.x, point.y, targetColor, replacementColor, epsilon);
+
+        // Get target color at fill point
+        Color targetColor = new Color(targetImage.getRGB(fillPoint.x, fillPoint.y));
+        Color replacementColor = SwingUtilities.isLeftMouseButton(e) ?
+                                canvas.getDrawingColor() : canvas.getFillColor();
+
+        // Perform the fill operation on the appropriate target
+        floodFill(targetImage, fillPoint.x, fillPoint.y, targetColor, replacementColor, epsilon);
+
         canvas.repaint();
     }
 

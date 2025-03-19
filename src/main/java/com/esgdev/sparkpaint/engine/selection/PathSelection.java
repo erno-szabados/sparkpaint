@@ -33,10 +33,6 @@ public class PathSelection implements Selection {
         this.content = content;
     }
 
-    public boolean isEmpty() {
-        return path == null || content == null;
-    }
-
     @Override
     public boolean isTransparent() {
         return this.transparent;

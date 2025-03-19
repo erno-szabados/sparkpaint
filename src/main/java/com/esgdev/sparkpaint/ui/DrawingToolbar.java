@@ -7,8 +7,9 @@ import com.esgdev.sparkpaint.engine.UndoRedoChangeListener;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.util.Enumeration;
 
-public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
+public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, ToolChangeListener {
     private static final int IconWidth = 24;
     private static final int IconHeight = 24;
     private final StatusMessageHandler statusMessageHandler;
@@ -29,7 +30,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
 
         initializeToolbar();
 
-        this.canvas.addCanvasPropertyChangeListener(new CanvasPropertyChangeListener() {
+        canvas.addCanvasPropertyChangeListener(new CanvasPropertyChangeListener() {
             @Override
             public void onDrawingColorChanged(Color newColor) {
                 updateDrawingColorButton(newColor);
@@ -45,6 +46,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
                 // Optional: handle if needed
             }
         });
+        canvas.addToolChangeListener(this);
     }
 
     private void initializeToolbar() {
@@ -103,6 +105,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         JToggleButton button = new JToggleButton();
         ImageIcon icon = IconLoader.loadAndScaleIcon("brush.png", IconWidth, IconHeight);
         button.setIcon(icon);
+        button.putClientProperty("tool", DrawingCanvas.Tool.BRUSH);
         button.setToolTipText("Draw with Brush");
         button.addActionListener(e -> {
             canvas.setCurrentTool(DrawingCanvas.Tool.BRUSH);
@@ -117,6 +120,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         JToggleButton button = new JToggleButton();
         ImageIcon icon = IconLoader.loadAndScaleIcon("pencil.png", IconWidth, IconHeight);
         button.setIcon(icon);
+        button.putClientProperty("tool", DrawingCanvas.Tool.PENCIL);
         button.setToolTipText("Draw with Pencil");
         button.addActionListener(e -> {
             canvas.setCurrentTool(DrawingCanvas.Tool.PENCIL);
@@ -131,6 +135,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         JToggleButton button = new JToggleButton();
         ImageIcon icon = IconLoader.loadAndScaleIcon("text.png", IconWidth, IconHeight);
         button.setIcon(icon);
+        button.putClientProperty("tool", DrawingCanvas.Tool.TEXT);
         button.setToolTipText("Draw text");
         button.addActionListener(e -> {
             canvas.setCurrentTool(DrawingCanvas.Tool.TEXT);
@@ -145,6 +150,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         JToggleButton button = new JToggleButton();
         ImageIcon icon = IconLoader.loadAndScaleIcon("line.png", IconWidth, IconHeight);
         button.setIcon(icon);
+        button.putClientProperty("tool", DrawingCanvas.Tool.LINE);
         button.setToolTipText("Draw a Line");
         button.addActionListener(e -> {
             canvas.setCurrentTool(DrawingCanvas.Tool.LINE);
@@ -219,7 +225,8 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
     private JToggleButton createSelectButton() {
         ImageIcon icon = IconLoader.loadAndScaleIcon("select.png", IconWidth, IconHeight);
         JToggleButton button = new JToggleButton(icon);
-        button.setToolTipText("Rectrangle Selection Tool");
+        button.putClientProperty("tool", DrawingCanvas.Tool.RECTANGLE_SELECTION);
+        button.setToolTipText("Rectangle Selection Tool");
         button.addActionListener(e -> {
             canvas.setCurrentTool(DrawingCanvas.Tool.RECTANGLE_SELECTION);
             statusMessageHandler.setStatusMessage("Rectangle selection tool selected.");});
@@ -231,6 +238,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         // FIXME new icon
         ImageIcon icon = IconLoader.loadAndScaleIcon("freehand-select.png", IconWidth, IconHeight);
         JToggleButton button = new JToggleButton(icon);
+        button.putClientProperty("tool", DrawingCanvas.Tool.FREEHAND_SELECTION);
         button.setToolTipText("Freehand Selection Tool");
         button.addActionListener(e -> {
             canvas.setCurrentTool(DrawingCanvas.Tool.FREEHAND_SELECTION);
@@ -242,6 +250,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
     private JToggleButton createEyedropperButton() {
         ImageIcon icon = IconLoader.loadAndScaleIcon("eyedropper.png", IconWidth, IconHeight);
         JToggleButton button = new JToggleButton(icon);
+        button.putClientProperty("tool", DrawingCanvas.Tool.EYEDROPPER);
         button.setToolTipText("Eyedropper Tool");
         button.addActionListener(e -> {
             canvas.setCurrentTool(DrawingCanvas.Tool.EYEDROPPER);
@@ -253,6 +262,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
     private JToggleButton createRectangleButton() {
         ImageIcon icon = IconLoader.loadAndScaleIcon("rect-outline.png", IconWidth, IconHeight);
         JToggleButton button = new JToggleButton(icon);
+        button.putClientProperty("tool", DrawingCanvas.Tool.RECTANGLE);
         button.setToolTipText("Rectangle Tool");
         button.addActionListener(e -> {
             canvas.setCurrentTool(DrawingCanvas.Tool.RECTANGLE);
@@ -264,6 +274,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
     private JToggleButton createCircleButton() {
         ImageIcon icon = IconLoader.loadAndScaleIcon("circle-outline.png", IconWidth, IconHeight);
         JToggleButton button = new JToggleButton(icon);
+        button.putClientProperty("tool", DrawingCanvas.Tool.CIRCLE);
         button.setToolTipText("Circle Tool");
         button.addActionListener(e -> {
             canvas.setCurrentTool(DrawingCanvas.Tool.CIRCLE);
@@ -274,6 +285,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
 
     private JToggleButton createFillButton() {
         JToggleButton button = new JToggleButton();
+        button.putClientProperty("tool", DrawingCanvas.Tool.FILL);
         button.setIcon(IconLoader.loadAndScaleIcon("floodfill.png", IconWidth, IconHeight));
         button.setToolTipText("Fill Tool");
         button.addActionListener(e -> {
@@ -338,4 +350,15 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener {
         redoButton.setEnabled(canRedo);
     }
 
+    @Override
+    public void onToolChanged(DrawingCanvas.Tool newTool) {
+        Enumeration<AbstractButton> elements = toolGroup.getElements();
+        while (elements.hasMoreElements()) {
+            AbstractButton button = elements.nextElement();
+            if (button.getClientProperty("tool") == newTool) {
+                button.setSelected(true);
+                break;
+            }
+        }
+    }
 }

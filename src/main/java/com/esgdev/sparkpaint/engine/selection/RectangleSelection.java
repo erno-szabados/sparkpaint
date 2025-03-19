@@ -34,11 +34,6 @@ public class RectangleSelection implements Selection {
     }
 
     @Override
-    public boolean isEmpty() {
-        return rectangle == null || content == null;
-    }
-
-    @Override
     public boolean contains(Point point) {
         return rectangle != null && rectangle.contains(point);
     }
