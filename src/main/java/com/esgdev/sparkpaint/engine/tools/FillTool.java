@@ -1,6 +1,7 @@
 package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
+import com.esgdev.sparkpaint.engine.filters.SobelFilter;
 import com.esgdev.sparkpaint.engine.selection.PathSelection;
 import com.esgdev.sparkpaint.engine.selection.Selection;
 import com.esgdev.sparkpaint.engine.selection.SelectionManager;
@@ -16,12 +17,16 @@ import java.util.Stack;
 
 public class FillTool implements DrawingTool {
     public static final int DEFAULT_FILL_EPSILON = 30;
+    public static final int DEFAULT_EDGE_THRESHOLD = 50;
     private final DrawingCanvas canvas;
     private final Cursor cursor = Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR);
     private int epsilon;
+    private int edgeThreshold; // Adjustable threshold for edge detection
 
     public FillTool(DrawingCanvas canvas) {
         this.canvas = canvas;
+        this.epsilon = DEFAULT_FILL_EPSILON;
+        this.edgeThreshold = DEFAULT_EDGE_THRESHOLD; // Default edge threshold
     }
 
     public void setEpsilon(int value) {
@@ -135,9 +140,14 @@ public class FillTool implements DrawingTool {
         int replacementRGB = replacementColor.getRGB();
 
         if (targetRGB == replacementRGB) {
-            return; // Avoid infinite loop if fill color is same as target
+            return;
         }
 
+        // Generate Sobel edge map
+        BufferedImage edgeMap = SobelFilter.applySobelFilter(image);
+
+        // Use scanline fill algorithm with edge detection
+        boolean[][] visited = new boolean[width][height];
         Stack<Point> stack = new Stack<>();
         stack.push(new Point(x, y));
 
@@ -146,21 +156,44 @@ public class FillTool implements DrawingTool {
             x = p.x;
             y = p.y;
 
-            if (x < 0 || x >= width || y < 0 || y >= height || image.getRGB(x, y) == replacementRGB) {
-                continue;
+            // Find left boundary
+            int leftX = x;
+            while (leftX >= 0 &&
+                   !visited[leftX][y] &&
+                   colorDistance(image.getRGB(leftX, y), targetRGB) <= epsilon &&
+                   !isEdge(edgeMap, leftX, y) &&
+                   (clipPath == null || clipPath.contains(leftX, y))) {
+                leftX--;
             }
+            leftX++;
 
-            // Check if the point is within the clip path if one exists
-            if (clipPath != null && !clipPath.contains(x, y)) {
-                continue;
+            // Find right boundary
+            int rightX = x;
+            while (rightX < width &&
+                   !visited[rightX][y] &&
+                   colorDistance(image.getRGB(rightX, y), targetRGB) <= epsilon &&
+                   !isEdge(edgeMap, rightX, y) &&
+                   (clipPath == null || clipPath.contains(rightX, y))) {
+                rightX++;
             }
+            rightX--;
 
-            if (colorDistance(image.getRGB(x, y), targetRGB) <= epsilon) {
-                image.setRGB(x, y, replacementRGB);
-                stack.push(new Point(x + 1, y));
-                stack.push(new Point(x - 1, y));
-                stack.push(new Point(x, y + 1));
-                stack.push(new Point(x, y - 1));
+            // Fill the scan line
+            for (int i = leftX; i <= rightX; i++) {
+                image.setRGB(i, y, replacementRGB);
+                visited[i][y] = true;
+
+                // Check pixels above and below for next lines to fill
+                if (y > 0 && !visited[i][y-1] &&
+                    colorDistance(image.getRGB(i, y-1), targetRGB) <= epsilon &&
+                    !isEdge(edgeMap, i, y-1)) {
+                    stack.push(new Point(i, y-1));
+                }
+                if (y < height-1 && !visited[i][y+1] &&
+                    colorDistance(image.getRGB(i, y+1), targetRGB) <= epsilon &&
+                    !isEdge(edgeMap, i, y+1)) {
+                    stack.push(new Point(i, y+1));
+                }
             }
         }
     }
@@ -179,5 +212,15 @@ public class FillTool implements DrawingTool {
         double deltaB = b1 - b2;
 
         return Math.sqrt(deltaR * deltaR + deltaG * deltaG + deltaB * deltaB);
+    }
+
+    private boolean isEdge(BufferedImage edgeMap, int x, int y) {
+        // Get grayscale value from edge map (all channels have same value)
+        int edgeValue = (edgeMap.getRGB(x, y) >> 16) & 0xFF;
+        return edgeValue > edgeThreshold;
+    }
+
+    public void setEdgeThreshold(int threshold) {
+        this.edgeThreshold = threshold;
     }
 }
