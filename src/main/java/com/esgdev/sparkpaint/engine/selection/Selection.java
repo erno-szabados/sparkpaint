@@ -8,8 +8,6 @@ public interface Selection {
 
     void setContent(BufferedImage content);
 
-    boolean isEmpty();
-
     boolean isTransparent();
 
     void setTransparent(boolean transparent);

@@ -46,8 +46,14 @@ public class SelectionManager {
         }
     }
 
-    public void deleteSelection() {
-        if (!selection.isEmpty()) {
+   public void deleteSelection() {
+        // If no selection or selection has no content, nothing to delete
+        if (selection == null || selection.getContent() == null) {
+            return;
+        }
+
+        // Even if selection appears empty, we should still process it if it has bounds
+        if (selection.getBounds() != null) {
             canvas.saveToUndoStack();
             Graphics2D g2d = canvas.getCanvasGraphics();
             selection.delete(g2d, canvas.getCanvasBackground());
