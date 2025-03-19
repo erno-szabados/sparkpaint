@@ -66,6 +66,18 @@ public class RectangleSelectionTool implements DrawingTool {
         worldStartPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), screenStartPoint);
         Selection selection = selectionManager.getSelection();
 
+        // Apply the old selection to the canvas regardless of its type
+        if (selection != null && selection.hasOutline()) {
+            // If we're clicking outside the selection, apply it to canvas
+            Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
+            if (!selection.contains(worldPoint)) {
+                selectionManager.applySelectionToCanvas();
+                selectionManager.clearSelection();
+                canvas.repaint();
+                return; // Exit early after applying and clearing
+            }
+        }
+
         if (!(selection instanceof RectangleSelection) || !selection.hasOutline()) {
             // No selection or different selection type, start new rectangle selection
             selection = new RectangleSelection(new Rectangle(worldStartPoint.x, worldStartPoint.y, 0, 0), null);

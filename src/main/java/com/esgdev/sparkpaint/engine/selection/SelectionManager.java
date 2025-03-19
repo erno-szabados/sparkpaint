@@ -134,7 +134,7 @@ public class SelectionManager {
      */
     public boolean isWithinSelection(Point worldPoint) {
         Selection selection = getSelection();
-        return selection != null && selection.contains(worldPoint);
+        return selection != null && selection.hasOutline() && selection.contains(worldPoint);
     }
 
     public void applySelectionToCanvas() {
