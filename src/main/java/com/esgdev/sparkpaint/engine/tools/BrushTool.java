@@ -1,12 +1,16 @@
 package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
+import com.esgdev.sparkpaint.engine.selection.PathSelection;
 import com.esgdev.sparkpaint.engine.selection.Selection;
+import com.esgdev.sparkpaint.engine.selection.SelectionManager;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.GeneralPath;
 import java.awt.image.BufferedImage;
 import java.util.Random;
 
@@ -39,66 +43,104 @@ public class BrushTool implements DrawingTool {
         // No action needed for mouse moved
     }
 
-    @Override
+  @Override
     public void mousePressed(MouseEvent e) {
-        lastPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
+        SelectionManager selectionManager = canvas.getSelectionManager();
+        Selection selection = selectionManager.getSelection();
+
+        // Save last point and update canvas
+        lastPoint = selectionManager.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
         canvas.saveToUndoStack();
-        drawShape(e, lastPoint);
+
+        // Get appropriate graphics context and draw
+        Graphics2D g2d = selectionManager.getDrawingGraphics(canvas);
+        drawShape(e, lastPoint, g2d);
+        g2d.dispose();
+
         canvas.repaint();
     }
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        Point currentPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
-        drawShape(e, currentPoint);
+        SelectionManager selectionManager = canvas.getSelectionManager();
+        Selection selection = selectionManager.getSelection();
+
+        // Convert screen point to world coordinates
+        Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
+
+        // If there's a selection, only proceed if dragging inside it
+        if (selection != null && selection.hasOutline() && !selection.contains(worldPoint)) {
+            return; // Don't draw outside selection when one exists
+        }
+
+        // Get current point and update
+        Point currentPoint = selectionManager.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
+
+        // Get appropriate graphics context and draw
+        Graphics2D g2d = selectionManager.getDrawingGraphics(canvas);
+        drawShape(e, currentPoint, g2d);
+        g2d.dispose();
+
         lastPoint = currentPoint;
         canvas.repaint();
     }
 
-    private void drawShape(MouseEvent e, Point p) {
-        BufferedImage image = canvas.getImage();
-        if (image != null) {
-            Color paintColor;
-            if (SwingUtilities.isLeftMouseButton(e)) {
-                paintColor = canvas.getDrawingColor();
-            } else if (SwingUtilities.isRightMouseButton(e)) {
-                paintColor = canvas.getFillColor();
-            } else {
-                return;
-            }
+    // Updated drawShape method that accepts a Graphics2D parameter
+    private void drawShape(MouseEvent e, Point p, Graphics2D g2d) {
+        Color paintColor;
+        if (SwingUtilities.isLeftMouseButton(e)) {
+            paintColor = canvas.getDrawingColor();
+        } else if (SwingUtilities.isRightMouseButton(e)) {
+            paintColor = canvas.getFillColor();
+        } else {
+            return;
+        }
 
-            int x = p.x - size / 2;
-            int y = p.y - size / 2;
+        // Get the target image for drawing
+        BufferedImage targetImage;
+        SelectionManager selectionManager = canvas.getSelectionManager();
+        if (selectionManager.isWithinSelection(DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint()))) {
+            targetImage = selectionManager.getSelection().getContent();
+        } else {
+            targetImage = canvas.getImage();
+        }
 
-            switch (shape) {
-                case SQUARE:
-                    drawBlendedShape(image, x, y, size, size, paintColor, true);
-                    break;
-                case CIRCLE:
-                    drawBlendedShape(image, x, y, size, size, paintColor, false);
-                    break;
-                case SPRAY:
-                    sprayPaint(e, image, p);
-                    break;
-            }
+        int x = p.x - size / 2;
+        int y = p.y - size / 2;
+
+        switch (shape) {
+            case SQUARE:
+                drawBlendedShape(targetImage, g2d, x, y, size, size, paintColor, true);
+                break;
+            case CIRCLE:
+                drawBlendedShape(targetImage, g2d, x, y, size, size, paintColor, false);
+                break;
+            case SPRAY:
+                sprayPaint(e, targetImage, g2d, p);
+                break;
         }
     }
 
-    private void drawBlendedShape(BufferedImage image, int x, int y, int width, int height, Color paintColor, boolean isSquare) {
-        // Create a temporary image for the shape
-        BufferedImage tempImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2d = tempImage.createGraphics();
+    // Updated methods to accept external Graphics2D
+    private void drawBlendedShape(BufferedImage image, Graphics2D g2d, int x, int y, int width, int height, Color paintColor, boolean isSquare) {
         g2d.setColor(paintColor);
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                 useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
 
+        // Create a temporary image for the shape
+        BufferedImage tempImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D tempG2d = tempImage.createGraphics();
+        tempG2d.setColor(paintColor);
+        tempG2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+
         // Draw the shape to the temporary image
         if (isSquare) {
-            g2d.fillRect(x, y, width, height);
+            tempG2d.fillRect(x, y, width, height);
         } else {
-            g2d.fillOval(x, y, width, height);
+            tempG2d.fillOval(x, y, width, height);
         }
-        g2d.dispose();
+        tempG2d.dispose();
 
         // Apply blending to the main image
         int startX = Math.max(0, x);
@@ -111,9 +153,12 @@ public class BrushTool implements DrawingTool {
                 int tempRGB = tempImage.getRGB(i, j);
                 // Only process non-transparent pixels from the shape
                 if ((tempRGB & 0xFF000000) != 0) {
-                    int currentRGB = image.getRGB(i, j);
-                    Color blendedColor = getBlendedColor(currentRGB, maxBlendStrength, paintColor);
-                    image.setRGB(i, j, blendedColor.getRGB());
+                    // Check if this pixel is within the clipping region
+                    if (g2d.getClip() == null || g2d.getClip().contains(i, j)) {
+                        int currentRGB = image.getRGB(i, j);
+                        Color blendedColor = getBlendedColor(currentRGB, maxBlendStrength, paintColor);
+                        image.setRGB(i, j, blendedColor.getRGB());
+                    }
                 }
             }
         }
@@ -183,7 +228,7 @@ public class BrushTool implements DrawingTool {
         this.useAntiAliasing = useAntiAliasing;
     }
 
-    private void sprayPaint(MouseEvent e, BufferedImage image, Point center) {
+    private void sprayPaint(MouseEvent e, BufferedImage image, Graphics2D g2d, Point center) {
         Color paintColor;
         if (SwingUtilities.isLeftMouseButton(e)) {
             paintColor = canvas.getDrawingColor();
@@ -207,9 +252,12 @@ public class BrushTool implements DrawingTool {
             int y = center.y + (int)y_offset;
 
             if (x >= 0 && x < image.getWidth() && y >= 0 && y < image.getHeight()) {
-                int currentRGB = image.getRGB(x, y);
-                Color blendedColor = getBlendedColor(currentRGB, random.nextFloat() * maxBlendStrength, paintColor);
-                image.setRGB(x, y, blendedColor.getRGB());
+                // Check if this point is within the clipping region
+                if (g2d.getClip() == null || g2d.getClip().contains(x, y)) {
+                    int currentRGB = image.getRGB(x, y);
+                    Color blendedColor = getBlendedColor(currentRGB, random.nextFloat() * maxBlendStrength, paintColor);
+                    image.setRGB(x, y, blendedColor.getRGB());
+                }
             }
         }
     }

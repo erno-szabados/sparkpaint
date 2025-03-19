@@ -83,21 +83,15 @@ public class FreeHandSelectionTool implements DrawingTool {
                 originalSelectionLocation = new Point(bounds.x, bounds.y);
             }
         } else {
-            // Clicked outside the selection, finalize the current selection
-            if (!selection.isEmpty()) {
-                Rectangle currentBounds = selection.getBounds();
-                if (originalSelectionLocation != null &&
-                        currentBounds.x == originalSelectionLocation.x &&
-                        currentBounds.y == originalSelectionLocation.y) {
-                    // Selection wasn't moved, undo the last operation
-                    canvas.undo();
-                } else {
-                    copySelectionToPermanentCanvas();
-                }
+            // Convert screen point to world coordinates
+            Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
+
+            // If there's a selection and we click outside it, apply selection to canvas first
+            if (selection.hasOutline() && !selection.contains(worldPoint)) {
+                selectionManager.applySelectionToCanvas();
                 selectionManager.clearSelection();
-                isDragging = false;
-                isDrawingPath = false;
-                originalSelectionLocation = null;
+                canvas.repaint();
+                return; // Don't proceed with drawing outside selection
             } else {
                 // Start a new path
                 currentPath.reset();
