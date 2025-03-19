@@ -40,7 +40,7 @@ public class SelectionManager {
             Graphics2D g2d = content.createGraphics();
             g2d.drawImage(image, -rect.x, -rect.y, null);
             g2d.dispose();
-            selection = new RectangleSelection(rect, content);
+            selection = new PathSelection(rect, content);
             canvas.notifyClipboardStateChanged();
             canvas.repaint();
         }
@@ -103,9 +103,6 @@ public class SelectionManager {
                 translatedPath.transform(AffineTransform.getTranslateInstance(-bounds.x, -bounds.y));
                 g2d.setClip(translatedPath);
             }
-        } else if (selection instanceof RectangleSelection) {
-            // For rectangle selection, the entire content is valid
-            // No additional clipping needed
         }
 
         return g2d;

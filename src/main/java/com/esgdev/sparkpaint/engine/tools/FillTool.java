@@ -1,6 +1,7 @@
 package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
+import com.esgdev.sparkpaint.engine.selection.PathSelection;
 import com.esgdev.sparkpaint.engine.selection.Selection;
 import com.esgdev.sparkpaint.engine.selection.SelectionManager;
 
@@ -8,6 +9,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.GeneralPath;
 import java.awt.image.BufferedImage;
 import java.util.Stack;
 
@@ -30,7 +33,7 @@ public class FillTool implements DrawingTool {
         // No action needed for mouse moved
     }
 
-   @Override
+    @Override
     public void mousePressed(MouseEvent e) {
         SelectionManager selectionManager = canvas.getSelectionManager();
         Selection selection = selectionManager.getSelection();
@@ -43,27 +46,58 @@ public class FillTool implements DrawingTool {
             return; // Don't fill outside selection when one exists
         }
 
-        // Get appropriate coordinates for filling
-        Point fillPoint = selectionManager.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
+        // Save to undo stack before modifying
+        canvas.saveToUndoStack();
 
         // Get the target image for filling - either selection content or main canvas
         BufferedImage targetImage;
+        GeneralPath clipPath = null;
+        Point fillPoint;
+
         if (selection != null && selection.hasOutline() && selection.contains(worldPoint)) {
             targetImage = selection.getContent();
+            if (targetImage == null) return;
+
+            Rectangle bounds = selection.getBounds();
+
+            // Calculate fill point in selection content coordinates
+            fillPoint = new Point(
+                    worldPoint.x - bounds.x,
+                    worldPoint.y - bounds.y
+            );
+
+            // Check if the fill point is within the content bounds
+            if (fillPoint.x < 0 || fillPoint.x >= targetImage.getWidth() ||
+                    fillPoint.y < 0 || fillPoint.y >= targetImage.getHeight()) {
+                return;
+            }
+
+            // If it's a path selection, create a clipping path
+            if (selection instanceof PathSelection) {
+                // Create a copy of the path with adjusted coordinates
+                GeneralPath originalPath = ((PathSelection) selection).getPath();
+                clipPath = new GeneralPath(originalPath);
+                AffineTransform transform = AffineTransform.getTranslateInstance(-bounds.x, -bounds.y);
+                clipPath.transform(transform);
+            }
         } else {
             targetImage = canvas.getImage();
-        }
+            fillPoint = worldPoint;
 
-        // Save to undo stack before modifying
-        canvas.saveToUndoStack();
+            // Check if the fill point is within the canvas bounds
+            if (fillPoint.x < 0 || fillPoint.x >= targetImage.getWidth() ||
+                    fillPoint.y < 0 || fillPoint.y >= targetImage.getHeight()) {
+                return;
+            }
+        }
 
         // Get target color at fill point
         Color targetColor = new Color(targetImage.getRGB(fillPoint.x, fillPoint.y));
         Color replacementColor = SwingUtilities.isLeftMouseButton(e) ?
-                                canvas.getDrawingColor() : canvas.getFillColor();
+                canvas.getDrawingColor() : canvas.getFillColor();
 
         // Perform the fill operation on the appropriate target
-        floodFill(targetImage, fillPoint.x, fillPoint.y, targetColor, replacementColor, epsilon);
+        floodFill(targetImage, fillPoint.x, fillPoint.y, targetColor, replacementColor, epsilon, clipPath);
 
         canvas.repaint();
     }
@@ -93,7 +127,8 @@ public class FillTool implements DrawingTool {
         return "Fill tool selected";
     }
 
-    private void floodFill(BufferedImage image, int x, int y, Color targetColor, Color replacementColor, int epsilon) {
+    private void floodFill(BufferedImage image, int x, int y, Color targetColor, Color replacementColor,
+                           int epsilon, GeneralPath clipPath) {
         int width = image.getWidth();
         int height = image.getHeight();
         int targetRGB = targetColor.getRGB();
@@ -112,6 +147,11 @@ public class FillTool implements DrawingTool {
             y = p.y;
 
             if (x < 0 || x >= width || y < 0 || y >= height || image.getRGB(x, y) == replacementRGB) {
+                continue;
+            }
+
+            // Check if the point is within the clip path if one exists
+            if (clipPath != null && !clipPath.contains(x, y)) {
                 continue;
             }
 

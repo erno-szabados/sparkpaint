@@ -12,6 +12,12 @@ public class PathSelection implements Selection {
     private BufferedImage content;
     private boolean transparent;
 
+    public PathSelection(Rectangle rect, BufferedImage content) {
+        this.path = new GeneralPath();
+        path.append(rect, false);
+        this.content = content;
+    }
+
     public PathSelection(GeneralPath path, BufferedImage content) {
         this.path = path;
         this.content = content;
@@ -150,5 +156,16 @@ public class PathSelection implements Selection {
         g2d.setColor(Color.WHITE);
         g2d.setStroke(dottedStroke2);
         g2d.draw(scaledPath);
+    }
+
+    public static PathSelection createRectangular(Rectangle rect, BufferedImage content) {
+        GeneralPath path = new GeneralPath();
+        path.moveTo(rect.x, rect.y);
+        path.lineTo(rect.x + rect.width, rect.y);
+        path.lineTo(rect.x + rect.width, rect.y + rect.height);
+        path.lineTo(rect.x, rect.y + rect.height);
+        path.closePath();
+
+        return new PathSelection(path, content);
     }
 }
