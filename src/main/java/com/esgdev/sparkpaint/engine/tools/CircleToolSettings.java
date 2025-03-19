@@ -79,6 +79,10 @@ public class CircleToolSettings extends BaseToolSettings {
         antiAliasingCheckbox = new JCheckBox("Anti-aliasing", useAntiAliasing);
         antiAliasingCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
         antiAliasingCheckbox.addActionListener(e -> applySettings());
+        // Try setting minimum size for the checkbox
+        antiAliasingCheckbox.setMinimumSize(new Dimension(150, 25));
+        antiAliasingCheckbox.setPreferredSize(new Dimension(150, 25));
+
 
         // Add components directly to the panel
         panel.add(drawModePanel);
@@ -92,6 +96,10 @@ public class CircleToolSettings extends BaseToolSettings {
         panel.add(thicknessValueLabel);
         panel.add(Box.createVerticalStrut(5));
         panel.add(antiAliasingCheckbox);
+
+// Add some extra space at the bottom of the panel
+        panel.add(Box.createVerticalGlue());
+
 
         return panel;
     }

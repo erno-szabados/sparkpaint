@@ -120,6 +120,7 @@ public class BrushToolSettings extends BaseToolSettings {
         panel.add(blendStrengthValueLabel);
         panel.add(Box.createVerticalStrut(5));
         panel.add(antiAliasingCheckbox);
+        panel.add(Box.createVerticalGlue());
         resetToDefaults();
         return panel;
     }

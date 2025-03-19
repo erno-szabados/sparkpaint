@@ -75,7 +75,7 @@ public class FillToolSettings extends BaseToolSettings {
         panel.add(edgeThresholdSlider);
         panel.add(Box.createVerticalStrut(2));
         panel.add(edgeThresholdValueLabel);
-        panel.add(Box.createVerticalStrut(5));
+        panel.add(Box.createVerticalGlue());
 
         return panel;
     }

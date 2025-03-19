@@ -47,6 +47,7 @@ public class FreehandSelectionToolSettings extends BaseToolSettings {
 
         panel.add(rotationPanel);
         panel.add(transparencyCheckbox);
+        panel.add(Box.createVerticalGlue());
 
         return panel;
     }

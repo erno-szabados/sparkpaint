@@ -52,6 +52,7 @@ public class PencilToolSettings extends BaseToolSettings {
         panel.add(thicknessValueLabel);
         panel.add(Box.createVerticalStrut(5));
         panel.add(antiAliasingCheckbox);
+        panel.add(Box.createVerticalGlue());
         return panel;
     }
 
