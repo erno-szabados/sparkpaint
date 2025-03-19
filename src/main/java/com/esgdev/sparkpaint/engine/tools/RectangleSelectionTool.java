@@ -55,45 +55,46 @@ public class RectangleSelectionTool implements DrawingTool {
                 return;
             }
             // Right-click to clear selection
-            copySelectionToPermanentCanvas();
             selectionManager.clearSelection();
+            canvas.undo();  // Undo the last operation
             isDragging = false;
             originalSelectionLocation = null;
-            canvas.repaint();
             return;
         }
 
         Point screenStartPoint = e.getPoint();
         worldStartPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), screenStartPoint);
         Selection selection = selectionManager.getSelection();
-        if (!(selection instanceof RectangleSelection)) {
+
+        if (!(selection instanceof RectangleSelection) || !selection.hasOutline()) {
             // No selection or different selection type, start new rectangle selection
             selection = new RectangleSelection(new Rectangle(worldStartPoint.x, worldStartPoint.y, 0, 0), null);
             selectionManager.setSelection(selection);
-        }
-        Rectangle selectionRectangle = ((RectangleSelection) (selection)).getRectangle();
-        if (selectionRectangle == null) {
-            ((RectangleSelection) selection).setRectangle(new Rectangle(worldStartPoint.x, worldStartPoint.y, 0, 0));
-            originalSelectionLocation = null;
+        } else if (selection.contains(worldStartPoint)) {
+            // Starting a drag operation
+            isDragging = true;
+            Rectangle selectionRectangle = ((RectangleSelection)(selection)).getRectangle();
+            worldDragOffset = new Point(
+                    worldStartPoint.x - selectionRectangle.x,
+                    worldStartPoint.y - selectionRectangle.y);
+            // Only set originalSelectionLocation if it hasn't been set yet
+            if (originalSelectionLocation == null) {
+                originalSelectionLocation = new Point(selectionRectangle.x, selectionRectangle.y);
+            }
         } else {
-            if (selectionRectangle.contains(worldStartPoint)) {
-                // Starting a drag operation
-                isDragging = true;
-                worldDragOffset = new Point(
-                        (int) (worldStartPoint.getX() - selectionRectangle.x),
-                        (int) (worldStartPoint.getY() - selectionRectangle.y));
-                // Only set originalSelectionLocation if it hasn't been set yet
-                if (originalSelectionLocation == null) {
-                    originalSelectionLocation = new Point(selectionRectangle.x, selectionRectangle.y);
-                }
+            // Convert screen point to world coordinates
+            Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
+
+            // If there's a selection and we click outside it, apply selection to canvas first
+            if (selection.hasOutline() && !selection.contains(worldPoint)) {
+                selectionManager.applySelectionToCanvas();
+                selectionManager.clearSelection();
+                canvas.repaint();
+                return; // Don't proceed with drawing outside selection
             } else {
-                if (!selectionManager.getSelection().isEmpty()) {
-                    // clicked outside of selection, finalize the current selection
-                    isDragging = false;
-                    copySelectionToPermanentCanvas();
-                    selectionManager.clearSelection();
-                    originalSelectionLocation = null;
-                }
+                // Start a new rectangle selection
+                ((RectangleSelection) selection).setRectangle(new Rectangle(worldStartPoint.x, worldStartPoint.y, 0, 0));
+                originalSelectionLocation = null;
             }
         }
     }

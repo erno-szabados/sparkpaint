@@ -219,9 +219,7 @@ public class ImageMenu extends JMenu {
             JOptionPane.showMessageDialog(mainFrame, "No image or selection available.", "Crop to Selection", JOptionPane.WARNING_MESSAGE);
             return;
         }
-
-        RectangleSelectionTool rectangleSelectionTool = (RectangleSelectionTool) canvas.getTool(DrawingCanvas.Tool.RECTANGLE_SELECTION);
-        rectangleSelectionTool.copySelectionToPermanentCanvas();
+        selectionManager.applySelectionToCanvas();
 
         BufferedImage croppedImage = currentImage.getSubimage(selection.x, selection.y, selection.width, selection.height);
         canvas.createNewCanvas(croppedImage.getWidth(), croppedImage.getHeight(), canvas.getCanvasBackground());

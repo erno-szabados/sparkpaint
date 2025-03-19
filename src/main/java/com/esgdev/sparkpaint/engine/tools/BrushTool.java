@@ -48,6 +48,14 @@ public class BrushTool implements DrawingTool {
         SelectionManager selectionManager = canvas.getSelectionManager();
         Selection selection = selectionManager.getSelection();
 
+        // Convert screen point to world coordinates
+        Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
+
+        // If there's a selection, only proceed if clicking inside it
+        if (selection != null && selection.hasOutline() && !selection.contains(worldPoint)) {
+            return; // Don't draw outside selection when one exists
+        }
+
         // Save last point and update canvas
         lastPoint = selectionManager.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
         canvas.saveToUndoStack();
