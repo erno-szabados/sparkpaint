@@ -9,7 +9,6 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 
 
-
 public class MainFrame extends JFrame {
 
     private DrawingCanvas canvas;
@@ -75,19 +74,28 @@ public class MainFrame extends JFrame {
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 
 
-
         // Add toolbar
         JToolBar toolbar = new DrawingToolbar(canvas, this::setStatusMessage);
         contentPane.add(toolbar, BorderLayout.WEST);
 
         // Add tool settings
         Box toolBox = new DrawingSettingsToolBox(canvas, this::setStatusMessage);
-        // Create the split pane with your existing components
-        JSplitPane splitPane = new JSplitPane(
-                JSplitPane.HORIZONTAL_SPLIT,
-                scrollPane,                // left component
-                toolBox                    // right component
+
+        ///
+        // Create the layer panel
+        LayerPanel layerPanel = new LayerPanel(canvas, this::setStatusMessage);
+
+        // Combine the tool settings box and layer panel in a single vertical panel
+        JPanel rightPanel = new JPanel();
+        rightPanel.setLayout(new BorderLayout());
+        rightPanel.add(toolBox, BorderLayout.NORTH);
+        rightPanel.add(layerPanel, BorderLayout.CENTER);
+
+        // Use this combined panel instead of just the toolBox in the split pane
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, scrollPane,                // left component
+                rightPanel                 // right component (now contains both toolBox and layerPanel)
         );
+
         splitPane.setOneTouchExpandable(true);  // Adds a small button to collapse/expand
         splitPane.setDividerLocation(getWidth() - 200);  // Initial divider location
         splitPane.setResizeWeight(1.0);
@@ -101,6 +109,7 @@ public class MainFrame extends JFrame {
                 }
             }
         });
+
 
         // Add the container to the center of the BorderLayout
         add(splitPane, BorderLayout.CENTER);

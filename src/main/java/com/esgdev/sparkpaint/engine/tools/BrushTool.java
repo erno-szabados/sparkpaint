@@ -65,7 +65,16 @@ public class BrushTool implements DrawingTool {
         canvas.saveToUndoStack();
 
         // Get appropriate graphics context and draw
-        Graphics2D g2d = selectionManager.getDrawingGraphics(canvas);
+        Graphics2D g2d;
+        if (selection != null && selection.hasOutline()) {
+            g2d = selectionManager.getDrawingGraphics(canvas);
+        } else {
+            // Draw on current layer
+            g2d = (Graphics2D) canvas.getLayerManager().getCurrentLayerImage().getGraphics();
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+        }
+
         drawShape(e, lastPoint, g2d);
         g2d.dispose();
 
@@ -88,8 +97,18 @@ public class BrushTool implements DrawingTool {
         // Get current point and update
         Point currentPoint = selectionManager.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
 
+
         // Get appropriate graphics context and draw
-        Graphics2D g2d = selectionManager.getDrawingGraphics(canvas);
+        Graphics2D g2d;
+        if (selection != null && selection.hasOutline()) {
+            g2d = selectionManager.getDrawingGraphics(canvas);
+        } else {
+            // Draw on current layer
+            g2d = (Graphics2D) canvas.getLayerManager().getCurrentLayerImage().getGraphics();
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+        }
+
         drawShape(e, currentPoint, g2d);
         g2d.dispose();
 
@@ -114,7 +133,7 @@ public class BrushTool implements DrawingTool {
         if (selectionManager.isWithinSelection(DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint()))) {
             targetImage = selectionManager.getSelection().getContent();
         } else {
-            targetImage = canvas.getImage();
+            targetImage = canvas.getLayerManager().getCurrentLayerImage();
         }
 
         int x = p.x - size / 2;

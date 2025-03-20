@@ -47,6 +47,7 @@ public class DrawingCanvas extends JPanel {
     // Temporary canvas for drawing previews, tools will manage this, paintComponent will draw it
     private BufferedImage tempCanvas;
 
+
     private Tool currentTool = Tool.PENCIL;
     private Color drawingColor = Color.BLACK;
     private Color fillColor = Color.WHITE;
@@ -60,6 +61,7 @@ public class DrawingCanvas extends JPanel {
     private final HistoryManager historyManager;
     private final SelectionManager selectionManager;
     private final ClipboardManager clipboardManager;
+    private final LayerManager layerManager;
     private final FileManager fileManager;
     private boolean showBrushCursor = false;
     private Point cursorShapeCenter = new Point(0, 0);
@@ -76,6 +78,7 @@ public class DrawingCanvas extends JPanel {
         historyManager = new HistoryManager();
         selectionManager = new SelectionManager(this);
         clipboardManager = new ClipboardManager(this);
+        layerManager = new LayerManager(this);
         fileManager = new FileManager();
         MouseAdapter canvasMouseAdapter = new CanvasMouseAdapter();
         addMouseListener(canvasMouseAdapter);
@@ -91,15 +94,21 @@ public class DrawingCanvas extends JPanel {
      * @param height height of the canvas
      * @param canvasBackground background color of the canvas
      */
+    // Update createNewCanvas in DrawingCanvas class
     public void createNewCanvas(int width, int height, Color canvasBackground) {
         this.canvasBackground = canvasBackground;
         this.drawingColor = Color.BLACK;
         this.fillColor = Color.WHITE;
-        // Create new buffered images with new dimensions
+
+        // Initialize layers
+        layerManager.initializeLayers(width, height);
+
+        // Create new buffered image for the main canvas
         BufferedImage newImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 
         // Get graphics context from new image
         Graphics2D newGraphics = (Graphics2D) newImage.getGraphics();
+
         // Fill with background color
         newGraphics.setColor(canvasBackground);
         newGraphics.fillRect(0, 0, width, height);
@@ -139,6 +148,10 @@ public class DrawingCanvas extends JPanel {
 
     public ClipboardManager getClipboardManager() {
         return clipboardManager;
+    }
+
+    public LayerManager getLayerManager() {
+        return layerManager;
     }
 
     public BufferedImage getImage() {
@@ -303,9 +316,12 @@ public class DrawingCanvas extends JPanel {
         g2d.setColor(canvasBackground);
         g2d.fillRect(0, 0, getWidth(), getHeight());
 
-        // Draw the permanent canvas
-        if (image != null) {
-            g2d.drawImage(image, 0, 0, null);
+        // Draw all visible layers from bottom to top
+        List<Layer> layers = layerManager.getLayers();
+        for (Layer layer : layers) {
+            if (layer.isVisible()) {
+                g2d.drawImage(layer.getImage(), 0, 0, null);
+            }
         }
 
         // Draw the temporary canvas on top
@@ -411,11 +427,14 @@ public class DrawingCanvas extends JPanel {
     // Undo - redo
 
     public void saveToUndoStack() {
-        historyManager.saveToUndoStack(image);
+        historyManager.saveToUndoStack(layerManager.getLayers(), layerManager.getCurrentLayerIndex());
     }
 
     public void undo() {
-        image = historyManager.undo(image);
+        HistoryManager.LayerState state = historyManager.undo(layerManager.getLayers(), layerManager.getCurrentLayerIndex());
+        layerManager.setLayers(state.getLayers());
+        layerManager.setCurrentLayerIndex(state.getCurrentLayerIndex());
+
         Selection selection = selectionManager.getSelection();
         if (selection != null) {
             selection.clearOutline();
@@ -424,7 +443,10 @@ public class DrawingCanvas extends JPanel {
     }
 
     public void redo() {
-        image = historyManager.redo(image);
+        HistoryManager.LayerState state = historyManager.redo(layerManager.getLayers(), layerManager.getCurrentLayerIndex());
+        layerManager.setLayers(state.getLayers());
+        layerManager.setCurrentLayerIndex(state.getCurrentLayerIndex());
+
         Selection selection = selectionManager.getSelection();
         if (selection != null) {
             selection.clearOutline();
