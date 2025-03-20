@@ -96,7 +96,7 @@ public class DrawingCanvas extends JPanel {
         this.drawingColor = Color.BLACK;
         this.fillColor = Color.WHITE;
         // Create new buffered images with new dimensions
-        BufferedImage newImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        BufferedImage newImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 
         // Get graphics context from new image
         Graphics2D newGraphics = (Graphics2D) newImage.getGraphics();
@@ -157,7 +157,7 @@ public class DrawingCanvas extends JPanel {
 
     public BufferedImage getTempCanvas() {
         if (tempCanvas == null ) {
-            tempCanvas = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_RGB);
+            tempCanvas = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
         }
         return tempCanvas;
     }
@@ -174,7 +174,7 @@ public class DrawingCanvas extends JPanel {
         Stroke currentStroke = graphics != null ? graphics.getStroke() : new BasicStroke(1);
 
         image = new BufferedImage(loadedImage.getWidth(), loadedImage.getHeight(),
-                BufferedImage.TYPE_INT_RGB);
+                BufferedImage.TYPE_INT_ARGB);
         graphics = (Graphics2D) image.getGraphics();
 
         graphics.setColor(currentColor);

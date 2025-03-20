@@ -30,7 +30,7 @@ public class HistoryManager {
 
     public void saveToUndoStack(BufferedImage image) {
         if (image != null) {
-            BufferedImage copy = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
+            BufferedImage copy = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
             Graphics2D g2d = copy.createGraphics();
             g2d.drawImage(image, 0, 0, null);
             g2d.dispose();
@@ -156,7 +156,7 @@ public class HistoryManager {
         byteBuffer.asIntBuffer().get(intData);
 
         // Create a BufferedImage and set its raster to use the decompressed int[] data
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         int[] imageRaster = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
 
         // Avoid a deep copy by copying the reference
