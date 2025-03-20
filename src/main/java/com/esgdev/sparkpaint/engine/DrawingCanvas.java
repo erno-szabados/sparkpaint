@@ -175,30 +175,29 @@ public class DrawingCanvas extends JPanel {
         return tempCanvas;
     }
 
-    public void saveToFile(File file) throws IOException {
-        fileManager.saveToFile(file, image);
-    }
+   public void saveToFile(File file) throws IOException {
+       fileManager.saveToFile(file, layerManager.getLayers(), layerManager.getCurrentLayerIndex());
+   }
 
-    public void loadFromFile(File file) throws IOException {
-        zoomFactor = 1.0f;
-        BufferedImage loadedImage = fileManager.loadFromFile(file);
+   public void loadFromFile(File file) throws IOException {
+       zoomFactor = 1.0f;
 
-        Color currentColor = graphics != null ? graphics.getColor() : Color.BLACK;
-        Stroke currentStroke = graphics != null ? graphics.getStroke() : new BasicStroke(1);
+       // Load layers and active layer index from file
+       HistoryManager.LayerState layerState = fileManager.loadFromFile(file);
 
-        image = new BufferedImage(loadedImage.getWidth(), loadedImage.getHeight(),
-                BufferedImage.TYPE_INT_ARGB);
-        graphics = (Graphics2D) image.getGraphics();
+       // Apply the loaded layers to the layer manager
+       layerManager.setLayers(layerState.getLayers());
+       layerManager.setCurrentLayerIndex(layerState.getCurrentLayerIndex());
 
-        graphics.setColor(currentColor);
-        graphics.setStroke(currentStroke);
-        graphics.drawImage(loadedImage, 0, 0, null);
+       // Get dimensions from first layer
+       BufferedImage firstLayerImage = layerState.getLayers().get(0).getImage();
 
-        setPreferredSize(new Dimension(image.getWidth(null), image.getHeight(null)));
-        revalidate();
-        repaint();
-        clearHistory();
-    }
+       // Update canvas size
+       setPreferredSize(new Dimension(firstLayerImage.getWidth(), firstLayerImage.getHeight()));
+       revalidate();
+       repaint();
+       clearHistory();
+   }
 
     public String getCurrentFilePath() {
         return fileManager.getCurrentFilePath();

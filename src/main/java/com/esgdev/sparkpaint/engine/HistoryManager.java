@@ -133,19 +133,24 @@ package com.esgdev.sparkpaint.engine;
 
         public static byte[] compressImage(BufferedImage image) {
             byte[] rawData;
+            int width = image.getWidth();
+            int height = image.getHeight();
 
-            if (image.getRaster().getDataBuffer() instanceof DataBufferInt) {
-                // Access the int[] directly
-                int[] intData = ((DataBufferInt) image.getRaster().getDataBuffer()).getData();
+            // Create a new compatible image and copy the original image to it
+            BufferedImage compatibleImage = new BufferedImage(
+                    width, height, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2d = compatibleImage.createGraphics();
+            g2d.drawImage(image, 0, 0, null);
+            g2d.dispose();
 
-                // Create a ByteBuffer view of the int[] without copying
-                ByteBuffer byteBuffer = ByteBuffer.allocateDirect(intData.length * 4);
-                byteBuffer.asIntBuffer().put(intData); // Avoids copying the data
-                rawData = new byte[intData.length * 4];
-                byteBuffer.get(rawData);
-            } else {
-                throw new IllegalArgumentException("Unsupported DataBuffer type");
-            }
+            // Now we can safely get the data as DataBufferInt
+            int[] intData = ((DataBufferInt) compatibleImage.getRaster().getDataBuffer()).getData();
+
+            // Create a ByteBuffer view of the int[] without copying
+            ByteBuffer byteBuffer = ByteBuffer.allocate(intData.length * 4);
+            byteBuffer.asIntBuffer().put(intData);
+            rawData = byteBuffer.array();
+
             deflater.reset();
             deflater.setInput(rawData);
             deflater.finish();
