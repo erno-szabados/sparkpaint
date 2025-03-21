@@ -105,22 +105,6 @@ public class Selection {
         return null;
     }
 
-    public void delete(Graphics2D g2d, Color background) {
-        // Use AlphaComposite.CLEAR instead of filling with background color
-        Composite originalComposite = g2d.getComposite();
-        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.CLEAR));
-
-        // Fill the selection area with transparency
-        GeneralPath path = this.getPath();
-        if (path != null) {
-            g2d.fill(path);
-        } else {
-            g2d.fill(getBounds());
-        }
-
-        g2d.setComposite(originalComposite);
-    }
-
     public void drawSelectionContent(Graphics2D g2d, double zoomFactor) {
         if (content != null && path != null) {
             Rectangle bounds = path.getBounds();
