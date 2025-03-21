@@ -31,7 +31,7 @@ public abstract class AbstractSelectionTool implements DrawingTool {
     @Override
     public void mouseMoved(MouseEvent e) {
         Selection selection = selectionManager.getSelection();
-        if (selection == null || !isValidSelectionType(selection)) {
+        if (selection == null) {
             return;
         }
         Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
@@ -69,7 +69,7 @@ public abstract class AbstractSelectionTool implements DrawingTool {
 
     protected void handleRightClick() {
         Selection selection = selectionManager.getSelection();
-        if (selection == null || !isValidSelectionType(selection)) {
+        if (selection == null) {
             return;
         }
         selectionManager.clearSelection();
@@ -103,7 +103,7 @@ public abstract class AbstractSelectionTool implements DrawingTool {
 
     public void copySelectionToPermanentCanvas() {
         Selection selection = selectionManager.getSelection();
-        if (selection == null || !isValidSelectionType(selection)) {
+        if (selection == null) {
             return;
         }
 
@@ -118,12 +118,54 @@ public abstract class AbstractSelectionTool implements DrawingTool {
         canvas.repaint();
     }
 
-    // Abstract methods for specialized tool behavior
-    protected abstract boolean isValidSelectionType(Selection selection);
+    // In AbstractSelectionTool.java
+    protected void clearOriginalSelectionAreaWithTransparency() {
+        Selection selection = selectionManager.getSelection();
+        if (selection == null || originalSelectionLocation == null) {
+            return;
+        }
 
+        // Save to undo stack before modifying
+        canvas.saveToUndoStack();
+
+        // Get the current layer image
+        BufferedImage currentLayer = canvas.getLayerManager().getCurrentLayerImage();
+        Graphics2D g2d = currentLayer.createGraphics();
+
+        // Use Clear composite for transparency
+        g2d.setComposite(AlphaComposite.Clear);
+
+        // Clear the area based on selection shape
+        if (selection.getPath() != null) {
+            g2d.fill(selection.getPath());
+        }
+
+        g2d.dispose();
+    }
+
+    /**
+     * Creates a transparent selection image preserving original transparency
+     */
+    protected BufferedImage createTransparentSelectionImage(BufferedImage original) {
+        if (original == null) return null;
+
+        // Create a transparent version that preserves original transparency
+        BufferedImage transparentContent = new BufferedImage(
+            original.getWidth(),
+            original.getHeight(),
+            BufferedImage.TYPE_INT_ARGB
+        );
+
+        // Copy the content preserving transparency
+        Graphics2D g2d = transparentContent.createGraphics();
+        g2d.drawImage(original, 0, 0, null);
+        g2d.dispose();
+
+        return transparentContent;
+    }
+
+    // Abstract methods for specialized tool behavior
     protected abstract void handleSelectionStart(MouseEvent e);
 
     protected abstract void drawSelectionToCanvas(Graphics2D g2d, Selection selection, BufferedImage content);
-
-    protected abstract void clearSelectionOriginalLocation(Color color);
 }
