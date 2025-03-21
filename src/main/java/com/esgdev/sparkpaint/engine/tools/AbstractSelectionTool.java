@@ -67,17 +67,6 @@ public abstract class AbstractSelectionTool implements DrawingTool {
         handleSelectionStart(e);
     }
 
-    protected void handleRightClick() {
-        Selection selection = selectionManager.getSelection();
-        if (selection == null) {
-            return;
-        }
-        selectionManager.clearSelection();
-        canvas.undo();
-        isDragging = false;
-        originalSelectionLocation = null;
-    }
-
     @Override
     public void setCursor() {
         canvas.setCursor(crosshairCursor);
@@ -98,6 +87,17 @@ public abstract class AbstractSelectionTool implements DrawingTool {
         drawSelectionToCanvas(g2d, selection, content);
         g2d.dispose();
         canvas.repaint();
+    }
+
+    protected void handleRightClick() {
+        Selection selection = selectionManager.getSelection();
+        if (selection == null) {
+            return;
+        }
+        selectionManager.clearSelection();
+        canvas.undo();
+        isDragging = false;
+        originalSelectionLocation = null;
     }
 
     // In AbstractSelectionTool.java
@@ -133,9 +133,9 @@ public abstract class AbstractSelectionTool implements DrawingTool {
 
         // Create a transparent version that preserves original transparency
         BufferedImage transparentContent = new BufferedImage(
-            original.getWidth(),
-            original.getHeight(),
-            BufferedImage.TYPE_INT_ARGB
+                original.getWidth(),
+                original.getHeight(),
+                BufferedImage.TYPE_INT_ARGB
         );
 
         // Copy the content preserving transparency
@@ -156,4 +156,7 @@ public abstract class AbstractSelectionTool implements DrawingTool {
     protected abstract void handleSelectionStart(MouseEvent e);
 
     protected abstract void drawSelectionToCanvas(Graphics2D g2d, Selection selection, BufferedImage content);
+
+    // Add to AbstractSelectionTool
+    protected abstract void finalizeSelection(Selection selection);
 }

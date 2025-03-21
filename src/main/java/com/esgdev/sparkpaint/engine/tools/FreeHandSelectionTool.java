@@ -62,7 +62,9 @@ public class FreeHandSelectionTool extends AbstractSelectionTool {
         }
 
         if (isDrawingPath) {
-            finalizeDrawnPath(selection);
+            isDrawingPath = false;
+            currentPath.closePath();
+            finalizeSelection(selection);
         } else if (isDragging) {
             finalizeDrag(e, selection);
         }
@@ -70,9 +72,8 @@ public class FreeHandSelectionTool extends AbstractSelectionTool {
         canvas.repaint();
     }
 
-    private void finalizeDrawnPath(Selection selection) {
-        isDrawingPath = false;
-        currentPath.closePath();
+    @Override
+    protected void finalizeSelection(Selection selection) {
         selectionBounds = currentPath.getBounds();
 
         // Check if selection is too small and clear if so
