@@ -1,5 +1,6 @@
 package com.esgdev.sparkpaint.engine;
 
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
@@ -8,6 +9,12 @@ public class LayerManager {
     private List<Layer> layers = new ArrayList<>();
     private int currentLayerIndex = 0;
     private final DrawingCanvas canvas;
+    private BufferedImage transparencyBackground;
+    private static final int CHECKERBOARD_SIZE = 8; // Size of each checkerboard square
+    private static final Color CHECKERBOARD_COLOR1 = new Color(204, 204, 204); // Light gray
+    private static final Color CHECKERBOARD_COLOR2 = new Color(255, 255, 255); // White
+    private boolean transparencyVisualizationEnabled = true;
+
 
     public LayerManager(DrawingCanvas canvas) {
         this.canvas = canvas;
@@ -18,6 +25,37 @@ public class LayerManager {
         layers.clear();
         layers.add(new Layer(width, height));
         currentLayerIndex = 0;
+        createTransparencyBackground(width, height);
+    }
+
+    private void createTransparencyBackground(int width, int height) {
+        transparencyBackground = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = transparencyBackground.createGraphics();
+
+        for (int x = 0; x < width; x += CHECKERBOARD_SIZE) {
+            for (int y = 0; y < height; y += CHECKERBOARD_SIZE) {
+                if ((x / CHECKERBOARD_SIZE + y / CHECKERBOARD_SIZE) % 2 == 0) {
+                    g2d.setColor(CHECKERBOARD_COLOR1);
+                } else {
+                    g2d.setColor(CHECKERBOARD_COLOR2);
+                }
+                g2d.fillRect(x, y, CHECKERBOARD_SIZE, CHECKERBOARD_SIZE);
+            }
+        }
+        g2d.dispose();
+    }
+
+    public BufferedImage getTransparencyBackground() {
+        return transparencyBackground;
+    }
+
+    public boolean isTransparencyVisualizationEnabled() {
+        return transparencyVisualizationEnabled;
+    }
+
+    public void setTransparencyVisualizationEnabled(boolean enabled) {
+        this.transparencyVisualizationEnabled = enabled;
+        canvas.repaint();
     }
 
     public void addNewLayer() {
@@ -66,6 +104,10 @@ public class LayerManager {
         this.layers = layers;
         if (currentLayerIndex >= layers.size()) {
             currentLayerIndex = layers.size() - 1;
+        }
+        if (!layers.isEmpty()) {
+            BufferedImage firstLayer = layers.get(0).getImage();
+            createTransparencyBackground(firstLayer.getWidth(), firstLayer.getHeight());
         }
         canvas.repaint();
     }

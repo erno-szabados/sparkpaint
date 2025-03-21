@@ -292,9 +292,14 @@ public class DrawingCanvas extends JPanel {
         Graphics2D g2d = (Graphics2D) g;
         g2d.scale(zoomFactor, zoomFactor);
 
-        // Clear the canvas with the background color
-        g2d.setColor(canvasBackground);
-        g2d.fillRect(0, 0, getWidth(), getHeight());
+        // Draw the transparency checkerboard if enabled
+        if (layerManager.isTransparencyVisualizationEnabled()) {
+            g2d.drawImage(layerManager.getTransparencyBackground(), 0, 0, null);
+        } else {
+            // Clear the canvas with the background color
+            g2d.setColor(canvasBackground);
+            g2d.fillRect(0, 0, getWidth(), getHeight());
+        }
 
         // Draw all visible layers from bottom to top
         List<Layer> layers = layerManager.getLayers();
@@ -304,7 +309,7 @@ public class DrawingCanvas extends JPanel {
             }
         }
 
-        // Draw the temporary canvas on top
+        // Rest of the painting code...
         if (tempCanvas != null) {
             g2d.drawImage(tempCanvas, 0, 0, null);
         }
