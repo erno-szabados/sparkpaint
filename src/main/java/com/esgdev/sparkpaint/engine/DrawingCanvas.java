@@ -36,14 +36,13 @@ public class DrawingCanvas extends JPanel {
         RECTANGLE_SELECTION,
         FREEHAND_SELECTION,
         FILL,
-        TEXT, EYEDROPPER
+        TEXT,
+        EYEDROPPER
     }
     public static final int DEFAULT_CANVAS_WIDTH = 800;
     public static final int DEFAULT_CANVAS_HEIGHT = 600;
     public static final int MAX_LINE_THICKNESS = 20;
 
-    private BufferedImage image;
-    private Graphics2D graphics;
     // Temporary canvas for drawing previews, tools will manage this, paintComponent will draw it
     private BufferedImage tempCanvas;
 
@@ -83,7 +82,7 @@ public class DrawingCanvas extends JPanel {
         MouseAdapter canvasMouseAdapter = new CanvasMouseAdapter();
         addMouseListener(canvasMouseAdapter);
         addMouseMotionListener(canvasMouseAdapter);
-        addMouseWheelListener(canvasMouseAdapter); // Redraw the JPanel with the updated zoom level
+        addMouseWheelListener(canvasMouseAdapter);
         initTools();
         createNewCanvas(DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, canvasBackground);
     }
@@ -103,39 +102,19 @@ public class DrawingCanvas extends JPanel {
         // Initialize layers
         layerManager.initializeLayers(width, height);
 
-        // Create new buffered image for the main canvas
-        BufferedImage newImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        // Fill the base layer with background color
+        BufferedImage baseLayer = layerManager.getLayers().get(0).getImage();
+        Graphics2D baseGraphics = baseLayer.createGraphics();
+        baseGraphics.setColor(canvasBackground);
+        baseGraphics.fillRect(0, 0, width, height);
+        baseGraphics.dispose();
 
-        // Get graphics context from new image
-        Graphics2D newGraphics = (Graphics2D) newImage.getGraphics();
-
-        // Fill with background color
-        newGraphics.setColor(canvasBackground);
-        newGraphics.fillRect(0, 0, width, height);
         notifyBackgroundColorChanged();
 
-        // Copy existing graphics settings if they exist
-        if (graphics != null) {
-            newGraphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                    graphics.getRenderingHint(RenderingHints.KEY_ANTIALIASING));
-            newGraphics.setColor(graphics.getColor());
-            newGraphics.setStroke(graphics.getStroke());
-            graphics.dispose();
-        } else {
-            // Initialize default settings for first creation
-            newGraphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                    RenderingHints.VALUE_ANTIALIAS_ON);
-            newGraphics.setColor(drawingColor);
-            newGraphics.setStroke(new BasicStroke(lineThickness));
-        }
-
-        image = newImage;
-        graphics = newGraphics;
-
-        zoomFactor = 1.0f;
 
         notifyDrawingColorChanged();
         notifyFillColorChanged();
+        zoomFactor = 1.0f;
         clearHistory();
         setPreferredSize(new Dimension(width, height));
         revalidate();
@@ -154,13 +133,17 @@ public class DrawingCanvas extends JPanel {
         return layerManager;
     }
 
-    public BufferedImage getImage() {
-        return image;
-    }
 
     public Graphics2D getCanvasGraphics() {
-        Graphics2D g2d = (Graphics2D) graphics.create();
-        g2d.scale(zoomFactor, zoomFactor);
+        // Get graphics from the current layer instead of the old image variable
+        BufferedImage currentLayerImage = layerManager.getCurrentLayerImage();
+        Graphics2D g2d = currentLayerImage.createGraphics();
+
+        // Set up graphics properties
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setColor(drawingColor);
+        g2d.setStroke(new BasicStroke(lineThickness));
         return g2d;
     }
 
@@ -170,7 +153,12 @@ public class DrawingCanvas extends JPanel {
 
     public BufferedImage getTempCanvas() {
         if (tempCanvas == null ) {
-            tempCanvas = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
+            // Use the dimensions of the current layer
+            BufferedImage currentLayer = layerManager.getCurrentLayerImage();
+            tempCanvas = new BufferedImage(
+                    currentLayer.getWidth(),
+                    currentLayer.getHeight(),
+                    BufferedImage.TYPE_INT_ARGB);
         }
         return tempCanvas;
     }
@@ -212,10 +200,6 @@ public class DrawingCanvas extends JPanel {
             this.drawingColor = color;
             notifyDrawingColorChanged();
         }
-
-        if (graphics != null) {
-            graphics.setColor(color);
-        }
     }
 
     public Color getDrawingColor() {
@@ -242,9 +226,6 @@ public class DrawingCanvas extends JPanel {
 
     public void setLineThickness(float thickness) {
         this.lineThickness = Math.min(thickness, MAX_LINE_THICKNESS);
-        if (graphics != null) {
-            graphics.setStroke(new BasicStroke(thickness));
-        }
     }
 
 
@@ -352,8 +333,10 @@ public class DrawingCanvas extends JPanel {
         if (zoomFactor <= 5.0f) {
             return;
         }
-        int scaledWidth = (int) (image.getWidth(null) * zoomFactor);
-        int scaledHeight = (int) (image.getHeight(null) * zoomFactor);
+        // Use the dimensions of the current layer instead of image
+        BufferedImage currentLayer = layerManager.getCurrentLayerImage();
+        int scaledWidth = (int) (currentLayer.getWidth() * zoomFactor);
+        int scaledHeight = (int) (currentLayer.getHeight() * zoomFactor);
         g2d.setColor(Color.LIGHT_GRAY);
         for (int x = 0; x <= scaledWidth; x += (int) zoomFactor) {
             g2d.drawLine(x, 0, x, scaledHeight);
@@ -496,9 +479,10 @@ public class DrawingCanvas extends JPanel {
     }
 
     private void updateCanvasAfterZoom() {
-        // Calculate new dimensions
-        int scaledWidth = (int) (image.getWidth(null) * zoomFactor);
-        int scaledHeight = (int) (image.getHeight(null) * zoomFactor);
+        // Calculate new dimensions using current layer instead of image
+        BufferedImage currentLayer = layerManager.getCurrentLayerImage();
+        int scaledWidth = (int) (currentLayer.getWidth() * zoomFactor);
+        int scaledHeight = (int) (currentLayer.getHeight() * zoomFactor);
         setPreferredSize(new Dimension(scaledWidth, scaledHeight));
     }
 
@@ -513,7 +497,6 @@ public class DrawingCanvas extends JPanel {
             if (tool != null) {
                 tool.mouseMoved(e);
             }
-            //cursorCircleCenter = DrawingTool.screenToWorld(zoomFactor,  e.getPoint());
             cursorShapeCenter = e.getPoint();
             repaint();
         }
@@ -524,8 +507,6 @@ public class DrawingCanvas extends JPanel {
             if (tool != null) {
                 tool.mouseDragged(e);
             }
-
-            //cursorCircleCenter = DrawingTool.screenToWorld(zoomFactor,  e.getPoint());
             cursorShapeCenter = e.getPoint();
             repaint();
         }
@@ -574,7 +555,6 @@ public class DrawingCanvas extends JPanel {
             if (tool != null) {
                 tool.mouseScrolled(e);
             }
-            //cursorCircleCenter = DrawingTool.screenToWorld(zoomFactor,  e.getPoint());
             cursorShapeCenter = e.getPoint();
             revalidate();
             repaint();
