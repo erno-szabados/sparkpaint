@@ -2,7 +2,6 @@ package com.esgdev.sparkpaint.engine.tools;
 
     import com.esgdev.sparkpaint.engine.DrawingCanvas;
     import com.esgdev.sparkpaint.engine.filters.SobelFilter;
-    import com.esgdev.sparkpaint.engine.selection.PathSelection;
     import com.esgdev.sparkpaint.engine.selection.Selection;
     import com.esgdev.sparkpaint.engine.selection.SelectionManager;
 
@@ -79,13 +78,11 @@ package com.esgdev.sparkpaint.engine.tools;
                 }
 
                 // If it's a path selection, create a clipping path
-                if (selection instanceof PathSelection) {
-                    // Create a copy of the path with adjusted coordinates
-                    GeneralPath originalPath = ((PathSelection) selection).getPath();
-                    clipPath = new GeneralPath(originalPath);
-                    AffineTransform transform = AffineTransform.getTranslateInstance(-bounds.x, -bounds.y);
-                    clipPath.transform(transform);
-                }
+                // Create a copy of the path with adjusted coordinates
+                GeneralPath originalPath = ((Selection) selection).getPath();
+                clipPath = new GeneralPath(originalPath);
+                AffineTransform transform = AffineTransform.getTranslateInstance(-bounds.x, -bounds.y);
+                clipPath.transform(transform);
             } else {
                 // Use the current layer instead of the main canvas image
                 targetImage = canvas.getLayerManager().getCurrentLayerImage();

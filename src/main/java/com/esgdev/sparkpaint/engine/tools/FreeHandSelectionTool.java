@@ -2,7 +2,6 @@ package com.esgdev.sparkpaint.engine.tools;
 
             import com.esgdev.sparkpaint.engine.DrawingCanvas;
             import com.esgdev.sparkpaint.engine.Layer;
-            import com.esgdev.sparkpaint.engine.selection.PathSelection;
             import com.esgdev.sparkpaint.engine.selection.Selection;
 
             import java.awt.*;
@@ -24,14 +23,14 @@ package com.esgdev.sparkpaint.engine.tools;
 
                 @Override
                 protected boolean isValidSelectionType(Selection selection) {
-                    return selection instanceof PathSelection;
+                    return selection != null;
                 }
 
                 @Override
                 protected void handleSelectionStart(MouseEvent e) {
                     Selection selection = selectionManager.getSelection();
 
-                    if (!(selection instanceof PathSelection) || !selection.hasOutline()) {
+                    if (selection == null || !selection.hasOutline()) {
                         // Start new path selection
                         startNewPath();
                     } else if (selection.contains(worldStartPoint)) {
@@ -47,7 +46,7 @@ package com.esgdev.sparkpaint.engine.tools;
                     currentPath.reset();
                     currentPath.moveTo(worldStartPoint.x, worldStartPoint.y);
                     isDrawingPath = true;
-                    Selection selection = new PathSelection(currentPath, null);
+                    Selection selection = new Selection(currentPath, null);
                     selectionManager.setSelection(selection);
                 }
 
@@ -63,7 +62,7 @@ package com.esgdev.sparkpaint.engine.tools;
                 @Override
                 public void mouseReleased(MouseEvent e) {
                     Selection selection = selectionManager.getSelection();
-                    if (!(selection instanceof PathSelection)) {
+                    if (selection == null) {
                         return;
                     }
 
@@ -111,8 +110,7 @@ package com.esgdev.sparkpaint.engine.tools;
 
                     // Draw the composite of all visible layers instead of just the canvas image
                     List<Layer> layers = canvas.getLayerManager().getLayers();
-                    for (int i = 0; i < layers.size(); i++) {
-                        Layer layer = layers.get(i);
+                    for (Layer layer : layers) {
                         if (layer.isVisible()) {
                             g2d.drawImage(layer.getImage(), -selectionBounds.x, -selectionBounds.y, null);
                         }
@@ -137,20 +135,20 @@ package com.esgdev.sparkpaint.engine.tools;
                     Point worldDragPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
                     Selection selection = selectionManager.getSelection();
 
-                    if (!(selection instanceof PathSelection)) {
+                    if (selection == null) {
                         return;
                     }
 
                     if (isDrawingPath) {
                         currentPath.lineTo(worldDragPoint.x, worldDragPoint.y);
                     } else if (isDragging) {
-                        updatePathLocation(worldDragPoint, (PathSelection)selection);
+                        updatePathLocation(worldDragPoint, (Selection)selection);
                     }
 
                     canvas.repaint();
                 }
 
-                private void updatePathLocation(Point worldDragPoint, PathSelection selection) {
+                private void updatePathLocation(Point worldDragPoint, Selection selection) {
                     // Calculate the new position
                     int dx = worldDragPoint.x - worldStartPoint.x;
                     int dy = worldDragPoint.y - worldStartPoint.y;
@@ -178,7 +176,7 @@ package com.esgdev.sparkpaint.engine.tools;
                 @Override
                 protected void clearSelectionOriginalLocation(Color color) {
                     Selection selection = selectionManager.getSelection();
-                    if (!(selection instanceof PathSelection) || originalSelectionLocation == null) {
+                    if (selection == null || originalSelectionLocation == null) {
                         return;
                     }
 
@@ -188,7 +186,7 @@ package com.esgdev.sparkpaint.engine.tools;
                     Graphics2D g2d = currentLayer.createGraphics();
                     g2d.setColor(color);
 
-                    GeneralPath originalPath = ((PathSelection) selection).getPath();
+                    GeneralPath originalPath = selection.getPath();
                     if (originalPath != null) {
                         g2d.fill(originalPath);
                     }
@@ -198,7 +196,7 @@ package com.esgdev.sparkpaint.engine.tools;
 
                 @Override
                 protected void drawSelectionToCanvas(Graphics2D g2d, Selection selection, BufferedImage content) {
-                    Rectangle bounds = ((PathSelection) selection).getPath().getBounds();
+                    Rectangle bounds = selection.getPath().getBounds();
                     g2d.drawImage(content, bounds.x, bounds.y, null);
                 }
             }

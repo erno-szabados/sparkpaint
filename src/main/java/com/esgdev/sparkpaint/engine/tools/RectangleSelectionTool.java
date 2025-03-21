@@ -2,7 +2,6 @@ package com.esgdev.sparkpaint.engine.tools;
 
                 import com.esgdev.sparkpaint.engine.DrawingCanvas;
                 import com.esgdev.sparkpaint.engine.Layer;
-                import com.esgdev.sparkpaint.engine.selection.PathSelection;
                 import com.esgdev.sparkpaint.engine.selection.Selection;
 
                 import java.awt.*;
@@ -22,14 +21,14 @@ package com.esgdev.sparkpaint.engine.tools;
 
                     @Override
                     protected boolean isValidSelectionType(Selection selection) {
-                        return selection instanceof PathSelection;
+                        return selection != null;
                     }
 
                     @Override
                     protected void handleSelectionStart(MouseEvent e) {
                         Selection selection = selectionManager.getSelection();
                         if (selection == null) {
-                            selection = new PathSelection(new Rectangle(), null);
+                            selection = new Selection(new Rectangle(), null);
                             selectionManager.setSelection(selection);
                         }
 
@@ -47,7 +46,7 @@ package com.esgdev.sparkpaint.engine.tools;
 
                     private void startNewRectangle() {
                         Rectangle initialRect = new Rectangle(worldStartPoint.x, worldStartPoint.y, 0, 0);
-                        Selection selection = PathSelection.createRectangular(initialRect, null);
+                        Selection selection = Selection.createRectangular(initialRect, null);
                         selectionManager.setSelection(selection);
                         originalSelectionLocation = null;
                     }
@@ -123,8 +122,7 @@ package com.esgdev.sparkpaint.engine.tools;
 
                         // Draw the composite of all visible layers instead of just the canvas image
                         List<Layer> layers = canvas.getLayerManager().getLayers();
-                        for (int i = 0; i < layers.size(); i++) {
-                            Layer layer = layers.get(i);
+                        for (Layer layer : layers) {
                             if (layer.isVisible()) {
                                 g2d.drawImage(layer.getImage(),
                                         -selectionRectangle.x,
@@ -141,7 +139,7 @@ package com.esgdev.sparkpaint.engine.tools;
                     @Override
                     public void mouseDragged(MouseEvent e) {
                         Point worldDragPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
-                        PathSelection selection = (PathSelection) selectionManager.getSelection();
+                        Selection selection = selectionManager.getSelection();
 
                         Rectangle selectionRectangle = selection.getBounds();
                         if (selectionRectangle == null) return;
@@ -156,7 +154,7 @@ package com.esgdev.sparkpaint.engine.tools;
                         canvas.repaint();
                     }
 
-                    private void updateRectangleLocation(Point worldDragPoint, PathSelection selection) {
+                    private void updateRectangleLocation(Point worldDragPoint, Selection selection) {
                         int newX = worldDragPoint.x - worldDragOffset.x;
                         int newY = worldDragPoint.y - worldDragOffset.y;
                         GeneralPath path = selection.getPath();
@@ -167,7 +165,7 @@ package com.esgdev.sparkpaint.engine.tools;
                         path.transform(transform);
                     }
 
-                    private void updateRectangleSize(Point worldDragPoint, PathSelection selection) {
+                    private void updateRectangleSize(Point worldDragPoint, Selection selection) {
                         int x = Math.min(worldStartPoint.x, worldDragPoint.x);
                         int y = Math.min(worldStartPoint.y, worldDragPoint.y);
                         int width = Math.abs(worldDragPoint.x - worldStartPoint.x);

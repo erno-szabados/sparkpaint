@@ -5,10 +5,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class LayerManager {
-    // Add to DrawingCanvas class
     private List<Layer> layers = new ArrayList<>();
     private int currentLayerIndex = 0;
-    private DrawingCanvas canvas;
+    private final DrawingCanvas canvas;
 
     public LayerManager(DrawingCanvas canvas) {
         this.canvas = canvas;
@@ -88,28 +87,4 @@ public class LayerManager {
     public BufferedImage getCurrentLayerImage() {
         return layers.get(currentLayerIndex).getImage();
     }
-
-    // TODO integrate this with the canvas paintComponent method
-//    // Update the paint method to composite all visible layers
-//    @Override
-//    public void paintComponent(Graphics g) {
-//        super.paintComponent(g);
-//
-//        Graphics2D g2d = (Graphics2D) g;
-//        g2d.setColor(Color.WHITE);
-//        g2d.fillRect(0, 0, getWidth(), getHeight());
-//
-//        // Apply zoom transformation
-//        g2d.scale(zoomFactor, zoomFactor);
-//
-//        // Draw all visible layers from bottom to top
-//        for (Layer layer : layers) {
-//            if (layer.isVisible()) {
-//                g2d.drawImage(layer.getImage(), 0, 0, this);
-//            }
-//        }
-//
-//        // Draw other UI elements (selection, etc.)
-//        // ...
-//    }
 }

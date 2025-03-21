@@ -4,7 +4,6 @@ package com.esgdev.sparkpaint.engine.tools;
     import com.esgdev.sparkpaint.engine.selection.Selection;
     import com.esgdev.sparkpaint.engine.selection.SelectionManager;
 
-    import javax.swing.*;
     import java.awt.*;
     import java.awt.event.MouseEvent;
     import java.awt.event.MouseWheelEvent;
@@ -150,7 +149,6 @@ package com.esgdev.sparkpaint.engine.tools;
             int width = Math.abs(end.x - start.x);
             int height = Math.abs(end.y - start.y);
 
-            // If shift is pressed make it a perfect circle
             if (width > height) {
                 height = width;
                 if (end.y < start.y) {

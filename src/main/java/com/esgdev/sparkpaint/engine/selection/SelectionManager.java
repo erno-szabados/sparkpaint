@@ -46,7 +46,7 @@ public class SelectionManager {
             Graphics2D g2d = content.createGraphics();
             g2d.drawImage(compositeImage, 0, 0, null);
             g2d.dispose();
-            selection = new PathSelection(rect, content);
+            selection = new Selection(rect, content);
             canvas.notifyClipboardStateChanged();
             canvas.repaint();
         }
@@ -75,26 +75,21 @@ public class SelectionManager {
         return composite;
     }
 
+    /**
+     * Deletes the current selection from the current layer.
+     */
     public void deleteSelection() {
-        // If no selection or selection has no content, nothing to delete
         if (selection == null || selection.getBounds() == null) {
             return;
         }
 
         canvas.saveToUndoStack();
         Graphics2D g2d = canvas.getLayerManager().getCurrentLayerImage().createGraphics();
-
-        // Use CLEAR composite to create transparency instead of filling with background color
         g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.CLEAR));
 
-        if (selection instanceof PathSelection) {
-            GeneralPath path = ((PathSelection) selection).getPath();
-            if (path != null) {
-                g2d.fill(path);
-            }
-        } else {
-            // Fallback to using bounds rectangle
-            g2d.fill(selection.getBounds());
+        GeneralPath path = selection.getPath();
+        if (path != null) {
+            g2d.fill(path);
         }
 
         g2d.dispose();
@@ -133,14 +128,12 @@ public class SelectionManager {
         Graphics2D g2d = content.createGraphics();
 
         // Apply clipping based on selection type
-        if (selection instanceof PathSelection) {
-            // For path selection, create translated path for clipping
-            GeneralPath path = ((PathSelection) selection).getPath();
-            if (path != null) {
-                GeneralPath translatedPath = new GeneralPath(path);
-                translatedPath.transform(AffineTransform.getTranslateInstance(-bounds.x, -bounds.y));
-                g2d.setClip(translatedPath);
-            }
+        // For path selection, create translated path for clipping
+        GeneralPath path = selection.getPath();
+        if (path != null) {
+            GeneralPath translatedPath = new GeneralPath(path);
+            translatedPath.transform(AffineTransform.getTranslateInstance(-bounds.x, -bounds.y));
+            g2d.setClip(translatedPath);
         }
 
         return g2d;

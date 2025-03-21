@@ -46,7 +46,6 @@ package com.esgdev.sparkpaint.engine.tools;
                 if (startPoint == null) return;
 
                 SelectionManager selectionManager = canvas.getSelectionManager();
-                Selection selection = selectionManager.getSelection();
 
                 // Get current point in appropriate coordinate system
                 Point point = selectionManager.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());

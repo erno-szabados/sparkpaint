@@ -4,7 +4,6 @@ import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.selection.Selection;
 import com.esgdev.sparkpaint.engine.selection.SelectionManager;
 
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
@@ -48,7 +47,6 @@ public class RectangleTool implements DrawingTool {
         if (startPoint == null) return;
 
         SelectionManager selectionManager = canvas.getSelectionManager();
-        Selection selection = selectionManager.getSelection();
 
         // Get current point in appropriate coordinate system
         Point point = selectionManager.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());

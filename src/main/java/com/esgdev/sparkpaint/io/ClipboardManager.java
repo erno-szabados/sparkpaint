@@ -1,7 +1,6 @@
 package com.esgdev.sparkpaint.io;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
-import com.esgdev.sparkpaint.engine.selection.PathSelection;
 import com.esgdev.sparkpaint.engine.selection.Selection;
 import com.esgdev.sparkpaint.engine.selection.SelectionManager;
 import com.esgdev.sparkpaint.engine.tools.DrawingTool;
@@ -85,8 +84,8 @@ public class ClipboardManager {
             Rectangle selectionRectangle = new Rectangle(pasteX, pasteY, pastedImage.getWidth(), pastedImage.getHeight());
             GeneralPath path = new GeneralPath(selectionRectangle);
 
-            Selection selection = new PathSelection(selectionRectangle, pastedImage);
-            ((PathSelection) selection).setPath(path);
+            Selection selection = new Selection(selectionRectangle, pastedImage);
+            selection.setPath(path);
             selectionManager.setSelection(selection);
 
             canvas.repaint();
@@ -144,14 +143,9 @@ public class ClipboardManager {
           g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.CLEAR));
 
           // Get the selection shape and fill it with transparency
-          if (selection instanceof PathSelection) {
-              GeneralPath path = ((PathSelection) selection).getPath();
-              if (path != null) {
-                  g2d.fill(path);
-              }
-          } else {
-              // Fallback to using bounds rectangle
-              g2d.fill(selection.getBounds());
+          GeneralPath path = selection.getPath();
+          if (path != null) {
+              g2d.fill(path);
           }
 
           g2d.dispose();
