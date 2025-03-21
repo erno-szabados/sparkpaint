@@ -37,17 +37,24 @@ public class LayerPanel extends JPanel {
 
         // Buttons panel
         JPanel buttonsPanel = new JPanel();
-        buttonsPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 5, 0));
+        buttonsPanel.setLayout(new GridLayout(1, 4, 5, 0)); // 1 row, 4 columns, with 5px horizontal gap
 
-        JButton addButton = createButton("Add", e -> addLayer());
-        JButton deleteButton = createButton("Delete", e -> deleteLayer());
-        JButton moveUpButton = createButton("↑", e -> moveLayerUp());
-        JButton moveDownButton = createButton("↓", e -> moveLayerDown());
+
+
+        JButton addButton = createButton(IconLoader.loadAndScaleIcon("add.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight)
+                , "Add new layer", e -> addLayer());
+        JButton deleteButton = createButton(IconLoader.loadAndScaleIcon("remove.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight)
+                , "Remove layer", e -> deleteLayer());
+        JButton moveUpButton = createButton(IconLoader.loadAndScaleIcon("arrow_up.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight)
+                , "Move layer up", e -> moveLayerUp());
+        JButton moveDownButton = createButton(IconLoader.loadAndScaleIcon("arrow_down.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight)
+                , "Move layer down", e -> moveLayerDown());
 
         buttonsPanel.add(addButton);
         buttonsPanel.add(deleteButton);
         buttonsPanel.add(moveUpButton);
         buttonsPanel.add(moveDownButton);
+        buttonsPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
 
         // Add components to this panel
         add(scrollPane, BorderLayout.CENTER);
@@ -57,10 +64,11 @@ public class LayerPanel extends JPanel {
         refreshLayerList();
     }
 
-    private JButton createButton(String text, Consumer<ActionEvent> action) {
-        JButton button = new JButton(text);
+    private JButton createButton(Icon icon, String tooltip, Consumer<ActionEvent> action) {
+        JButton button = new JButton(icon);
         button.addActionListener(action::accept);
         button.setFocusPainted(false);
+        button.setToolTipText(tooltip);
         return button;
     }
 

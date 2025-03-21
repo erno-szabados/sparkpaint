@@ -10,8 +10,8 @@ import java.awt.event.ActionEvent;
 import java.util.Enumeration;
 
 public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, ToolChangeListener {
-    private static final int IconWidth = 24;
-    private static final int IconHeight = 24;
+    static final int IconWidth = 24;
+    static final int IconHeight = 24;
     private final StatusMessageHandler statusMessageHandler;
     private final DrawingCanvas canvas;
     private final JColorChooser colorChooser;
@@ -236,7 +236,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, 
 
     private JToggleButton createFreehandSelectButton() {
         // FIXME new icon
-        ImageIcon icon = IconLoader.loadAndScaleIcon("freehand-select.png", IconWidth, IconHeight);
+        ImageIcon icon = IconLoader.loadAndScaleIcon("lasso.png", IconWidth, IconHeight);
         JToggleButton button = new JToggleButton(icon);
         button.putClientProperty("tool", DrawingCanvas.Tool.FREEHAND_SELECTION);
         button.setToolTipText("Freehand Selection Tool");
