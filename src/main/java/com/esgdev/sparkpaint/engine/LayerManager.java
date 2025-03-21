@@ -45,6 +45,10 @@ public class LayerManager {
         g2d.dispose();
     }
 
+    public DrawingCanvas getCanvas() {
+        return canvas;
+    }
+
     public BufferedImage getTransparencyBackground() {
         return transparencyBackground;
     }

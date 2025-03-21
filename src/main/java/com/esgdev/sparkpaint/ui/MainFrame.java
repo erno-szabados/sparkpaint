@@ -145,7 +145,8 @@ public class MainFrame extends JFrame {
     }
 
     public void setStatusMessage(String message) {
-        statusMessage.setText(message);
+        if (statusMessage != null)
+            statusMessage.setText(message);
     }
 
     private void addCursorTracking() {

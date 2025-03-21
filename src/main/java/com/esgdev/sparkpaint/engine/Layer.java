@@ -6,17 +6,18 @@ public class Layer {
     private BufferedImage image;
     private boolean visible;
     private String name;
+    private static int layerCounter = 1;
 
     public Layer(int width, int height) {
         this.image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         this.visible = true;
-        this.name = "Layer";
+        this.name = "Layer " + layerCounter++;
     }
 
     public Layer(BufferedImage image) {
         this.image = image;
         this.visible = true;
-        this.name = "Layer";
+        this.name = "Layer " + layerCounter++;
     }
 
     public BufferedImage getImage() {
@@ -41,5 +42,10 @@ public class Layer {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    // Reset counter when loading a new project
+    public static void resetCounter() {
+        layerCounter = 1;
     }
 }
