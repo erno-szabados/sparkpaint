@@ -108,14 +108,25 @@ public class PathSelection implements Selection {
     }
 
     @Override
-    public void delete(Graphics2D g2d, Color canvasBackground) {
-        if (path == null) {
-            return;
+    // In Selection.java
+    public void delete(Graphics2D g2d, Color background) {
+        // Use AlphaComposite.CLEAR instead of filling with background color
+        Composite originalComposite = g2d.getComposite();
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.CLEAR));
+
+        // Fill the selection area with transparency
+        if (this instanceof PathSelection) {
+            GeneralPath path = ((PathSelection) this).getPath();
+            if (path != null) {
+                g2d.fill(path);
+            } else {
+                g2d.fill(getBounds());
+            }
+        } else {
+            g2d.fill(getBounds());
         }
-        // Set the fill color to the canvas background
-        g2d.setColor(canvasBackground);
-        // Fill the path with the background color
-        g2d.fill(path);
+
+        g2d.setComposite(originalComposite);
     }
 
 

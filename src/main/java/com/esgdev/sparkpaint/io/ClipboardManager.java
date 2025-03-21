@@ -133,15 +133,28 @@ public class ClipboardManager {
         }
     }
 
-    private void eraseSelection() {
-        canvas.saveToUndoStack();
-        Selection selection = selectionManager.getSelection();
+  public void eraseSelection() {
+      canvas.saveToUndoStack();
+      Selection selection = selectionManager.getSelection();
 
-        if (selection != null && selection.getBounds() != null) {
-            // Use current layer graphics instead of canvas graphics
-            Graphics2D g2d = canvas.getLayerManager().getCurrentLayerImage().createGraphics();
-            selection.delete(g2d, canvas.getCanvasBackground());
-            g2d.dispose();
-        }
-    }
+      if (selection != null && selection.getBounds() != null) {
+          // Use current layer graphics instead of canvas graphics
+          Graphics2D g2d = canvas.getLayerManager().getCurrentLayerImage().createGraphics();
+          // Use clear composite instead of filling with background color
+          g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.CLEAR));
+
+          // Get the selection shape and fill it with transparency
+          if (selection instanceof PathSelection) {
+              GeneralPath path = ((PathSelection) selection).getPath();
+              if (path != null) {
+                  g2d.fill(path);
+              }
+          } else {
+              // Fallback to using bounds rectangle
+              g2d.fill(selection.getBounds());
+          }
+
+          g2d.dispose();
+      }
+  }
 }

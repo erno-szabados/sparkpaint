@@ -77,20 +77,30 @@ public class SelectionManager {
 
     public void deleteSelection() {
         // If no selection or selection has no content, nothing to delete
-        if (selection == null || selection.getContent() == null) {
+        if (selection == null || selection.getBounds() == null) {
             return;
         }
 
-        // Even if selection appears empty, we should still process it if it has bounds
-        if (selection.getBounds() != null) {
-            canvas.saveToUndoStack();
-            Graphics2D g2d = canvas.getLayerManager().getCurrentLayerImage().createGraphics();
-            selection.delete(g2d, canvas.getCanvasBackground());
-            g2d.dispose();
-            selection.clear();
-            canvas.notifyClipboardStateChanged();
-            canvas.repaint();
+        canvas.saveToUndoStack();
+        Graphics2D g2d = canvas.getLayerManager().getCurrentLayerImage().createGraphics();
+
+        // Use CLEAR composite to create transparency instead of filling with background color
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.CLEAR));
+
+        if (selection instanceof PathSelection) {
+            GeneralPath path = ((PathSelection) selection).getPath();
+            if (path != null) {
+                g2d.fill(path);
+            }
+        } else {
+            // Fallback to using bounds rectangle
+            g2d.fill(selection.getBounds());
         }
+
+        g2d.dispose();
+        selection.clear();
+        canvas.notifyClipboardStateChanged();
+        canvas.repaint();
     }
 
     public void rotateSelection(int degrees) {
