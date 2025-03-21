@@ -87,6 +87,13 @@ public class RectangleSelectionTool extends AbstractSelectionTool {
     }
 
     private void finalizeNewSelection(Selection selection, Rectangle selectionRectangle) {
+        // Check if selection is too small and clear if so
+        if (isSelectionTooSmall(selectionRectangle)) {
+            selectionManager.clearSelection();
+            originalSelectionLocation = null;
+            return;
+        }
+
         canvas.notifyClipboardStateChanged();
 
         if (selectionRectangle.width > 0 && selectionRectangle.height > 0) {

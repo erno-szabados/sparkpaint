@@ -75,25 +75,22 @@ public class FreeHandSelectionTool extends AbstractSelectionTool {
         currentPath.closePath();
         selectionBounds = currentPath.getBounds();
 
-        if (selectionBounds.width > 0 && selectionBounds.height > 0) {
-            BufferedImage selectionContent = createSelectionImage();
-
-            // Use the parent method to create transparent version
-            BufferedImage transparentContent = createTransparentSelectionImage(selectionContent);
-
-            // Always make selections transparent
-            selection.setTransparent(true);
-            selection.setContent(transparentContent);
-
-            originalSelectionLocation = new Point(selectionBounds.x, selectionBounds.y);
-
-            // Use parent method to clear with transparency
-            clearOriginalSelectionAreaWithTransparency();
-            canvas.notifyClipboardStateChanged();
-        } else {
-            selectionManager.getSelection().setContent(null);
+        // Check if selection is too small and clear if so
+        if (isSelectionTooSmall(selectionBounds)) {
+            selectionManager.clearSelection();
             originalSelectionLocation = null;
+            return;
         }
+
+        BufferedImage selectionContent = createSelectionImage();
+        BufferedImage transparentContent = createTransparentSelectionImage(selectionContent);
+
+        selection.setTransparent(true);
+        selection.setContent(transparentContent);
+        originalSelectionLocation = new Point(selectionBounds.x, selectionBounds.y);
+
+        clearOriginalSelectionAreaWithTransparency();
+        canvas.notifyClipboardStateChanged();
     }
 
     private BufferedImage createSelectionImage() {

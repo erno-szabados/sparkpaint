@@ -83,24 +83,6 @@ public abstract class AbstractSelectionTool implements DrawingTool {
         canvas.setCursor(crosshairCursor);
     }
 
-    protected void applyTransparencyToContent(BufferedImage content, Color transparentColor) {
-        for (int y = 0; y < content.getHeight(); y++) {
-            for (int x = 0; x < content.getWidth(); x++) {
-                int rgba = content.getRGB(x, y);
-
-                // Skip already transparent pixels
-                if ((rgba >>> 24) == 0) continue;
-
-                Color pixelColor = new Color(rgba, true);
-                if (pixelColor.getRGB() == transparentColor.getRGB()) {
-                    content.setRGB(x, y, 0x00000000);
-                } else {
-                    content.setRGB(x, y, rgba | 0xFF000000);
-                }
-            }
-        }
-    }
-
     public void copySelectionToPermanentCanvas() {
         Selection selection = selectionManager.getSelection();
         if (selection == null) {
@@ -162,6 +144,12 @@ public abstract class AbstractSelectionTool implements DrawingTool {
         g2d.dispose();
 
         return transparentContent;
+    }
+
+    // Add this method to AbstractSelectionTool.java
+    protected boolean isSelectionTooSmall(Rectangle bounds) {
+        // Consider selections smaller than 3x3 pixels as "too small"
+        return bounds == null || bounds.width < 3 || bounds.height < 3;
     }
 
     // Abstract methods for specialized tool behavior
