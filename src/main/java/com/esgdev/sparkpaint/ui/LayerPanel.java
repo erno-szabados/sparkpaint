@@ -39,8 +39,6 @@ public class LayerPanel extends JPanel {
         JPanel buttonsPanel = new JPanel();
         buttonsPanel.setLayout(new GridLayout(1, 4, 5, 0)); // 1 row, 4 columns, with 5px horizontal gap
 
-
-
         JButton addButton = createButton(IconLoader.loadAndScaleIcon("add.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight)
                 , "Add new layer", e -> addLayer());
         JButton deleteButton = createButton(IconLoader.loadAndScaleIcon("remove.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight)
@@ -109,7 +107,7 @@ public class LayerPanel extends JPanel {
         }
     }
 
-    public void refreshLayerList() {
+   public void refreshLayerList() {
         layersContainer.removeAll();
 
         List<Layer> layers = layerManager.getLayers();
@@ -126,7 +124,7 @@ public class LayerPanel extends JPanel {
                     BorderFactory.createMatteBorder(0, 0, 1, 0, Color.LIGHT_GRAY),
                     new EmptyBorder(3, 3, 3, 3)));
 
-            // Visibility toggle checkbox
+            // Left panel for visibility toggle
             JCheckBox visibilityCheckBox = new JCheckBox();
             visibilityCheckBox.setSelected(layer.isVisible());
             visibilityCheckBox.addActionListener(e -> {
@@ -134,11 +132,28 @@ public class LayerPanel extends JPanel {
                 canvas.repaint();
             });
 
-            // Layer name and selection
+            // Center panel for layer name
             JPanel namePanel = new JPanel();
             namePanel.setLayout(new BorderLayout());
             JLabel nameLabel = new JLabel(layer.getName() + " " + (layerIndex + 1));
             namePanel.add(nameLabel, BorderLayout.CENTER);
+
+            // Right panel for delete button
+            JButton deleteLayerButton = new JButton(IconLoader.loadAndScaleIcon("remove.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight));
+            deleteLayerButton.setBorderPainted(true);
+            deleteLayerButton.setContentAreaFilled(false);
+            deleteLayerButton.setFocusPainted(false);
+            deleteLayerButton.setToolTipText("Delete this layer");
+            deleteLayerButton.addActionListener(e -> {
+                if (layerManager.getLayerCount() <= 1) {
+                    statusMessageHandler.setStatusMessage("Cannot delete the only layer");
+                    return;
+                }
+
+                layerManager.deleteLayer(layerIndex);
+                refreshLayerList();
+                statusMessageHandler.setStatusMessage("Layer deleted");
+            });
 
             // Make the layer panel selectable
             Color defaultColor = layerPanel.getBackground();
@@ -172,6 +187,7 @@ public class LayerPanel extends JPanel {
 
             layerPanel.add(visibilityCheckBox, BorderLayout.WEST);
             layerPanel.add(namePanel, BorderLayout.CENTER);
+            layerPanel.add(deleteLayerButton, BorderLayout.EAST);
 
             layersContainer.add(layerPanel);
         }

@@ -74,6 +74,26 @@ public class LayerManager {
         canvas.repaint();
     }
 
+    public void deleteLayer(int index) {
+        if (index < 0 || index >= layers.size() || layers.size() <= 1) {
+            return;
+        }
+
+        layers.remove(index);
+
+        // Adjust current layer index if needed
+        if (currentLayerIndex >= layers.size()) {
+            currentLayerIndex = layers.size() - 1;
+        } else if (currentLayerIndex > index) {
+            // If we deleted a layer above the current one, adjust the index
+            currentLayerIndex--;
+        }
+
+        canvas.repaint();
+        // Notify change
+        //notifyLayersChanged();
+    }
+
     public boolean moveCurrentLayerUp() {
         if (currentLayerIndex >= layers.size() - 1) return false;
 
