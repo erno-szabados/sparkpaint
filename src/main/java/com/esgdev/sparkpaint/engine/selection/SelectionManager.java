@@ -16,7 +16,7 @@ import java.util.List;
  */
 public class SelectionManager {
     private final DrawingCanvas canvas;
-    private Selection selection;
+    public Selection selection;
 
     public SelectionManager(DrawingCanvas canvas) {
         this.canvas = canvas;
@@ -109,9 +109,29 @@ public class SelectionManager {
         canvas.repaint();
     }
 
+    /**
+     * Rotates the selection content by the specified degrees.
+     *
+     * @param degrees The angle in degrees to rotate the selection.
+     */
     public void rotateSelection(int degrees) {
         if (selection == null || selection.getContent() == null) return;
         selection.rotate(degrees);
+        canvas.repaint();
+    }
+
+    /**
+     * Flips the selection content either horizontally or vertically.
+     *
+     * @param horizontal true to flip horizontally, false to flip vertically
+     */
+    public void flipSelection(boolean horizontal) {
+        if (selection == null || selection.getContent() == null) return;
+        if (horizontal) {
+            selection.flipHorizontal();
+        } else {
+            selection.flipVertical();
+        }
         canvas.repaint();
     }
 

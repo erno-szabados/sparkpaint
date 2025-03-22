@@ -298,7 +298,7 @@ public class DrawingCanvas extends JPanel {
 
         Selection selection = selectionManager.getSelection();
         if (selection != null) {
-            selection.drawSelectionContent(g2d, zoomFactor);
+            selection.drawSelectionContent(g2d);
         }
 
         // Reset scale for grid drawing

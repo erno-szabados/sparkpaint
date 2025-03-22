@@ -23,6 +23,7 @@ public class DrawingSettingsToolBox extends Box implements ToolChangeListener {
         this.settingsPanel.setLayout(new BoxLayout(settingsPanel, BoxLayout.Y_AXIS));
         JPanel containerPanel = new JPanel(new BorderLayout());
         containerPanel.add(this.settingsPanel, BorderLayout.CENTER);
+        this.setBorder(BorderFactory.createTitledBorder("Tool Settings"));
 
         initializeToolSettings(canvas);
         add(containerPanel);
@@ -37,7 +38,7 @@ public class DrawingSettingsToolBox extends Box implements ToolChangeListener {
         toolSettings.put(DrawingCanvas.Tool.PENCIL, new PencilToolSettings(canvas));
         toolSettings.put(DrawingCanvas.Tool.BRUSH, new BrushToolSettings(canvas));
         toolSettings.put(DrawingCanvas.Tool.FILL, new FillToolSettings(canvas));
-        toolSettings.put(DrawingCanvas.Tool.RECTANGLE_SELECTION, new SelectionToolSettings(canvas));
+        toolSettings.put(DrawingCanvas.Tool.RECTANGLE_SELECTION, new RectangleSelectionToolSettings(canvas));
         toolSettings.put(DrawingCanvas.Tool.TEXT, new TextToolSettings(canvas));
         toolSettings.put(DrawingCanvas.Tool.FREEHAND_SELECTION, new FreehandSelectionToolSettings(canvas));
 

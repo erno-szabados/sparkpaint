@@ -19,6 +19,24 @@ public class RectangleSelectionTool extends AbstractSelectionTool {
         super(canvas);
     }
 
+    /**
+     * Creates a rectangular selection based on the given rectangle and content.
+     *
+     * @param rect    The rectangle defining the selection area.
+     * @param content The image content of the selection.
+     * @return A new Selection object representing the rectangular selection.
+     */
+    public static Selection createRectangularSelection(Rectangle rect, BufferedImage content) {
+        GeneralPath path = new GeneralPath();
+        path.moveTo(rect.x, rect.y);
+        path.lineTo(rect.x + rect.width, rect.y);
+        path.lineTo(rect.x + rect.width, rect.y + rect.height);
+        path.lineTo(rect.x, rect.y + rect.height);
+        path.closePath();
+
+        return new Selection(path, content);
+    }
+
     @Override
     public void mouseReleased(MouseEvent e) {
         Selection selection = selectionManager.getSelection();
@@ -169,7 +187,7 @@ public class RectangleSelectionTool extends AbstractSelectionTool {
 
     private void startNewRectangle() {
         Rectangle initialRect = new Rectangle(worldStartPoint.x, worldStartPoint.y, 0, 0);
-        Selection selection = Selection.createRectangular(initialRect, null);
+        Selection selection = createRectangularSelection(initialRect, null);
         selectionManager.setSelection(selection);
         originalSelectionLocation = null;
     }

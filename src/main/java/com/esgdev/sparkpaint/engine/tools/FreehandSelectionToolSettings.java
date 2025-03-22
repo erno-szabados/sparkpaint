@@ -6,21 +6,34 @@ import com.esgdev.sparkpaint.ui.IconLoader;
 import javax.swing.*;
 import java.awt.*;
 
+/**
+ * FreehandSelectionToolSettings is a class that provides the settings panel for the Freehand Selection Tool.
+ * It allows users to configure the tool's settings, including rotation and mirroring options.
+ */
 public class FreehandSelectionToolSettings extends BaseToolSettings {
     private static final int ICON_SIZE = 16;
     private final FreeHandSelectionTool freehandSelectionTool;
     private final JCheckBox transparencyCheckbox;
 
 
+    /**
+     * Constructor for FreehandSelectionToolSettings.
+     *
+     * @param canvas The drawing canvas where the tool is applied.
+     */
     public FreehandSelectionToolSettings(DrawingCanvas canvas) {
         super(canvas);
         this.freehandSelectionTool = (FreeHandSelectionTool) canvas.getTool(DrawingCanvas.Tool.FREEHAND_SELECTION);
         this.transparencyCheckbox = new JCheckBox("Transparent Background");
         this.transparencyCheckbox.setToolTipText("Make selection background transparent");
-
     }
 
-   @Override
+    /**
+     * Creates the settings panel for the Freehand Selection Tool.
+     *
+     * @return A JPanel containing the settings components.
+     */
+    @Override
     public JComponent createSettingsPanel() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -36,10 +49,22 @@ public class FreehandSelectionToolSettings extends BaseToolSettings {
         rotateRightButton.setToolTipText("Rotate Right 90°");
         rotateRightButton.addActionListener(e -> canvas.getSelectionManager().rotateSelection(90));
 
-        JPanel rotationPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        rotationPanel.add(rotateLeftButton);
-        rotationPanel.add(rotateRightButton);
-        rotationPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JButton horizontalMirrorButton = new JButton();
+        horizontalMirrorButton.setIcon(IconLoader.loadAndScaleIcon("horizontal-mirror.png", ICON_SIZE, ICON_SIZE));
+        horizontalMirrorButton.setToolTipText("Mirror Horizontally");
+        horizontalMirrorButton.addActionListener(e -> canvas.getSelectionManager().flipSelection(true));
+
+        JButton verticalMirrorButton = new JButton();
+        verticalMirrorButton.setIcon(IconLoader.loadAndScaleIcon("vertical-mirror.png", ICON_SIZE, ICON_SIZE));
+        verticalMirrorButton.setToolTipText("Mirror Vertically");
+        verticalMirrorButton.addActionListener(e -> canvas.getSelectionManager().flipSelection(false));
+
+        JPanel transformationPanel = new JPanel(new GridLayout(1, 4, 5, 5));
+        transformationPanel.add(rotateLeftButton);
+        transformationPanel.add(rotateRightButton);
+        transformationPanel.add(horizontalMirrorButton);
+        transformationPanel.add(verticalMirrorButton);
+        transformationPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         // Configure transparency checkbox
         transparencyCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -48,7 +73,7 @@ public class FreehandSelectionToolSettings extends BaseToolSettings {
         );
 
         // Add components to panel with proper spacing
-        panel.add(rotationPanel);
+        panel.add(transformationPanel);
         panel.add(Box.createVerticalStrut(5));
         panel.add(transparencyCheckbox);
         panel.add(Box.createVerticalGlue());

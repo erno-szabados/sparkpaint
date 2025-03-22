@@ -6,18 +6,33 @@ import java.awt.geom.GeneralPath;
 import java.awt.image.BufferedImage;
 
 
-/// Represents the selection area and its content in the drawing canvas.
+/**
+ * Represents a selection area in a drawing canvas.
+ * The selection can be defined by a path (GeneralPath) and can contain an image.
+ */
 public class Selection {
     private GeneralPath path;
     private BufferedImage content;
     private boolean transparent;
 
+    /**
+     * Creates a new Selection object with the specified rectangle and content.
+     *
+     * @param rect    The rectangle defining the selection area.
+     * @param content The image content of the selection.
+     */
     public Selection(Rectangle rect, BufferedImage content) {
         this.path = new GeneralPath();
         path.append(rect, false);
         this.content = content;
     }
 
+    /**
+     * Creates a new Selection object with the specified path and content.
+     *
+     * @param path    The GeneralPath defining the selection area.
+     * @param content The image content of the selection.
+     */
     public Selection(GeneralPath path, BufferedImage content) {
         this.path = path;
         this.content = content;
@@ -67,6 +82,11 @@ public class Selection {
     }
 
 
+    /**
+     * Rotates the selection content and path by the specified degrees.
+     *
+     * @param degrees The angle in degrees to rotate the selection.
+     */
     public void rotate(int degrees) {
         if (content == null) return;
 
@@ -99,19 +119,27 @@ public class Selection {
 
 
     public Rectangle getBounds() {
-        if (path != null) {
-            return path.getBounds();
-        }
-        return null;
+        return path != null ? path.getBounds() : null;
     }
 
-    public void drawSelectionContent(Graphics2D g2d, double zoomFactor) {
+    /**
+     * Draws the selection content on the provided Graphics2D object.
+     *
+     * @param g2d The Graphics2D object to draw on.
+     */
+    public void drawSelectionContent(Graphics2D g2d) {
         if (content != null && path != null) {
             Rectangle bounds = path.getBounds();
             g2d.drawImage(content, bounds.x, bounds.y, null);
         }
     }
 
+    /**
+     * Draws a dotted outline around the selection path.
+     *
+     * @param g2d        The Graphics2D object to draw on.
+     * @param zoomFactor  The zoom factor for scaling the outline.
+     */
     public void drawSelectionOutline(Graphics2D g2d, double zoomFactor) {
         if (path == null) {
             return;
@@ -142,14 +170,47 @@ public class Selection {
         g2d.draw(scaledPath);
     }
 
-    public static Selection createRectangular(Rectangle rect, BufferedImage content) {
-        GeneralPath path = new GeneralPath();
-        path.moveTo(rect.x, rect.y);
-        path.lineTo(rect.x + rect.width, rect.y);
-        path.lineTo(rect.x + rect.width, rect.y + rect.height);
-        path.lineTo(rect.x, rect.y + rect.height);
-        path.closePath();
+    /**
+     * Mirrors the selection content horizontally.
+     */
+    public void flipHorizontal() {
+        if (getContent() == null) return;
 
-        return new Selection(path, content);
+        BufferedImage content = getContent();
+        int width = content.getWidth();
+        int height = content.getHeight();
+
+        BufferedImage mirrored = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = mirrored.createGraphics();
+
+        // Draw the original image flipped horizontally
+        g2d.scale(-1, 1);
+        g2d.translate(-width, 0);
+        g2d.drawImage(content, 0, 0, null);
+        g2d.dispose();
+
+        setContent(mirrored);
+    }
+
+    /**
+     * Mirrors the selection content vertically.
+     */
+    public void flipVertical() {
+        if (getContent() == null) return;
+
+        BufferedImage content = getContent();
+        int width = content.getWidth();
+        int height = content.getHeight();
+
+        BufferedImage mirrored = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = mirrored.createGraphics();
+
+        // Draw the original image flipped vertically
+        g2d.scale(1, -1);
+        g2d.translate(0, -height);
+        g2d.drawImage(content, 0, 0, null);
+        g2d.dispose();
+
+        setContent(mirrored);
     }
 }
