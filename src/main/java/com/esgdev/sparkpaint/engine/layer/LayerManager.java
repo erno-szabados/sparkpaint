@@ -62,6 +62,42 @@ public class LayerManager {
     }
 
     /**
+     * Duplicates the current layer and adds it above the current layer.
+     * The duplicate layer becomes the current layer.
+     *
+     * @return true if the operation was successful
+     */
+    public boolean duplicateCurrentLayer() {
+        if (currentLayerIndex < 0 || currentLayerIndex >= layers.size()) {
+            return false;
+        }
+
+        // Get the current layer
+        Layer currentLayer = layers.get(currentLayerIndex);
+
+        // Create a new layer with the same dimensions
+        Layer duplicatedLayer = new Layer(currentLayer.getImage().getWidth(),
+                                         currentLayer.getImage().getHeight());
+
+        // Copy the image data from the current layer
+        Graphics2D g2d = duplicatedLayer.getImage().createGraphics();
+        g2d.drawImage(currentLayer.getImage(), 0, 0, null);
+        g2d.dispose();
+
+        // Set layer name
+        duplicatedLayer.setName(currentLayer.getName() + " (Copy)");
+
+        // Add the duplicated layer above the current layer
+        layers.add(currentLayerIndex + 1, duplicatedLayer);
+
+        // Set the duplicate as the current layer
+        currentLayerIndex++;
+
+        canvas.repaint();
+        return true;
+    }
+
+    /**
      * Deletes the current layer and sets the next layer as current.
      */
     public void deleteCurrentLayer() {

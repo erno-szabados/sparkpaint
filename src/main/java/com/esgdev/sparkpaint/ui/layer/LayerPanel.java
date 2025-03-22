@@ -64,10 +64,12 @@ public class LayerPanel extends JPanel {
 
         // Buttons panel
         JPanel buttonsPanel = new JPanel();
-        buttonsPanel.setLayout(new GridLayout(1, 4, 5, 0)); // 1 row, 4 columns, with 5px horizontal gap
+        buttonsPanel.setLayout(new GridLayout(1, 5, 5, 0)); // 1 row, 4 columns, with 5px horizontal gap
 
         JButton addButton = createButton(IconLoader.loadAndScaleIcon("add.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight)
                 , "Add new layer", e -> addLayer());
+        JButton duplicateButton = createButton(IconLoader.loadAndScaleIcon("copy.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight)
+                , "Duplicate layer", e -> duplicateLayer());
         JButton deleteButton = createButton(IconLoader.loadAndScaleIcon("delete.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight)
                 , "Remove layer", e -> deleteLayer());
         JButton flattenButton = createButton(IconLoader.loadAndScaleIcon("flatten.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight)
@@ -76,6 +78,7 @@ public class LayerPanel extends JPanel {
                 , "Merge with layer below", e -> mergeLayerDown());
 
         buttonsPanel.add(addButton);
+        buttonsPanel.add(duplicateButton);
         buttonsPanel.add(mergeDownButton);
         buttonsPanel.add(flattenButton);
         buttonsPanel.add(deleteButton);
@@ -261,6 +264,19 @@ public class LayerPanel extends JPanel {
         layerManager.addNewLayer();
         refreshLayerList();
         statusMessageHandler.setStatusMessage("New layer added");
+    }
+
+    /**
+     * Duplicates the current layer and refreshes the layer list.
+     */
+    private void duplicateLayer() {
+        boolean success = layerManager.duplicateCurrentLayer();
+        if (success) {
+            refreshLayerList();
+            statusMessageHandler.setStatusMessage("Layer duplicated");
+        } else {
+            statusMessageHandler.setStatusMessage("Failed to duplicate layer");
+        }
     }
 
     /**
