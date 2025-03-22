@@ -20,12 +20,12 @@ public class SelectionToolSettings extends BaseToolSettings {
 
     }
 
-    @Override
+   @Override
     public JComponent createSettingsPanel() {
-        JPanel panel = (JPanel) super.createSettingsPanel();
-        panel.setLayout(new FlowLayout(FlowLayout.LEFT, 5, 5));
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 
-        // Rotation buttons
+        // Rotation buttons panel (keep as FlowLayout)
         JButton rotateLeftButton = new JButton();
         rotateLeftButton.setIcon(IconLoader.loadAndScaleIcon("rotate-left.png", ICON_SIZE, ICON_SIZE));
         rotateLeftButton.setToolTipText("Rotate Left 90°");
@@ -39,14 +39,19 @@ public class SelectionToolSettings extends BaseToolSettings {
         JPanel rotationPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         rotationPanel.add(rotateLeftButton);
         rotationPanel.add(rotateRightButton);
+        rotationPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // Add transparency checkbox
+        // Configure transparency checkbox
+        transparencyCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
         transparencyCheckbox.addActionListener(e ->
                 rectangleSelectionTool.setTransparencyEnabled(transparencyCheckbox.isSelected())
         );
 
+        // Add components to panel with proper spacing
         panel.add(rotationPanel);
+        panel.add(Box.createVerticalStrut(5));
         panel.add(transparencyCheckbox);
+        panel.add(Box.createVerticalGlue());
 
         return panel;
     }

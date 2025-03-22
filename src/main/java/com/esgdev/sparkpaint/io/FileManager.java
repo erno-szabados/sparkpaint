@@ -1,10 +1,15 @@
 package com.esgdev.sparkpaint.io;
 
+import com.esgdev.sparkpaint.engine.history.LayerState;
+import com.esgdev.sparkpaint.engine.layer.Layer;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * FileManager is responsible for saving and loading images to and from files.
@@ -13,31 +18,29 @@ public class FileManager {
     private String currentFilePath;
 
     /**
-     * Saves the given image to the specified file.
+     * Saves the given layers as a flattened image to the specified file.
      *
-     * @param file        The file to save the image to.
-     * @param canvasImage The image to save.
+     * @param file              The file to save to.
+     * @param layers            The layers to flatten and save.
+     * @param currentLayerIndex The index of the current active layer.
      * @throws IOException If an error occurs during saving.
      */
-    public void saveToFile(File file, Image canvasImage) throws IOException {
-        BufferedImage imageToSave = new BufferedImage(
-                canvasImage.getWidth(null),
-                canvasImage.getHeight(null),
-                BufferedImage.TYPE_INT_RGB);
-
-        Graphics2D g = imageToSave.createGraphics();
-        g.drawImage(canvasImage, 0, 0, null);
-        g.dispose();
+    public void saveToFile(File file, List<Layer> layers, int currentLayerIndex) throws IOException {
+        // Create a flattened image from all visible layers
+        BufferedImage flattened = createFlattenedImage(layers);
 
         String fileName = file.getName().toLowerCase();
         String formatName = "png";
 
         if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
             formatName = "jpeg";
-            imageToSave = convertToRGB(imageToSave);
+            flattened = convertToRGB(flattened);
+        } else if (fileName.endsWith(".bmp")) {
+            formatName = "bmp";
+            flattened = convertToRGB(flattened);
         }
 
-        if (!ImageIO.write(imageToSave, formatName, file)) {
+        if (!ImageIO.write(flattened, formatName, file)) {
             throw new IOException("No appropriate writer found for format: " + formatName);
         }
 
@@ -45,20 +48,56 @@ public class FileManager {
     }
 
     /**
-     * Loads an image from the specified file.
+     * Creates a flattened image from all visible layers.
      *
-     * @param file The file to load the image from.
-     * @return The loaded image.
+     * @param layers The layers to flatten.
+     * @return The flattened image.
+     */
+    private BufferedImage createFlattenedImage(List<Layer> layers) {
+        if (layers.isEmpty()) {
+            throw new IllegalArgumentException("No layers to flatten");
+        }
+
+        // Get dimensions from the first layer
+        int width = layers.get(0).getImage().getWidth();
+        int height = layers.get(0).getImage().getHeight();
+
+        // Create a new image to composite all layers
+        BufferedImage composite = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = composite.createGraphics();
+
+        // Draw all visible layers from bottom to top
+        for (Layer layer : layers) {
+            if (layer.isVisible()) {
+                g2d.drawImage(layer.getImage(), 0, 0, null);
+            }
+        }
+        g2d.dispose();
+
+        return composite;
+    }
+
+    /**
+     * Loads a file, creating a single layer from the image.
+     *
+     * @param file The file to load.
+     * @return A LayerState containing a single layer with the loaded image.
      * @throws IOException If an error occurs during loading.
      */
-    public BufferedImage loadFromFile(File file) throws IOException {
+    public LayerState loadFromFile(File file) throws IOException {
         BufferedImage loadedImage = ImageIO.read(file);
         if (loadedImage == null) {
             throw new IOException("Failed to load image: " + file.getName());
         }
 
+        // Create a single layer with the loaded image
+        List<Layer> layers = new ArrayList<>();
+        Layer layer = new Layer(loadedImage);
+        layer.setName("Background");
+        layers.add(layer);
+
         currentFilePath = file.getAbsolutePath();
-        return loadedImage;
+        return new LayerState(layers, 0);
     }
 
     /**

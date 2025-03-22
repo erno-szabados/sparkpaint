@@ -1,11 +1,12 @@
 package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
+import com.esgdev.sparkpaint.engine.selection.Selection;
+import com.esgdev.sparkpaint.engine.selection.SelectionManager;
 
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
-import java.awt.image.BufferedImage;
 
 public class TextTool implements DrawingTool {
     private final DrawingCanvas canvas;
@@ -35,14 +36,37 @@ public class TextTool implements DrawingTool {
 
     @Override
     public void mouseReleased(MouseEvent e) {
-        Point point = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
-        BufferedImage image = canvas.getImage();
-        Graphics2D g2d = image.createGraphics();
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+        SelectionManager selectionManager = canvas.getSelectionManager();
+        Selection selection = selectionManager.getSelection();
+
+        // Convert screen point to world coordinates
+        Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
+
+        // If there's a selection, only proceed if clicking inside it
+        if (selection != null && selection.hasOutline() && !selection.contains(worldPoint)) {
+            return; // Don't draw outside selection when one exists
+        }
+
+        // Get the point in the appropriate coordinate system
+        Point drawPoint = selectionManager.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
+
+        // Get appropriate graphics context for drawing
+        Graphics2D g2d;
+        if (selection != null && selection.hasOutline()) {
+            g2d = selectionManager.getDrawingGraphics(canvas);
+        } else {
+            // Draw on current layer
+            g2d = canvas.getLayerManager().getCurrentLayerImage().createGraphics();
+        }
+
+        // Configure and draw text
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
         g2d.setFont(font);
         g2d.setColor(canvas.getDrawingColor());
-        g2d.drawString(text, point.x, point.y);
+        g2d.drawString(text, drawPoint.x, drawPoint.y);
         g2d.dispose();
+
         canvas.repaint();
     }
 

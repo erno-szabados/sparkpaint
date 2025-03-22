@@ -3,7 +3,7 @@ package com.esgdev.sparkpaint.ui;
 import com.esgdev.sparkpaint.engine.selection.SelectionManager;
 import com.esgdev.sparkpaint.io.ClipboardChangeListener;
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
-import com.esgdev.sparkpaint.engine.UndoRedoChangeListener;
+import com.esgdev.sparkpaint.engine.history.UndoRedoChangeListener;
 import com.esgdev.sparkpaint.io.ClipboardManager;
 
 import javax.swing.*;
@@ -13,6 +13,11 @@ import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
 
+/**
+ * EditMenu is a custom JMenu that provides various editing options such as Cut, Copy, Paste,
+ * Undo, Redo, and more. It interacts with the DrawingCanvas and SelectionManager to perform
+ * these actions.
+ */
 public class EditMenu extends JMenu implements UndoRedoChangeListener, ClipboardChangeListener {
     private final DrawingCanvas canvas;
     private final SelectionManager selectionManager;
@@ -22,15 +27,15 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener, Clipboard
     private final JMenuItem cutItem; // New Cut menu item
     private final JMenuItem copyItem; // New Copy menu item
     private final JMenuItem pasteItem; // New Paste menu item
-    private final JMenuItem loadPaletteItem;
-    private final JMenuItem savePaletteItem;
-    private final JMenuItem restoreDefaultPaletteItem;
-    private final MainFrame mainFrame;
 
 
+    /**
+     * Constructor for EditMenu.
+     *
+     * @param mainFrame The main frame of the application, used to access the canvas and clipboard manager.
+     */
     public EditMenu(MainFrame mainFrame) {
         super("Edit");
-        this.mainFrame = mainFrame;
         this.canvas = mainFrame.getCanvas();
         this.selectionManager = canvas.getSelectionManager();
         this.clipboardManager = canvas.getClipboardManager();
@@ -114,27 +119,78 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener, Clipboard
         addSeparator();
 
         // Create and add Load Palette item
-        loadPaletteItem = new JMenuItem("Load Palette...");
-        loadPaletteItem.addActionListener(e -> {
-            JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setFileFilter(new FileNameExtensionFilter(
-                    "Palette Files (*.palette)", "palette"));
-
-            if (fileChooser.showOpenDialog(mainFrame) == JFileChooser.APPROVE_OPTION) {
-                try {
-                    mainFrame.getColorPalette().loadPalette(fileChooser.getSelectedFile());
-                } catch (IOException ex) {
-                    JOptionPane.showMessageDialog(mainFrame,
-                            "Error loading palette: " + ex.getMessage(),
-                            "Error",
-                            JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        });
+        JMenuItem loadPaletteItem = getLoadPaletteItem(mainFrame);
         add(loadPaletteItem);
 
         // Create and add Save Palette item
-        savePaletteItem = new JMenuItem("Save Palette As...");
+        JMenuItem savePaletteItem = getSavePaletteItem(mainFrame);
+        add(savePaletteItem);
+
+        // After adding savePaletteItem, add:
+        JMenuItem restoreDefaultPaletteItem = getRestoreDefaultPaletteItem(mainFrame);
+        add(restoreDefaultPaletteItem);
+
+        // Register as UndoRedoChangeListener
+        canvas.addUndoRedoChangeListener(this);
+
+        // Initialize enabled state of menu items
+        updateMenuItems(canvas.canUndo(), canvas.canRedo());
+    }
+
+    /**
+     * Updates the enabled state of the Undo and Redo menu items.
+     *
+     * @param canUndo Indicates if an undo operation is possible.
+     * @param canRedo Indicates if a redo operation is possible.
+     */
+    @Override
+    public void undoRedoStateChanged(boolean canUndo, boolean canRedo) {
+        SwingUtilities.invokeLater(() -> updateMenuItems(canUndo, canRedo));
+    }
+
+    /**
+     * Updates the enabled state of the Cut, Copy, and Paste menu items based on the clipboard state.
+     *
+     * @param canCopy Indicates if a copy operation is possible.
+     * @param canPaste Indicates if a paste operation is possible.
+     */
+    // Implement ClipboardChangeListener
+    @Override
+    public void clipboardStateChanged(boolean canCopy, boolean canPaste) {
+        // Ensure UI updates happen on EDT
+        SwingUtilities.invokeLater(() -> updateClipboardMenuItems(canCopy, canPaste));
+    }
+
+    /**
+     * Creates a menu item to restore the default color palette.
+     *
+     * @param mainFrame The main frame of the application.
+     * @return A JMenuItem for restoring the default color palette.
+     */
+    private static JMenuItem getRestoreDefaultPaletteItem(MainFrame mainFrame) {
+        JMenuItem restoreDefaultPaletteItem = new JMenuItem("Restore Default Palette");
+        restoreDefaultPaletteItem.addActionListener(e -> {
+            int choice = JOptionPane.showConfirmDialog(mainFrame,
+                    "This will replace your current palette with the default colors. Continue?",
+                    "Restore Default Palette",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE);
+
+            if (choice == JOptionPane.YES_OPTION) {
+                mainFrame.getColorPalette().restoreDefaultPalette();
+            }
+        });
+        return restoreDefaultPaletteItem;
+    }
+
+    /**
+     * Creates a menu item to save the current color palette.
+     *
+     * @param mainFrame The main frame of the application.
+     * @return A JMenuItem for saving the current color palette.
+     */
+    private static JMenuItem getSavePaletteItem(MainFrame mainFrame) {
+        JMenuItem savePaletteItem = new JMenuItem("Save Palette As...");
         savePaletteItem.addActionListener(e -> {
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setFileFilter(new FileNameExtensionFilter(
@@ -151,28 +207,34 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener, Clipboard
                 }
             }
         });
-        add(savePaletteItem);
+        return savePaletteItem;
+    }
 
-        // After adding savePaletteItem, add:
-        restoreDefaultPaletteItem = new JMenuItem("Restore Default Palette");
-        restoreDefaultPaletteItem.addActionListener(e -> {
-            int choice = JOptionPane.showConfirmDialog(mainFrame,
-                    "This will replace your current palette with the default colors. Continue?",
-                    "Restore Default Palette",
-                    JOptionPane.YES_NO_OPTION,
-                    JOptionPane.WARNING_MESSAGE);
+    /**
+     * Creates a menu item to load a color palette from a file.
+     *
+     * @param mainFrame The main frame of the application.
+     * @return A JMenuItem for loading a color palette.
+     */
+    private static JMenuItem getLoadPaletteItem(MainFrame mainFrame) {
+        JMenuItem loadPaletteItem = new JMenuItem("Load Palette...");
+        loadPaletteItem.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setFileFilter(new FileNameExtensionFilter(
+                    "Palette Files (*.palette)", "palette"));
 
-            if (choice == JOptionPane.YES_OPTION) {
-                mainFrame.getColorPalette().restoreDefaultPalette();
+            if (fileChooser.showOpenDialog(mainFrame) == JFileChooser.APPROVE_OPTION) {
+                try {
+                    mainFrame.getColorPalette().loadPalette(fileChooser.getSelectedFile());
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(mainFrame,
+                            "Error loading palette: " + ex.getMessage(),
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
             }
         });
-        add(restoreDefaultPaletteItem);
-
-        // Register as UndoRedoChangeListener
-        canvas.addUndoRedoChangeListener(this);
-
-        // Initialize enabled state of menu items
-        updateMenuItems(canvas.canUndo(), canvas.canRedo());
+        return loadPaletteItem;
     }
 
     private void handleUndo(ActionEvent e) {
@@ -200,15 +262,4 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener, Clipboard
     }
 
 
-    @Override
-    public void undoRedoStateChanged(boolean canUndo, boolean canRedo) {
-        SwingUtilities.invokeLater(() -> updateMenuItems(canUndo, canRedo));
-    }
-
-    // Implement ClipboardChangeListener
-    @Override
-    public void clipboardStateChanged(boolean canCopy, boolean canPaste) {
-        // Ensure UI updates happen on EDT
-        SwingUtilities.invokeLater(() -> updateClipboardMenuItems(canCopy, canPaste));
-    }
 }
