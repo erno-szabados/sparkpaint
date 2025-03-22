@@ -13,19 +13,24 @@
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
 
     <!-- Dependencies section -->
     <dependencies>
-         <!-- If you need logging or utility libraries, include them (example: SLF4J) -->
-        <!--
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>2.0.9</version>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
         </dependency>
-        -->
-
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>4.11.0</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <!-- Build and plugins -->
@@ -96,6 +101,8 @@
                     <mainClass>com.esgdev.sparkpaint.Main</mainClass> <!-- Fully qualified Main class name -->
                 </configuration>
             </plugin>
+
+
 
         </plugins>
     </build>

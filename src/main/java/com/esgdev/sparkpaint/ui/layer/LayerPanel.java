@@ -153,7 +153,10 @@ public class LayerPanel extends JPanel {
      */
     public void refreshLayerList() {
         listModel.clear();
-        listModel.addAll(layerManager.getLayers().reversed());
+        java.util.List<Layer> layers = layerManager.getLayers();
+        for (int i = layers.size() - 1; i >= 0; i--) {
+            listModel.addElement(layers.get(i));
+        }
         int index = layerManager.getLayerCount() - layerManager.getCurrentLayerIndex() - 1;
         layerList.setSelectedIndex(index);
         layerList.repaint();
