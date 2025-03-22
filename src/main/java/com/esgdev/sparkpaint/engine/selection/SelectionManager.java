@@ -1,7 +1,7 @@
 package com.esgdev.sparkpaint.engine.selection;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
-import com.esgdev.sparkpaint.engine.Layer;
+import com.esgdev.sparkpaint.engine.layer.Layer;
 import com.esgdev.sparkpaint.engine.tools.DrawingTool;
 
 import java.awt.*;
@@ -10,7 +10,10 @@ import java.awt.geom.GeneralPath;
 import java.awt.image.BufferedImage;
 import java.util.List;
 
-/// Manages the selection state and operations on the drawing canvas.
+/**
+ * Manages the selection of areas within the drawing canvas.
+ * Handles creating, modifying, and deleting selections.
+ */
 public class SelectionManager {
     private final DrawingCanvas canvas;
     private Selection selection;
@@ -34,6 +37,9 @@ public class SelectionManager {
         }
     }
 
+    /**
+     * Selects all visible layers in the canvas and creates a selection rectangle around them.
+     */
     public void selectAll() {
         canvas.setCurrentTool(DrawingCanvas.Tool.RECTANGLE_SELECTION);
 
@@ -52,6 +58,11 @@ public class SelectionManager {
         }
     }
 
+    /**
+     * Creates a composite image of all visible layers in the canvas.
+     *
+     * @return A BufferedImage containing the composite of all visible layers.
+     */
     private BufferedImage createCompositeImage() {
         // Get the dimensions from the current layer
         BufferedImage currentLayer = canvas.getLayerManager().getCurrentLayerImage();
@@ -173,19 +184,4 @@ public class SelectionManager {
         return selection != null && selection.hasOutline() && selection.contains(worldPoint);
     }
 
-    public void applySelectionToCanvas() {
-        if (selection == null || !selection.hasOutline() || selection.getContent() == null) {
-            return;
-        }
-
-        canvas.saveToUndoStack();
-        Graphics2D g2d = canvas.getLayerManager().getCurrentLayerImage().createGraphics();
-        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER));
-
-        Rectangle bounds = selection.getBounds();
-        g2d.drawImage(selection.getContent(), bounds.x, bounds.y, null);
-
-        g2d.dispose();
-        canvas.repaint();
-    }
 }

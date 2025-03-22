@@ -1,7 +1,7 @@
 package com.esgdev.sparkpaint.engine.tools;
 
     import com.esgdev.sparkpaint.engine.DrawingCanvas;
-    import com.esgdev.sparkpaint.engine.Layer;
+    import com.esgdev.sparkpaint.engine.layer.Layer;
 
     import javax.swing.*;
     import java.awt.*;
@@ -32,7 +32,7 @@ package com.esgdev.sparkpaint.engine.tools;
             int currentLayerIndex = canvas.getLayerManager().getCurrentLayerIndex();
 
             // Start with current layer
-            Color pickedColor = null;
+            Color pickedColor;
 
             // First try current layer
             pickedColor = getColorFromLayer(layers.get(currentLayerIndex), point);

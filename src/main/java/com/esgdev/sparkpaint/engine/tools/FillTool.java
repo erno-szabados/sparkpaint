@@ -79,7 +79,7 @@ public class FillTool implements DrawingTool {
 
             // If it's a path selection, create a clipping path
             // Create a copy of the path with adjusted coordinates
-            GeneralPath originalPath = ((Selection) selection).getPath();
+            GeneralPath originalPath = selection.getPath();
             clipPath = new GeneralPath(originalPath);
             AffineTransform transform = AffineTransform.getTranslateInstance(-bounds.x, -bounds.y);
             clipPath.transform(transform);

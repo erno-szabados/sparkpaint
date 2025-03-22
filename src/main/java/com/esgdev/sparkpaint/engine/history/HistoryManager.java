@@ -1,4 +1,6 @@
-package com.esgdev.sparkpaint.engine;
+package com.esgdev.sparkpaint.engine.history;
+
+    import com.esgdev.sparkpaint.engine.layer.Layer;
 
     import java.awt.*;
     import java.awt.image.BufferedImage;
@@ -198,51 +200,4 @@ package com.esgdev.sparkpaint.engine;
 
         // Helper classes for storing compressed layer state
 
-        public static class CompressedLayer {
-            private final byte[] compressedData;
-            private final int width;
-            private final int height;
-            private final boolean visible;
-            private final String name;
-
-            public CompressedLayer(byte[] compressedData, int width, int height, boolean visible, String name) {
-                this.compressedData = compressedData;
-                this.width = width;
-                this.height = height;
-                this.visible = visible;
-                this.name = name;
-            }
-
-            public byte[] getCompressedData() { return compressedData; }
-            public int getWidth() { return width; }
-            public int getHeight() { return height; }
-            public boolean isVisible() { return visible; }
-            public String getName() { return name; }
-        }
-
-        public static class CompressedLayerState {
-            private final List<CompressedLayer> compressedLayers;
-            private final int currentLayerIndex;
-
-            public CompressedLayerState(List<CompressedLayer> compressedLayers, int currentLayerIndex) {
-                this.compressedLayers = compressedLayers;
-                this.currentLayerIndex = currentLayerIndex;
-            }
-
-            public List<CompressedLayer> getCompressedLayers() { return compressedLayers; }
-            public int getCurrentLayerIndex() { return currentLayerIndex; }
-        }
-
-        public static class LayerState {
-            private final List<Layer> layers;
-            private final int currentLayerIndex;
-
-            public LayerState(List<Layer> layers, int currentLayerIndex) {
-                this.layers = layers;
-                this.currentLayerIndex = currentLayerIndex;
-            }
-
-            public List<Layer> getLayers() { return layers; }
-            public int getCurrentLayerIndex() { return currentLayerIndex; }
-        }
     }

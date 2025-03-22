@@ -9,6 +9,11 @@ import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 
+/**
+ * Abstract base class for selection tools in the drawing application.
+ * This class provides common functionality for selection tools such as
+ * handling mouse events, managing selection state, and drawing selections.
+ */
 public abstract class AbstractSelectionTool implements DrawingTool {
     protected final DrawingCanvas canvas;
     protected final Cursor handCursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR);
@@ -28,6 +33,9 @@ public abstract class AbstractSelectionTool implements DrawingTool {
         this.transparencyEnabled = enabled;
     }
 
+    /**
+     * Handles mouse moved events to update the cursor.
+     */
     @Override
     public void mouseMoved(MouseEvent e) {
         Selection selection = selectionManager.getSelection();
@@ -42,6 +50,10 @@ public abstract class AbstractSelectionTool implements DrawingTool {
         }
     }
 
+    /**
+     * Handles mouse pressed events to update the selection.
+     * This method is called when the user drags the mouse while holding down a button.
+     */
     @Override
     public void mousePressed(MouseEvent e) {
         if (SwingUtilities.isRightMouseButton(e)) {
@@ -72,6 +84,10 @@ public abstract class AbstractSelectionTool implements DrawingTool {
         canvas.setCursor(crosshairCursor);
     }
 
+    /**
+     * Finalizes the selection and clears the original selection area.
+     * This method is called when the selection is completed.
+     */
     public void copySelectionToPermanentCanvas() {
         Selection selection = selectionManager.getSelection();
         if (selection == null) {
@@ -89,6 +105,10 @@ public abstract class AbstractSelectionTool implements DrawingTool {
         canvas.repaint();
     }
 
+    /**
+     * Handles right-click events to clear the selection and undo the last action.
+     * This method is called when the user right-clicks on the canvas.
+     */
     protected void handleRightClick() {
         Selection selection = selectionManager.getSelection();
         if (selection == null) {
@@ -100,7 +120,10 @@ public abstract class AbstractSelectionTool implements DrawingTool {
         originalSelectionLocation = null;
     }
 
-    // In AbstractSelectionTool.java
+    /**
+     * Clears the original selection area with transparency.
+     * This method is called when the selection is finalized or cleared.
+     */
     protected void clearOriginalSelectionAreaWithTransparency() {
         Selection selection = selectionManager.getSelection();
         if (selection == null || originalSelectionLocation == null) {
@@ -125,8 +148,11 @@ public abstract class AbstractSelectionTool implements DrawingTool {
         g2d.dispose();
     }
 
-    /**
-     * Creates a transparent selection image preserving original transparency
+   /**
+     * Creates a transparent version of the selection image.
+     *
+     * @param original The original image to be made transparent.
+     * @return A new BufferedImage with transparency.
      */
     protected BufferedImage createTransparentSelectionImage(BufferedImage original) {
         if (original == null) return null;
@@ -146,7 +172,6 @@ public abstract class AbstractSelectionTool implements DrawingTool {
         return transparentContent;
     }
 
-    // Add this method to AbstractSelectionTool.java
     protected boolean isSelectionTooSmall(Rectangle bounds) {
         // Consider selections smaller than 3x3 pixels as "too small"
         return bounds == null || bounds.width < 3 || bounds.height < 3;
@@ -157,6 +182,5 @@ public abstract class AbstractSelectionTool implements DrawingTool {
 
     protected abstract void drawSelectionToCanvas(Graphics2D g2d, Selection selection, BufferedImage content);
 
-    // Add to AbstractSelectionTool
     protected abstract void finalizeSelection(Selection selection);
 }

@@ -1,7 +1,7 @@
 package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
-import com.esgdev.sparkpaint.engine.Layer;
+import com.esgdev.sparkpaint.engine.layer.Layer;
 import com.esgdev.sparkpaint.engine.selection.Selection;
 
 import java.awt.*;
@@ -138,7 +138,7 @@ public class FreeHandSelectionTool extends AbstractSelectionTool {
         if (isDrawingPath) {
             currentPath.lineTo(worldDragPoint.x, worldDragPoint.y);
         } else if (isDragging) {
-            updatePathLocation(worldDragPoint, (Selection) selection);
+            updatePathLocation(worldDragPoint, selection);
         }
 
         canvas.repaint();

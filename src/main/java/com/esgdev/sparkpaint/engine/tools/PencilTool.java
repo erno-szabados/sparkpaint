@@ -63,7 +63,7 @@ package com.esgdev.sparkpaint.engine.tools;
                         return;
                     }
 
-                    // If we weren't drawing before but now we can, set a new start point
+                    // If we weren't drawing before, but now we can, set a new start point
                     if (!isDrawing) {
                         startPoint = selectionManager.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
                         isDrawing = true;

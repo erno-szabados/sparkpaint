@@ -1,5 +1,10 @@
 package com.esgdev.sparkpaint.engine;
 
+import com.esgdev.sparkpaint.engine.history.HistoryManager;
+import com.esgdev.sparkpaint.engine.history.LayerState;
+import com.esgdev.sparkpaint.engine.history.UndoRedoChangeListener;
+import com.esgdev.sparkpaint.engine.layer.Layer;
+import com.esgdev.sparkpaint.engine.layer.LayerManager;
 import com.esgdev.sparkpaint.engine.selection.Selection;
 import com.esgdev.sparkpaint.engine.selection.SelectionManager;
 import com.esgdev.sparkpaint.engine.tools.*;
@@ -39,6 +44,7 @@ public class DrawingCanvas extends JPanel {
         TEXT,
         EYEDROPPER
     }
+
     public static final int DEFAULT_CANVAS_WIDTH = 800;
     public static final int DEFAULT_CANVAS_HEIGHT = 600;
     public static final int MAX_LINE_THICKNESS = 20;
@@ -89,8 +95,9 @@ public class DrawingCanvas extends JPanel {
 
     /**
      * Creates a new canvas with the specified dimensions and background color.
-     * @param width width of the canvas
-     * @param height height of the canvas
+     *
+     * @param width            width of the canvas
+     * @param height           height of the canvas
      * @param canvasBackground background color of the canvas
      */
     // Update createNewCanvas in DrawingCanvas class
@@ -134,25 +141,12 @@ public class DrawingCanvas extends JPanel {
     }
 
 
-    public Graphics2D getCanvasGraphics() {
-        // Get graphics from the current layer instead of the old image variable
-        BufferedImage currentLayerImage = layerManager.getCurrentLayerImage();
-        Graphics2D g2d = currentLayerImage.createGraphics();
-
-        // Set up graphics properties
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                RenderingHints.VALUE_ANTIALIAS_ON);
-        g2d.setColor(drawingColor);
-        g2d.setStroke(new BasicStroke(lineThickness));
-        return g2d;
-    }
-
     public void setTempCanvas(BufferedImage tempCanvas) {
         this.tempCanvas = tempCanvas;
     }
 
     public BufferedImage getTempCanvas() {
-        if (tempCanvas == null ) {
+        if (tempCanvas == null) {
             // Use the dimensions of the current layer
             BufferedImage currentLayer = layerManager.getCurrentLayerImage();
             tempCanvas = new BufferedImage(
@@ -163,29 +157,29 @@ public class DrawingCanvas extends JPanel {
         return tempCanvas;
     }
 
-   public void saveToFile(File file) throws IOException {
-       fileManager.saveToFile(file, layerManager.getLayers(), layerManager.getCurrentLayerIndex());
-   }
+    public void saveToFile(File file) throws IOException {
+        fileManager.saveToFile(file, layerManager.getLayers(), layerManager.getCurrentLayerIndex());
+    }
 
-   public void loadFromFile(File file) throws IOException {
-       zoomFactor = 1.0f;
+    public void loadFromFile(File file) throws IOException {
+        zoomFactor = 1.0f;
 
-       // Load layers and active layer index from file
-       HistoryManager.LayerState layerState = fileManager.loadFromFile(file);
+        // Load layers and active layer index from file
+        LayerState layerState = fileManager.loadFromFile(file);
 
-       // Apply the loaded layers to the layer manager
-       layerManager.setLayers(layerState.getLayers());
-       layerManager.setCurrentLayerIndex(layerState.getCurrentLayerIndex());
+        // Apply the loaded layers to the layer manager
+        layerManager.setLayers(layerState.getLayers());
+        layerManager.setCurrentLayerIndex(layerState.getCurrentLayerIndex());
 
-       // Get dimensions from first layer
-       BufferedImage firstLayerImage = layerState.getLayers().get(0).getImage();
+        // Get dimensions from first layer
+        BufferedImage firstLayerImage = layerState.getLayers().get(0).getImage();
 
-       // Update canvas size
-       setPreferredSize(new Dimension(firstLayerImage.getWidth(), firstLayerImage.getHeight()));
-       revalidate();
-       repaint();
-       clearHistory();
-   }
+        // Update canvas size
+        setPreferredSize(new Dimension(firstLayerImage.getWidth(), firstLayerImage.getHeight()));
+        revalidate();
+        repaint();
+        clearHistory();
+    }
 
     public String getCurrentFilePath() {
         return fileManager.getCurrentFilePath();
@@ -234,17 +228,9 @@ public class DrawingCanvas extends JPanel {
         repaint();
     }
 
-    public int getCursorSize() {
-        return cursorSize;
-    }
-
     public void setCursorShape(BrushTool.BrushShape cursorShape) {
         this.cursorShape = cursorShape;
         repaint();
-    }
-
-    public BrushTool.BrushShape getCursorShape() {
-        return cursorShape;
     }
 
     public float getLineThickness() {
@@ -257,10 +243,6 @@ public class DrawingCanvas extends JPanel {
 
     public void addToolChangeListener(ToolChangeListener listener) {
         toolChangeListeners.add(listener);
-    }
-
-    public void removeToolChangeListener(ToolChangeListener listener) {
-        toolChangeListeners.remove(listener);
     }
 
     public Tool getCurrentTool() {
@@ -363,8 +345,8 @@ public class DrawingCanvas extends JPanel {
             case SPRAY:
             case CIRCLE:
                 Point circleCenter = cursorShapeCenter;
-                int x = (int) (circleCenter.x - (cursorSize / 2.0 ) * zoomFactor);
-                int y = (int) (circleCenter.y - (cursorSize / 2.0 ) * zoomFactor);
+                int x = (int) (circleCenter.x - (cursorSize / 2.0) * zoomFactor);
+                int y = (int) (circleCenter.y - (cursorSize / 2.0) * zoomFactor);
                 int diameter = (int) (cursorSize * zoomFactor);
                 g2d.drawOval(x, y, diameter, diameter);
                 break;
@@ -403,10 +385,6 @@ public class DrawingCanvas extends JPanel {
         clipboardManager.addClipboardChangeListener(listener);
     }
 
-    public void removeClipboardChangeListener(ClipboardChangeListener listener) {
-        clipboardManager.removeClipboardChangeListener(listener);
-    }
-
     public void notifyClipboardStateChanged() {
         clipboardManager.notifyClipboardStateChanged();
     }
@@ -418,7 +396,7 @@ public class DrawingCanvas extends JPanel {
     }
 
     public void undo() {
-        HistoryManager.LayerState state = historyManager.undo(layerManager.getLayers(), layerManager.getCurrentLayerIndex());
+        LayerState state = historyManager.undo(layerManager.getLayers(), layerManager.getCurrentLayerIndex());
         layerManager.setLayers(state.getLayers());
         layerManager.setCurrentLayerIndex(state.getCurrentLayerIndex());
 
@@ -430,7 +408,7 @@ public class DrawingCanvas extends JPanel {
     }
 
     public void redo() {
-        HistoryManager.LayerState state = historyManager.redo(layerManager.getLayers(), layerManager.getCurrentLayerIndex());
+        LayerState state = historyManager.redo(layerManager.getLayers(), layerManager.getCurrentLayerIndex());
         layerManager.setLayers(state.getLayers());
         layerManager.setCurrentLayerIndex(state.getCurrentLayerIndex());
 
@@ -459,10 +437,6 @@ public class DrawingCanvas extends JPanel {
 
     public void addCanvasPropertyChangeListener(CanvasPropertyChangeListener listener) {
         propertyChangeListeners.add(listener);
-    }
-
-    public void removeCanvasPropertyChangeListener(CanvasPropertyChangeListener listener) {
-        propertyChangeListeners.remove(listener);
     }
 
     private void notifyDrawingColorChanged() {

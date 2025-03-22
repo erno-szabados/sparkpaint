@@ -1,7 +1,7 @@
 package com.esgdev.sparkpaint.ui;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
-import com.esgdev.sparkpaint.ui.HelpMenu;
+import com.esgdev.sparkpaint.ui.layer.LayerPanel;
 
 import javax.swing.*;
 import java.awt.*;

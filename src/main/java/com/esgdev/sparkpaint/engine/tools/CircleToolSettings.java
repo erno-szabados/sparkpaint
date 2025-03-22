@@ -10,7 +10,6 @@ public class CircleToolSettings extends BaseToolSettings {
     private JSlider thicknessSlider;
     private JLabel thicknessValueLabel;
     private JCheckBox antiAliasingCheckbox;
-    private JRadioButton cornerBasedButton;
     private JRadioButton centerBasedButton;
     private boolean useAntiAliasing = true;  // Default value
 
@@ -32,7 +31,7 @@ public class CircleToolSettings extends BaseToolSettings {
         // Make the panel fill the horizontal space
         drawModePanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, drawModePanel.getMaximumSize().height));
 
-        cornerBasedButton = new JRadioButton("Ellipse", true);
+        JRadioButton cornerBasedButton = new JRadioButton("Ellipse", true);
         cornerBasedButton.setToolTipText("Draws an ellipse based on the corner points");
         centerBasedButton = new JRadioButton("Circle");
         centerBasedButton.setToolTipText("Draws a circle based on the center point");

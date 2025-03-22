@@ -2,7 +2,7 @@ package com.esgdev.sparkpaint.ui;
 
 import com.esgdev.sparkpaint.engine.CanvasPropertyChangeListener;
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
-import com.esgdev.sparkpaint.engine.UndoRedoChangeListener;
+import com.esgdev.sparkpaint.engine.history.UndoRedoChangeListener;
 
 import javax.swing.*;
 import java.awt.*;
@@ -10,8 +10,8 @@ import java.awt.event.ActionEvent;
 import java.util.Enumeration;
 
 public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, ToolChangeListener {
-    static final int IconWidth = 24;
-    static final int IconHeight = 24;
+    public static final int IconWidth = 24;
+    public static final int IconHeight = 24;
     private final StatusMessageHandler statusMessageHandler;
     private final DrawingCanvas canvas;
     private final JColorChooser colorChooser;

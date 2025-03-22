@@ -1,12 +1,16 @@
-package com.esgdev.sparkpaint.ui;
+package com.esgdev.sparkpaint.ui.layer;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
-import com.esgdev.sparkpaint.engine.Layer;
-import com.esgdev.sparkpaint.engine.LayerManager;
+import com.esgdev.sparkpaint.engine.layer.Layer;
+import com.esgdev.sparkpaint.engine.layer.LayerManager;
+import com.esgdev.sparkpaint.ui.DrawingToolbar;
+import com.esgdev.sparkpaint.ui.IconLoader;
+import com.esgdev.sparkpaint.ui.StatusMessageHandler;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.datatransfer.Transferable;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -51,6 +55,7 @@ public class LayerPanel extends JPanel {
                 }
             }
         });
+        setupDragAndDrop();
 
         // Scroll pane for the layers list
         JScrollPane scrollPane = new JScrollPane(layerList);
@@ -88,15 +93,15 @@ public class LayerPanel extends JPanel {
                 "Apply name change", e -> applyNameChange(nameField.getText()));
 
         // Set current layer name in field when selection changes
-       layerList.addListSelectionListener(e -> {
-           if (!e.getValueIsAdjusting() && layerList.getSelectedIndex() != -1) {
-               int selectedIndex = layerList.getSelectedIndex();
-               // Convert visual index to model index (reverse order)
-               int modelIndex = listModel.getSize() - 1 - selectedIndex;
-               Layer selectedLayer = layerManager.getLayers().get(modelIndex);
-               nameField.setText(selectedLayer.getName());
-           }
-       });
+        layerList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting() && layerList.getSelectedIndex() != -1) {
+                int selectedIndex = layerList.getSelectedIndex();
+                // Convert visual index to model index (reverse order)
+                int modelIndex = listModel.getSize() - 1 - selectedIndex;
+                Layer selectedLayer = layerManager.getLayers().get(modelIndex);
+                nameField.setText(selectedLayer.getName());
+            }
+        });
         // Apply changes when Enter is pressed
         nameField.addActionListener(e -> applyNameChange(nameField.getText()));
 
@@ -156,11 +161,11 @@ public class LayerPanel extends JPanel {
      * Handles the visibility checkbox click event.
      * Toggles the layer's visibility and updates the status message.
      *
-     * @param e        The mouse event
-     * @param renderer  The cell renderer for the layer list
+     * @param e          The mouse event
+     * @param renderer   The cell renderer for the layer list
      * @param cellBounds The bounds of the cell
-     * @param layer    The layer associated with the clicked cell
-     * @param index    The index of the clicked cell
+     * @param layer      The layer associated with the clicked cell
+     * @param index      The index of the clicked cell
      */
     private void handleVisibilityCheckBox(MouseEvent e, LayerListCellRenderer renderer, Rectangle cellBounds, Layer layer, int index) {
         JCheckBox checkBox = renderer.getVisibilityCheckBox();
@@ -185,11 +190,11 @@ public class LayerPanel extends JPanel {
      * Handles the delete button click event.
      * Deletes the layer and refreshes the layer list.
      *
-     * @param e        The mouse event
-     * @param renderer  The cell renderer for the layer list
+     * @param e          The mouse event
+     * @param renderer   The cell renderer for the layer list
      * @param cellBounds The bounds of the cell
-     * @param layer    The layer associated with the clicked cell
-     * @param index    The index of the clicked cell
+     * @param layer      The layer associated with the clicked cell
+     * @param index      The index of the clicked cell
      */
     private void handleDeleteButton(MouseEvent e, LayerListCellRenderer renderer, Rectangle cellBounds, Layer layer, int index) {
         JButton deleteButton = renderer.getDeleteButton();
@@ -323,4 +328,76 @@ public class LayerPanel extends JPanel {
         );
         return result == JOptionPane.YES_OPTION;
     }
+
+    /**
+     * Sets up drag-and-drop functionality for the layer list.
+     * Allows layers to be reordered by dragging and dropping.
+     */
+    private void setupDragAndDrop() {
+        layerList.setDragEnabled(true);
+        layerList.setDropMode(DropMode.INSERT);
+
+        layerList.setTransferHandler(new TransferHandler() {
+            @Override
+            public int getSourceActions(JComponent c) {
+                return MOVE;
+            }
+
+            @Override
+            protected Transferable createTransferable(JComponent c) {
+                @SuppressWarnings("unchecked")
+                JList<Layer> list = (JList<Layer>) c;
+                int index = list.getSelectedIndex();
+                if (index < 0) {
+                    return null;
+                }
+                return new LayerTransferable(index);
+            }
+
+            @Override
+            protected void exportDone(JComponent source, Transferable data, int action) {
+                // The actual move is handled in importData
+            }
+
+            @Override
+            public boolean canImport(TransferSupport support) {
+                return support.isDataFlavorSupported(LayerTransferable.LAYER_DATA_FLAVOR);
+            }
+
+            @Override
+            public boolean importData(TransferSupport support) {
+                if (!canImport(support)) {
+                    return false;
+                }
+
+                JList.DropLocation dl = (JList.DropLocation) support.getDropLocation();
+                int visualDropIndex = dl.getIndex();
+                if (visualDropIndex == -1) {
+                    return false;
+                }
+
+                try {
+                    LayerTransferable transferable = (LayerTransferable) support.getTransferable()
+                            .getTransferData(LayerTransferable.LAYER_DATA_FLAVOR);
+                    int visualSourceIndex = transferable.getSourceIndex();
+
+                    // Convert visual indices to model indices (reverse order)
+                    int modelDropIndex = listModel.getSize() - visualDropIndex - (visualSourceIndex < visualDropIndex ? 0 : 1);
+                    int modelSourceIndex = listModel.getSize() - visualSourceIndex - 1;
+
+                    // Move the layer in the layer manager
+                    boolean success = layerManager.moveLayer(modelSourceIndex, modelDropIndex);
+                    if (success) {
+                        refreshLayerList();
+                        statusMessageHandler.setStatusMessage("Layer reordered");
+                    }
+                    return success;
+                } catch (Exception e) {
+                    //e.printStackTrace();
+                    return false;
+                }
+            }
+        });
+    }
+
 }

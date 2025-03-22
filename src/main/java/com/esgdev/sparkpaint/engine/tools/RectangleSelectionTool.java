@@ -1,7 +1,7 @@
 package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
-import com.esgdev.sparkpaint.engine.Layer;
+import com.esgdev.sparkpaint.engine.layer.Layer;
 import com.esgdev.sparkpaint.engine.selection.Selection;
 
 import java.awt.*;

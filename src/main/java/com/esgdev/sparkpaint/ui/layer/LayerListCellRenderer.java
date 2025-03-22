@@ -1,7 +1,7 @@
-package com.esgdev.sparkpaint.ui;
+package com.esgdev.sparkpaint.ui.layer;
 
-import com.esgdev.sparkpaint.engine.Layer;
-import com.esgdev.sparkpaint.engine.LayerManager;
+import com.esgdev.sparkpaint.engine.layer.Layer;
+import com.esgdev.sparkpaint.ui.IconLoader;
 
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
@@ -49,10 +49,6 @@ public class LayerListCellRenderer extends JPanel implements ListCellRenderer<La
 
     public  JCheckBox getVisibilityCheckBox() {
         return visibilityCheckBox;
-    }
-
-    public JTextField getNameField() {
-        return nameField;
     }
 
     @Override

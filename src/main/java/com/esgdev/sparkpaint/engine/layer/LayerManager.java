@@ -1,4 +1,6 @@
-package com.esgdev.sparkpaint.engine;
+package com.esgdev.sparkpaint.engine.layer;
+
+import com.esgdev.sparkpaint.engine.DrawingCanvas;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -79,7 +81,7 @@ public class LayerManager {
     }
 
     public void deleteLayer(int index) {
-        if (index < 0 || index >= layers.size() || layers.size() <= 1) {
+        if (index < 0 || index >= layers.size() || layers.size() == 1) {
             return;
         }
 
@@ -116,6 +118,29 @@ public class LayerManager {
         layers.remove(currentLayerIndex);
         layers.add(currentLayerIndex - 1, layer);
         currentLayerIndex--;
+        canvas.repaint();
+        return true;
+    }
+
+    public boolean moveLayer(int fromIndex, int toIndex) {
+        if (fromIndex < 0 || fromIndex >= layers.size() ||
+            toIndex < 0 || toIndex >= layers.size() ||
+            fromIndex == toIndex) {
+            return false;
+        }
+
+        Layer layer = layers.remove(fromIndex);
+        layers.add(toIndex, layer);
+
+        // Update current layer index if necessary
+        if (currentLayerIndex == fromIndex) {
+            currentLayerIndex = toIndex;
+        } else if (fromIndex < currentLayerIndex && toIndex >= currentLayerIndex) {
+            currentLayerIndex--;
+        } else if (fromIndex > currentLayerIndex && toIndex <= currentLayerIndex) {
+            currentLayerIndex++;
+        }
+
         canvas.repaint();
         return true;
     }

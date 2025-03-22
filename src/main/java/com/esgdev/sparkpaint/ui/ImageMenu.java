@@ -1,7 +1,7 @@
 package com.esgdev.sparkpaint.ui;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
-import com.esgdev.sparkpaint.engine.Layer;
+import com.esgdev.sparkpaint.engine.layer.Layer;
 import com.esgdev.sparkpaint.engine.selection.SelectionManager;
 
 import javax.swing.*;
@@ -13,21 +13,26 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * ImageMenu class represents the "Image" menu in the application.
+ * It provides options to view image information, resize, scale, and crop images.
+ */
 public class ImageMenu extends JMenu {
     private final DrawingCanvas canvas;
     private final MainFrame mainFrame;
-    private final JMenuItem infoItem;
-    private final JMenuItem resizeItem;
-    private final JMenuItem scaleItem;
-    private final JMenuItem cropItem;
 
+    /**
+     * Constructor for ImageMenu.
+     *
+     * @param mainFrame The main frame of the application.
+     */
     public ImageMenu(MainFrame mainFrame) {
         super("Image");
         this.mainFrame = mainFrame;
         this.canvas = mainFrame.getCanvas();
 
         // Create and add Info item
-        infoItem = new JMenuItem("Image Info");
+        JMenuItem infoItem = new JMenuItem("Image Info");
         infoItem.setMnemonic('I');
         infoItem.addActionListener(this::handleInfo);
         infoItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, InputEvent.CTRL_MASK | InputEvent.SHIFT_MASK));
@@ -37,21 +42,21 @@ public class ImageMenu extends JMenu {
         addSeparator();
 
         // Create and add Resize item
-        resizeItem = new JMenuItem("Resize...");
+        JMenuItem resizeItem = new JMenuItem("Resize...");
         resizeItem.setMnemonic('R');
         resizeItem.addActionListener(this::handleResize);
         resizeItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_MASK | InputEvent.SHIFT_MASK));
         add(resizeItem);
 
         // Create and add Scale item
-        scaleItem = new JMenuItem("Scale...");
+        JMenuItem scaleItem = new JMenuItem("Scale...");
         scaleItem.setMnemonic('S');
         scaleItem.addActionListener(this::handleScale);
         scaleItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_MASK | InputEvent.SHIFT_MASK));
         add(scaleItem);
 
         // Create and add Crop to Selection item
-        cropItem = new JMenuItem("Crop to Selection");
+        JMenuItem cropItem = new JMenuItem("Crop to Selection");
         cropItem.setMnemonic('C');
         cropItem.addActionListener(this::handleCrop);
         cropItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_MASK | InputEvent.SHIFT_MASK));
@@ -180,7 +185,6 @@ public class ImageMenu extends JMenu {
 
         // Scale inputs
         JPanel scalePanel = new JPanel();
-        JLabel scaleLabel = new JLabel("Scale (%):");
         JSpinner widthScaleSpinner = new JSpinner(new SpinnerNumberModel(100, 1, 1000, 1));
         JSpinner heightScaleSpinner = new JSpinner(new SpinnerNumberModel(100, 1, 1000, 1));
         scalePanel.add(new JLabel("Width %:"));
