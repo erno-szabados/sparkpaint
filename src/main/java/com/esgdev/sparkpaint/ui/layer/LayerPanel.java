@@ -70,15 +70,15 @@ public class LayerPanel extends JPanel {
                 , "Add new layer", e -> addLayer());
         JButton deleteButton = createButton(IconLoader.loadAndScaleIcon("delete.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight)
                 , "Remove layer", e -> deleteLayer());
-        JButton moveUpButton = createButton(IconLoader.loadAndScaleIcon("arrow_up.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight)
-                , "Move layer up", e -> moveLayerUp());
-        JButton moveDownButton = createButton(IconLoader.loadAndScaleIcon("arrow_down.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight)
-                , "Move layer down", e -> moveLayerDown());
+        JButton flattenButton = createButton(IconLoader.loadAndScaleIcon("flatten.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight)
+                , "Flatten all layers", e -> flattenLayers());
+        JButton mergeDownButton = createButton(IconLoader.loadAndScaleIcon("layers.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight)
+                , "Merge with layer below", e -> mergeLayerDown());
 
         buttonsPanel.add(addButton);
+        buttonsPanel.add(mergeDownButton);
+        buttonsPanel.add(flattenButton);
         buttonsPanel.add(deleteButton);
-        buttonsPanel.add(moveUpButton);
-        buttonsPanel.add(moveDownButton);
         buttonsPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
 
         // Create a compound panel for all controls
@@ -282,31 +282,54 @@ public class LayerPanel extends JPanel {
     }
 
     /**
-     * Moves the current layer up in the layer list and refreshes the layer list.
-     * If the layer is already at the top, it shows a warning message.
+     * Merges the current layer with the layer below it.
+     * If there is no layer below, it shows a warning message.
      */
-    private void moveLayerUp() {
-        boolean success = layerManager.moveCurrentLayerUp();
+    private void mergeLayerDown() {
+        boolean success = layerManager.mergeCurrentLayerDown();
         if (success) {
             refreshLayerList();
-            statusMessageHandler.setStatusMessage("Layer moved up");
+            statusMessageHandler.setStatusMessage("Layer merged down");
         } else {
-            statusMessageHandler.setStatusMessage("Cannot move layer further up");
+            statusMessageHandler.setStatusMessage("Cannot merge bottom layer");
         }
     }
 
     /**
-     * Moves the current layer down in the layer list and refreshes the layer list.
-     * If the layer is already at the bottom, it shows a warning message.
+     * Flattens all visible layers into a single layer.
+     * This operation cannot be undone.
      */
-    private void moveLayerDown() {
-        boolean success = layerManager.moveCurrentLayerDown();
-        if (success) {
-            refreshLayerList();
-            statusMessageHandler.setStatusMessage("Layer moved down");
-        } else {
-            statusMessageHandler.setStatusMessage("Cannot move layer further down");
+    private void flattenLayers() {
+        if (layerManager.getLayerCount() <= 1) {
+            statusMessageHandler.setStatusMessage("Nothing to flatten - only one layer exists");
+            return;
         }
+
+        if (confirmFlattenLayers()) {
+            boolean success = layerManager.flattenLayers();
+            if (success) {
+                refreshLayerList();
+                statusMessageHandler.setStatusMessage("All layers flattened into one");
+            }
+        }
+    }
+
+    /**
+     * Shows a confirmation dialog for flattening layers.
+     *
+     * @return true if the user confirms the operation, false otherwise
+     */
+    private boolean confirmFlattenLayers() {
+        Window parentWindow = SwingUtilities.getWindowAncestor(this);
+
+        int result = JOptionPane.showConfirmDialog(
+                parentWindow,
+                "Flatten all layers into one? This operation cannot be undone.",
+                "Confirm Flatten Layers",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE
+        );
+        return result == JOptionPane.YES_OPTION;
     }
 
     /**
