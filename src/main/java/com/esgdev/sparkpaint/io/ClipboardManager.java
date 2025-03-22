@@ -135,4 +135,11 @@ public class ClipboardManager {
     public void eraseSelection() {
         selectionManager.deleteSelection();
     }
+
+    // For testing only
+    void clipboardStateChanged(boolean canCopy, boolean canPaste) {
+        for (ClipboardChangeListener listener : clipboardChangeListeners) {
+            listener.clipboardStateChanged(canCopy, canPaste);
+        }
+    }
 }
