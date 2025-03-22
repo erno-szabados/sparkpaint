@@ -26,8 +26,6 @@ package com.esgdev.sparkpaint.io;
         @RunWith(MockitoJUnitRunner.class)
         public class ClipboardManagerTest {
 
-            private DrawingCanvas canvas;
-
             @Mock
             private SelectionManager mockSelectionManager;
 
@@ -41,13 +39,12 @@ package com.esgdev.sparkpaint.io;
             private ClipboardChangeListener mockListener;
 
             private ClipboardManager clipboardManager;
-            private Rectangle selectionRect;
             private BufferedImage selectionImage;
 
             @Before
             public void setUp() {
                 // Create a real canvas but with mocked internals
-                canvas = new DrawingCanvas() {
+                DrawingCanvas canvas = new DrawingCanvas() {
                     @Override
                     public SelectionManager getSelectionManager() {
                         return mockSelectionManager;
@@ -62,7 +59,7 @@ package com.esgdev.sparkpaint.io;
                 when(mockSelectionManager.getSelection()).thenReturn(mockSelection);
 
                 // Setup standard selection rectangle and image
-                selectionRect = new Rectangle(10, 10, 50, 50);
+                Rectangle selectionRect = new Rectangle(10, 10, 50, 50);
                 selectionImage = new BufferedImage(50, 50, BufferedImage.TYPE_INT_ARGB);
 
                 when(mockSelection.getBounds()).thenReturn(selectionRect);
@@ -214,7 +211,7 @@ package com.esgdev.sparkpaint.io;
             }
 
             @Test
-            public void testCanPaste() throws Exception {
+            public void testCanPaste() {
                 // Setup for Toolkit
                 Toolkit mockToolkit = mock(Toolkit.class);
                 Clipboard mockClipboard = mock(Clipboard.class);
@@ -230,7 +227,7 @@ package com.esgdev.sparkpaint.io;
             }
 
             @Test
-            public void testCanPasteWithNoImageFlavor() throws Exception {
+            public void testCanPasteWithNoImageFlavor() {
                 // Setup for Toolkit
                 Toolkit mockToolkit = mock(Toolkit.class);
                 Clipboard mockClipboard = mock(Clipboard.class);
@@ -246,7 +243,7 @@ package com.esgdev.sparkpaint.io;
             }
 
             @Test
-            public void testCanPasteWithException() throws Exception {
+            public void testCanPasteWithException() {
                 // Setup for Toolkit
                 Toolkit mockToolkit = mock(Toolkit.class);
 

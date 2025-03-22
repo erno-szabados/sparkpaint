@@ -5,7 +5,6 @@ import com.esgdev.sparkpaint.engine.layer.Layer;
 import com.esgdev.sparkpaint.engine.layer.LayerManager;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 
 import java.awt.*;
 import java.awt.geom.GeneralPath;
@@ -128,7 +127,6 @@ public class SelectionManagerTest {
     @Test
     public void testGetDrawingGraphicsNoSelection() {
         // Setup
-        BufferedImage mockImage = new BufferedImage(100, 100, BufferedImage.TYPE_INT_ARGB);
         Graphics2D mockGraphics = mock(Graphics2D.class);
 
         // Mock the layer manager
@@ -268,7 +266,6 @@ public class SelectionManagerTest {
     public void testIsWithinSelectionTrue() {
         // Setup
         Point worldPoint = new Point(75, 75);
-        Rectangle bounds = new Rectangle(50, 50, 100, 100);
 
         when(mockSelection.contains(worldPoint)).thenReturn(true);
         when(mockSelection.hasOutline()).thenReturn(true);
