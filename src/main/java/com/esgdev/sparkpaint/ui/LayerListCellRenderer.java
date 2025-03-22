@@ -35,7 +35,7 @@ public class LayerListCellRenderer extends JPanel implements ListCellRenderer<La
         nameField.setBorder(BorderFactory.createEmptyBorder(1, 3, 1, 3));
 
         // Delete button
-        deleteButton = new JButton(IconLoader.loadAndScaleIcon("remove.png", 16, 16));
+        deleteButton = new JButton(IconLoader.loadAndScaleIcon("delete.png", 16, 16));
         deleteButton.setToolTipText("Delete this layer");
 
         add(leftControls, BorderLayout.WEST);
