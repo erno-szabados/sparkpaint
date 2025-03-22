@@ -1,7 +1,6 @@
 package com.esgdev.sparkpaint.io;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
-import com.esgdev.sparkpaint.engine.selection.PathSelection;
 import com.esgdev.sparkpaint.engine.selection.Selection;
 import com.esgdev.sparkpaint.engine.selection.SelectionManager;
 import com.esgdev.sparkpaint.engine.tools.DrawingTool;
@@ -28,6 +27,7 @@ public class ClipboardManager {
 
     public void cutSelection() {
         Selection selection = selectionManager.getSelection();
+        if (selection == null) return;
 
         Rectangle selectionRectangle = selection.getBounds();
         if (selectionRectangle == null
@@ -44,6 +44,8 @@ public class ClipboardManager {
 
     public void copySelection() {
         Selection selection = selectionManager.getSelection();
+        if (selection == null) return;
+
         Rectangle selectionRectangle = selection.getBounds();
         if (selectionRectangle == null
                 || selectionRectangle.width <= 0
@@ -58,28 +60,32 @@ public class ClipboardManager {
     public void pasteSelection() throws IOException, UnsupportedFlavorException {
         BufferedImage pastedImage = ImageSelection.pasteImage();
         if (pastedImage != null) {
-            if (canvas.getImage() == null || canvas.getCanvasGraphics() == null) {
+            // Ensure we have a canvas with layers
+            if (canvas.getLayerManager().getLayers().isEmpty()) {
                 canvas.createNewCanvas(DrawingCanvas.DEFAULT_CANVAS_WIDTH, DrawingCanvas.DEFAULT_CANVAS_HEIGHT, canvas.getCanvasBackground());
             }
             canvas.saveToUndoStack();
+
+            // Determine paste location
             Point mousePosition = canvas.getMousePosition();
             int pasteX = 0;
             int pasteY = 0;
 
-
-            if (mousePosition != null ) {
+            if (mousePosition != null) {
                 Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), mousePosition);
                 if (canvas.contains(worldPoint)) {
                     pasteX = worldPoint.x;
                     pasteY = worldPoint.y;
                 }
             }
-            PathSelection selection = (PathSelection) selectionManager.getSelection();
-            Rectangle selectionRectangle = new Rectangle(pasteX, pasteY, pastedImage.getWidth(), pastedImage.getHeight());
+
+            // Create selection with pasted content
             canvas.setCurrentTool(DrawingCanvas.Tool.RECTANGLE_SELECTION);
+            Rectangle selectionRectangle = new Rectangle(pasteX, pasteY, pastedImage.getWidth(), pastedImage.getHeight());
             GeneralPath path = new GeneralPath(selectionRectangle);
+
+            Selection selection = new Selection(selectionRectangle, pastedImage);
             selection.setPath(path);
-            selection.setContent(pastedImage);
             selectionManager.setSelection(selection);
 
             canvas.repaint();
@@ -88,7 +94,8 @@ public class ClipboardManager {
     }
 
     public boolean hasSelection() {
-        return selectionManager.getSelection().hasOutline();
+        Selection selection = selectionManager.getSelection();
+        return selection != null && selection.hasOutline();
     }
 
     public boolean canPaste() {
@@ -125,11 +132,7 @@ public class ClipboardManager {
         }
     }
 
-    private void eraseSelection() {
-        canvas.saveToUndoStack();
-        Selection selection = selectionManager.getSelection();
-        Graphics2D g2d = canvas.getCanvasGraphics();
-        selection.delete(g2d, canvas.getCanvasBackground());
-        g2d.dispose();
+    public void eraseSelection() {
+        selectionManager.deleteSelection();
     }
 }

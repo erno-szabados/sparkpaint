@@ -1,7 +1,7 @@
 package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
-import com.esgdev.sparkpaint.engine.selection.PathSelection;
+import com.esgdev.sparkpaint.engine.layer.Layer;
 import com.esgdev.sparkpaint.engine.selection.Selection;
 
 import java.awt.*;
@@ -10,6 +10,7 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.GeneralPath;
 import java.awt.image.BufferedImage;
+import java.util.List;
 
 public class FreeHandSelectionTool extends AbstractSelectionTool {
     private final GeneralPath currentPath = new GeneralPath();
@@ -21,15 +22,10 @@ public class FreeHandSelectionTool extends AbstractSelectionTool {
     }
 
     @Override
-    protected boolean isValidSelectionType(Selection selection) {
-        return selection instanceof PathSelection;
-    }
-
-    @Override
     protected void handleSelectionStart(MouseEvent e) {
         Selection selection = selectionManager.getSelection();
 
-        if (!(selection instanceof PathSelection) || !selection.hasOutline()) {
+        if (selection == null || !selection.hasOutline()) {
             // Start new path selection
             startNewPath();
         } else if (selection.contains(worldStartPoint)) {
@@ -45,7 +41,7 @@ public class FreeHandSelectionTool extends AbstractSelectionTool {
         currentPath.reset();
         currentPath.moveTo(worldStartPoint.x, worldStartPoint.y);
         isDrawingPath = true;
-        Selection selection = new PathSelection(currentPath, null);
+        Selection selection = new Selection(currentPath, null);
         selectionManager.setSelection(selection);
     }
 
@@ -61,12 +57,14 @@ public class FreeHandSelectionTool extends AbstractSelectionTool {
     @Override
     public void mouseReleased(MouseEvent e) {
         Selection selection = selectionManager.getSelection();
-        if (!(selection instanceof PathSelection)) {
+        if (selection == null) {
             return;
         }
 
         if (isDrawingPath) {
-            finalizeDrawnPath(selection);
+            isDrawingPath = false;
+            currentPath.closePath();
+            finalizeSelection(selection);
         } else if (isDragging) {
             finalizeDrag(e, selection);
         }
@@ -74,27 +72,26 @@ public class FreeHandSelectionTool extends AbstractSelectionTool {
         canvas.repaint();
     }
 
-    private void finalizeDrawnPath(Selection selection) {
-        isDrawingPath = false;
-        currentPath.closePath();
+    @Override
+    protected void finalizeSelection(Selection selection) {
         selectionBounds = currentPath.getBounds();
 
-        if (selectionBounds.width > 0 && selectionBounds.height > 0) {
-            BufferedImage selectionContent = createSelectionImage();
-
-            if (transparencyEnabled) {
-                applyTransparencyToContent(selectionContent, canvas.getFillColor());
-            }
-            selection.setTransparent(transparencyEnabled);
-
-            selection.setContent(selectionContent);
-            originalSelectionLocation = new Point(selectionBounds.x, selectionBounds.y);
-            clearSelectionOriginalLocation((transparencyEnabled ? canvas.getFillColor() : canvas.getCanvasBackground()));
-            canvas.notifyClipboardStateChanged();
-        } else {
-            selectionManager.getSelection().setContent(null);
+        // Check if selection is too small and clear if so
+        if (isSelectionTooSmall(selectionBounds)) {
+            selectionManager.clearSelection();
             originalSelectionLocation = null;
+            return;
         }
+
+        BufferedImage selectionContent = createSelectionImage();
+        BufferedImage transparentContent = createTransparentSelectionImage(selectionContent);
+
+        selection.setTransparent(true);
+        selection.setContent(transparentContent);
+        originalSelectionLocation = new Point(selectionBounds.x, selectionBounds.y);
+
+        clearOriginalSelectionAreaWithTransparency();
+        canvas.notifyClipboardStateChanged();
     }
 
     private BufferedImage createSelectionImage() {
@@ -107,10 +104,15 @@ public class FreeHandSelectionTool extends AbstractSelectionTool {
         translatedPath.transform(AffineTransform.getTranslateInstance(-selectionBounds.x, -selectionBounds.y));
         g2d.setClip(translatedPath);
 
-        // Draw the canvas content
-        g2d.drawImage(canvas.getImage(), -selectionBounds.x, -selectionBounds.y, null);
-        g2d.dispose();
+        // Draw the composite of all visible layers instead of just the canvas image
+        List<Layer> layers = canvas.getLayerManager().getLayers();
+        for (Layer layer : layers) {
+            if (layer.isVisible()) {
+                g2d.drawImage(layer.getImage(), -selectionBounds.x, -selectionBounds.y, null);
+            }
+        }
 
+        g2d.dispose();
         return selectionContent;
     }
 
@@ -129,20 +131,20 @@ public class FreeHandSelectionTool extends AbstractSelectionTool {
         Point worldDragPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
         Selection selection = selectionManager.getSelection();
 
-        if (!(selection instanceof PathSelection)) {
+        if (selection == null) {
             return;
         }
 
         if (isDrawingPath) {
             currentPath.lineTo(worldDragPoint.x, worldDragPoint.y);
         } else if (isDragging) {
-            updatePathLocation(worldDragPoint, (PathSelection)selection);
+            updatePathLocation(worldDragPoint, selection);
         }
 
         canvas.repaint();
     }
 
-    private void updatePathLocation(Point worldDragPoint, PathSelection selection) {
+    private void updatePathLocation(Point worldDragPoint, Selection selection) {
         // Calculate the new position
         int dx = worldDragPoint.x - worldStartPoint.x;
         int dy = worldDragPoint.y - worldStartPoint.y;
@@ -167,28 +169,10 @@ public class FreeHandSelectionTool extends AbstractSelectionTool {
         return "Freehand selection tool selected";
     }
 
-    @Override
-    protected void clearSelectionOriginalLocation(Color color) {
-        Selection selection = selectionManager.getSelection();
-        if (!(selection instanceof PathSelection) || originalSelectionLocation == null) {
-            return;
-        }
-
-        canvas.saveToUndoStack();
-        Graphics2D g2d = canvas.getImage().createGraphics();
-        g2d.setColor(color);
-
-        GeneralPath originalPath = ((PathSelection) selection).getPath();
-        if (originalPath != null) {
-            g2d.fill(originalPath);
-        }
-
-        g2d.dispose();
-    }
 
     @Override
     protected void drawSelectionToCanvas(Graphics2D g2d, Selection selection, BufferedImage content) {
-        Rectangle bounds = ((PathSelection) selection).getPath().getBounds();
+        Rectangle bounds = selection.getPath().getBounds();
         g2d.drawImage(content, bounds.x, bounds.y, null);
     }
 }

@@ -2,6 +2,7 @@ package com.esgdev.sparkpaint.io;
 
 import java.awt.Color;
 import java.io.*;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -23,14 +24,14 @@ public class PaletteManager {
             file = new File(path + DEFAULT_EXTENSION);
         }
 
-        try (OutputStream out = new FileOutputStream(file)) {
+        try (OutputStream out = Files.newOutputStream(file.toPath())) {
             props.store(out, "SparkPaint Color Palette");
         }
     }
 
     public List<Color> loadPalette(File file) throws IOException {
         Properties props = new Properties();
-        try (InputStream in = new FileInputStream(file)) {
+        try (InputStream in = Files.newInputStream(file.toPath())) {
             props.load(in);
         }
 
