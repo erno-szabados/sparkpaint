@@ -13,13 +13,17 @@ public interface HistoryManagement {
 
     /**
      * Undoes the last action.
+     *
+     * @return layer stack after the undo operation
      */
-    void undo();
+    LayerState undo();
 
     /**
      * Redoes the previously undone action.
+     *
+     * @return layer stack after the redo operation
      */
-    void redo();
+    LayerState redo();
 
     /**
      * Checks if there are any actions that can be undone.

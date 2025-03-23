@@ -111,4 +111,18 @@ public interface LayerManagement {
      * @param enabled true to enable transparency visualization
      */
     void setTransparencyVisualizationEnabled(boolean enabled);
+
+    /**
+     * Initializes the layers with the specified width and height.
+     * @param width
+     * @param height
+     */
+    void initializeLayers(int width, int height);
+
+    /**
+     * Gets the background image used for transparency visualization.
+     *
+     * @return the transparency background image
+     */
+    BufferedImage getTransparencyBackground();
 }

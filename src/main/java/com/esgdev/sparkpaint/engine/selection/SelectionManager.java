@@ -3,6 +3,7 @@ package com.esgdev.sparkpaint.engine.selection;
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.layer.Layer;
 import com.esgdev.sparkpaint.engine.tools.DrawingTool;
+import com.esgdev.sparkpaint.engine.tools.ToolManager;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
@@ -14,7 +15,7 @@ import java.util.List;
  * Manages the selection of areas within the drawing canvas.
  * Handles creating, modifying, and deleting selections.
  */
-public class SelectionManager {
+public class SelectionManager implements SelectionManagement {
     private final DrawingCanvas canvas;
     public Selection selection;
 
@@ -41,7 +42,7 @@ public class SelectionManager {
      * Selects all visible layers in the canvas and creates a selection rectangle around them.
      */
     public void selectAll() {
-        canvas.setCurrentTool(DrawingCanvas.Tool.RECTANGLE_SELECTION);
+        canvas.setCurrentTool(ToolManager.Tool.RECTANGLE_SELECTION);
 
         // Create a composite image of all visible layers
         BufferedImage compositeImage = createCompositeImage();
@@ -202,6 +203,12 @@ public class SelectionManager {
     public boolean isWithinSelection(Point worldPoint) {
         Selection selection = getSelection();
         return selection != null && selection.hasOutline() && selection.contains(worldPoint);
+    }
+
+    @Override
+    public Graphics2D getDrawingGraphics() {
+        // FIXME where to get the graphics from?
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
 }

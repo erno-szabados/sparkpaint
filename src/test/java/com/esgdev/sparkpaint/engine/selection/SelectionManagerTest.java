@@ -2,6 +2,7 @@ package com.esgdev.sparkpaint.engine.selection;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.layer.Layer;
+import com.esgdev.sparkpaint.engine.tools.ToolManager;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -69,7 +70,7 @@ public class SelectionManagerTest {
         selectionManager.selectAll();
 
         // Verify
-        verify(mockCanvas).setCurrentTool(DrawingCanvas.Tool.RECTANGLE_SELECTION);
+        verify(mockCanvas).setCurrentTool(ToolManager.Tool.RECTANGLE_SELECTION);
         verify(mockCanvas).notifyClipboardStateChanged();
         verify(mockCanvas).repaint();
 

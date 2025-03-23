@@ -2,7 +2,6 @@ package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.selection.Selection;
-import com.esgdev.sparkpaint.engine.selection.SelectionManager;
 
 import java.awt.*;
 import java.awt.event.MouseEvent;
@@ -52,7 +51,7 @@ public class RectangleTool implements DrawingTool {
         Point point = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
 
         // Create temporary canvas for preview
-        BufferedImage tempCanvas = canvas.getTempCanvas();
+        BufferedImage tempCanvas = canvas.getToolCanvas();
         Graphics2D g2d = tempCanvas.createGraphics();
 
         // Clear the temp canvas
@@ -128,7 +127,7 @@ public class RectangleTool implements DrawingTool {
         g2d.dispose();
 
         // Clear the temp canvas and reset state
-        canvas.setTempCanvas(null);
+        canvas.setToolCanvas(null);
         startPoint = null;
         canvas.repaint();
     }

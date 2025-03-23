@@ -1,7 +1,7 @@
 package com.esgdev.sparkpaint.ui;
 
-import com.esgdev.sparkpaint.engine.DrawingCanvas;
+import com.esgdev.sparkpaint.engine.tools.ToolManager;
 
 public interface ToolChangeListener {
-    void onToolChanged(DrawingCanvas.Tool newTool);
+    void onToolChanged(ToolManager.Tool newTool);
 }

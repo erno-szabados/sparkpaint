@@ -7,7 +7,7 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
-public class LayerManager {
+public class LayerManager implements LayerManagement {
     private List<Layer> layers = new ArrayList<>();
     private int currentLayerIndex = 0;
     private final DrawingCanvas canvas;

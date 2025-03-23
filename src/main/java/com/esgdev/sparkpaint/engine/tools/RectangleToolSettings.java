@@ -69,7 +69,7 @@ package com.esgdev.sparkpaint.engine.tools;
 
                     @Override
                     public void applySettings() {
-                        if (canvas.getCurrentTool() == DrawingCanvas.Tool.RECTANGLE) {
+                        if (canvas.getCurrentTool() == ToolManager.Tool.RECTANGLE) {
                             if (canvas.getActiveTool() instanceof RectangleTool) {
                                 RectangleTool tool = (RectangleTool) canvas.getActiveTool();
                                 tool.setFilled(filledCheckBox.isSelected());

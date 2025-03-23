@@ -97,7 +97,7 @@ public class TextToolSettings extends BaseToolSettings {
 
     @Override
     public void applySettings() {
-        if (canvas.getCurrentTool() == DrawingCanvas.Tool.TEXT) {
+        if (canvas.getCurrentTool() == ToolManager.Tool.TEXT) {
             TextTool tool = (TextTool) canvas.getActiveTool();
             tool.setText(textField.getText());
             tool.setFont(new Font((String) fontDropdown.getSelectedItem(), Font.PLAIN, fontSizeSlider.getValue()));

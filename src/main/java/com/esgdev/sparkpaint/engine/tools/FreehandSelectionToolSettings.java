@@ -23,7 +23,7 @@ public class FreehandSelectionToolSettings extends BaseToolSettings {
      */
     public FreehandSelectionToolSettings(DrawingCanvas canvas) {
         super(canvas);
-        this.freehandSelectionTool = (FreeHandSelectionTool) canvas.getTool(DrawingCanvas.Tool.FREEHAND_SELECTION);
+        this.freehandSelectionTool = (FreeHandSelectionTool) canvas.getTool(ToolManager.Tool.FREEHAND_SELECTION);
         this.transparencyCheckbox = new JCheckBox("Transparent Background");
         this.transparencyCheckbox.setToolTipText("Make selection background transparent");
     }

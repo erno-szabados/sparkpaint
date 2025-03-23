@@ -23,7 +23,7 @@ public class RectangleSelectionToolSettings extends BaseToolSettings {
      */
     public RectangleSelectionToolSettings(DrawingCanvas canvas) {
         super(canvas);
-        this.rectangleSelectionTool = (RectangleSelectionTool) canvas.getTool(DrawingCanvas.Tool.RECTANGLE_SELECTION);
+        this.rectangleSelectionTool = (RectangleSelectionTool) canvas.getTool(ToolManager.Tool.RECTANGLE_SELECTION);
         this.transparencyCheckbox = new JCheckBox("Transparent Background");
         this.transparencyCheckbox.setToolTipText("Make selection background transparent");
     }

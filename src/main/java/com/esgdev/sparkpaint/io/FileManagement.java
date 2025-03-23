@@ -1,13 +1,18 @@
 package com.esgdev.sparkpaint.io;
 
+import com.esgdev.sparkpaint.engine.history.LayerState;
+import com.esgdev.sparkpaint.engine.layer.Layer;
+
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Interface that exposes file management functionality.
  * Provides methods to save, load, and manage file operations.
  */
 public interface FileManagement {
+
 
     /**
      * Saves the current canvas to a file.
@@ -21,9 +26,10 @@ public interface FileManagement {
      * Loads content from a file into the canvas.
      *
      * @param file The file to load
+     * @return
      * @throws IOException If an error occurs during loading
      */
-    void loadFromFile(File file) throws IOException;
+    LayerState loadFromFile(File file) throws IOException;
 
     /**
      * Gets the path of the currently loaded or saved file.
@@ -36,4 +42,11 @@ public interface FileManagement {
      * Resets the current file path, typically used when creating a new document.
      */
     void resetCurrentFilePath();
+
+    /**
+     * Sets the current file path to the specified path.
+     *
+     * @param path The new file path
+     */
+    void setCurrentFilePath(String path);
 }

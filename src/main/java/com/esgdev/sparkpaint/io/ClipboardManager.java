@@ -2,8 +2,8 @@ package com.esgdev.sparkpaint.io;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.selection.Selection;
-import com.esgdev.sparkpaint.engine.selection.SelectionManager;
 import com.esgdev.sparkpaint.engine.tools.DrawingTool;
+import com.esgdev.sparkpaint.engine.tools.ToolManager;
 
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
@@ -15,7 +15,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ClipboardManager {
+public class ClipboardManager implements ClipboardManagement {
     private final DrawingCanvas canvas;
     private final List<ClipboardChangeListener> clipboardChangeListeners = new ArrayList<>();
     //private final SelectionManager selectionManager;
@@ -80,7 +80,7 @@ public class ClipboardManager {
             }
 
             // Create selection with pasted content
-            canvas.setCurrentTool(DrawingCanvas.Tool.RECTANGLE_SELECTION);
+            canvas.setCurrentTool(ToolManager.Tool.RECTANGLE_SELECTION);
             Rectangle selectionRectangle = new Rectangle(pasteX, pasteY, pastedImage.getWidth(), pastedImage.getHeight());
             GeneralPath path = new GeneralPath(selectionRectangle);
 

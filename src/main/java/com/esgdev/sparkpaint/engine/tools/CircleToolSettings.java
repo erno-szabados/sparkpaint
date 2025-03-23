@@ -107,7 +107,7 @@ public class CircleToolSettings extends BaseToolSettings {
 
     @Override
     public void applySettings() {
-        if (canvas.getCurrentTool() == DrawingCanvas.Tool.CIRCLE) {
+        if (canvas.getCurrentTool() == ToolManager.Tool.CIRCLE) {
             if (canvas.getActiveTool() instanceof CircleTool) {
                 CircleTool tool = (CircleTool) canvas.getActiveTool();
                 tool.setFilled(filledCheckBox.isSelected());
