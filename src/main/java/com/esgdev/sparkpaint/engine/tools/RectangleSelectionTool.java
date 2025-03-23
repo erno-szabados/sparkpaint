@@ -39,7 +39,7 @@ public class RectangleSelectionTool extends AbstractSelectionTool {
 
     @Override
     public void mouseReleased(MouseEvent e) {
-        Selection selection = selectionManager.getSelection();
+        Selection selection = canvas.getSelection();
         if (selection == null) return;
 
         Point worldEndPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
@@ -57,7 +57,7 @@ public class RectangleSelectionTool extends AbstractSelectionTool {
     @Override
     public void mouseDragged(MouseEvent e) {
         Point worldDragPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
-        Selection selection = selectionManager.getSelection();
+        Selection selection = canvas.getSelection();
 
         Rectangle selectionRectangle = selection.getBounds();
         if (selectionRectangle == null) return;
@@ -90,10 +90,10 @@ public class RectangleSelectionTool extends AbstractSelectionTool {
 
     @Override
     protected void handleSelectionStart(MouseEvent e) {
-        Selection selection = selectionManager.getSelection();
+        Selection selection = canvas.getSelection();
         if (selection == null) {
             selection = new Selection(new Rectangle(), null);
-            selectionManager.setSelection(selection);
+            canvas.setSelection(selection);
         }
 
         if (!selection.hasOutline()) {
@@ -115,7 +115,7 @@ public class RectangleSelectionTool extends AbstractSelectionTool {
 
         // Check if selection is too small and clear if so
         if (isSelectionTooSmall(selectionRectangle)) {
-            selectionManager.clearSelection();
+            canvas.clearSelection();
             originalSelectionLocation = null;
             return;
         }
@@ -148,7 +148,7 @@ public class RectangleSelectionTool extends AbstractSelectionTool {
         Graphics2D g2d = selectionContent.createGraphics();
 
         // Draw the composite of all visible layers instead of just the canvas image
-        List<Layer> layers = canvas.getLayerManager().getLayers();
+        List<Layer> layers = canvas.getLayers();
         for (Layer layer : layers) {
             if (layer.isVisible()) {
                 g2d.drawImage(layer.getImage(),
@@ -188,7 +188,7 @@ public class RectangleSelectionTool extends AbstractSelectionTool {
     private void startNewRectangle() {
         Rectangle initialRect = new Rectangle(worldStartPoint.x, worldStartPoint.y, 0, 0);
         Selection selection = createRectangularSelection(initialRect, null);
-        selectionManager.setSelection(selection);
+        canvas.setSelection(selection);
         originalSelectionLocation = null;
     }
 

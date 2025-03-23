@@ -40,8 +40,8 @@ public class FillTool implements DrawingTool {
 
     @Override
     public void mousePressed(MouseEvent e) {
-        SelectionManager selectionManager = canvas.getSelectionManager();
-        Selection selection = selectionManager.getSelection();
+        //SelectionManager selectionManager = canvas.getSelectionManager();
+        Selection selection = canvas.getSelection();
 
         // Convert to world coordinates to check selection containment
         Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
@@ -85,7 +85,7 @@ public class FillTool implements DrawingTool {
             clipPath.transform(transform);
         } else {
             // Use the current layer instead of the main canvas image
-            targetImage = canvas.getLayerManager().getCurrentLayerImage();
+            targetImage = canvas.getCurrentLayerImage();
             fillPoint = worldPoint;
 
             // Check if the fill point is within the canvas bounds

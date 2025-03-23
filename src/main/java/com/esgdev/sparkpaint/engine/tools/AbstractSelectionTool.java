@@ -2,7 +2,6 @@ package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.selection.Selection;
-import com.esgdev.sparkpaint.engine.selection.SelectionManager;
 
 import javax.swing.*;
 import java.awt.*;
@@ -21,12 +20,10 @@ public abstract class AbstractSelectionTool implements DrawingTool {
     protected Point worldStartPoint;
     protected boolean isDragging = false;
     protected Point originalSelectionLocation = null;
-    protected final SelectionManager selectionManager;
     protected boolean transparencyEnabled = false;
 
     protected AbstractSelectionTool(DrawingCanvas canvas) {
         this.canvas = canvas;
-        this.selectionManager = canvas.getSelectionManager();
     }
 
     public void setTransparencyEnabled(boolean enabled) {
@@ -38,7 +35,7 @@ public abstract class AbstractSelectionTool implements DrawingTool {
      */
     @Override
     public void mouseMoved(MouseEvent e) {
-        Selection selection = selectionManager.getSelection();
+        Selection selection = canvas.getSelection();
         if (selection == null) {
             return;
         }
@@ -62,7 +59,7 @@ public abstract class AbstractSelectionTool implements DrawingTool {
         }
 
         worldStartPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
-        Selection selection = selectionManager.getSelection();
+        Selection selection = canvas.getSelection();
 
         // Apply existing selection if clicking outside
         if (selection != null && selection.hasOutline()) {
@@ -70,7 +67,7 @@ public abstract class AbstractSelectionTool implements DrawingTool {
             if (!selection.contains(worldPoint)) {
                 // Apply the selection to the current layer instead of clearing it
                 copySelectionToPermanentCanvas();
-                selectionManager.clearSelection();
+                canvas.clearSelection();
                 canvas.repaint();
                 return;
             }
@@ -89,7 +86,7 @@ public abstract class AbstractSelectionTool implements DrawingTool {
      * This method is called when the selection is completed.
      */
     public void copySelectionToPermanentCanvas() {
-        Selection selection = selectionManager.getSelection();
+        Selection selection = canvas.getSelection();
         if (selection == null) {
             return;
         }
@@ -98,7 +95,7 @@ public abstract class AbstractSelectionTool implements DrawingTool {
         if (content == null) return;
 
         canvas.saveToUndoStack();
-        Graphics2D g2d = canvas.getLayerManager().getCurrentLayerImage().createGraphics();
+        Graphics2D g2d = canvas.getCurrentLayerImage().createGraphics();
         g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER));
         drawSelectionToCanvas(g2d, selection, content);
         g2d.dispose();
@@ -110,11 +107,11 @@ public abstract class AbstractSelectionTool implements DrawingTool {
      * This method is called when the user right-clicks on the canvas.
      */
     protected void handleRightClick() {
-        Selection selection = selectionManager.getSelection();
+        Selection selection = canvas.getSelection();
         if (selection == null) {
             return;
         }
-        selectionManager.clearSelection();
+        canvas.clearSelection();
         canvas.undo();
         isDragging = false;
         originalSelectionLocation = null;
@@ -125,7 +122,7 @@ public abstract class AbstractSelectionTool implements DrawingTool {
      * This method is called when the selection is finalized or cleared.
      */
     protected void clearOriginalSelectionAreaWithTransparency() {
-        Selection selection = selectionManager.getSelection();
+        Selection selection = canvas.getSelection();
         if (selection == null || originalSelectionLocation == null) {
             return;
         }
@@ -134,7 +131,7 @@ public abstract class AbstractSelectionTool implements DrawingTool {
         canvas.saveToUndoStack();
 
         // Get the current layer image
-        BufferedImage currentLayer = canvas.getLayerManager().getCurrentLayerImage();
+        BufferedImage currentLayer = canvas.getCurrentLayerImage();
         Graphics2D g2d = currentLayer.createGraphics();
 
         // Use Clear composite for transparency

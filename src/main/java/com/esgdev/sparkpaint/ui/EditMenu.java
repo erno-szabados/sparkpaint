@@ -20,8 +20,7 @@ import java.io.IOException;
  */
 public class EditMenu extends JMenu implements UndoRedoChangeListener, ClipboardChangeListener {
     private final DrawingCanvas canvas;
-    private final SelectionManager selectionManager;
-    private final ClipboardManager clipboardManager;
+    //private final ClipboardManager clipboardManager;
     private final JMenuItem undoItem;
     private final JMenuItem redoItem;
     private final JMenuItem cutItem; // New Cut menu item
@@ -37,22 +36,22 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener, Clipboard
     public EditMenu(MainFrame mainFrame) {
         super("Edit");
         this.canvas = mainFrame.getCanvas();
-        this.selectionManager = canvas.getSelectionManager();
-        this.clipboardManager = canvas.getClipboardManager();
+        //this.selectionManager = canvas.getSelectionManager();
+        //this.clipboardManager = canvas.getClipboardManager();
 
 
         // Create and add Cut item
         cutItem = new JMenuItem("Cut");
         cutItem.setMnemonic('T'); // Shortcut for accessibility (Alt+T)
         // Update action listeners to use selectionManager and clipboardManager
-        cutItem.addActionListener(e -> clipboardManager.cutSelection());
+        cutItem.addActionListener(e -> canvas.cutSelection());
         cutItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.CTRL_MASK)); // Ctrl+X
         add(cutItem);
 
         // Create and add Copy item
         copyItem = new JMenuItem("Copy");
         copyItem.setMnemonic('C'); // Shortcut for accessibility (Alt+C)
-        copyItem.addActionListener(e -> clipboardManager.copySelection());
+        copyItem.addActionListener(e -> canvas.copySelection());
         copyItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_MASK)); // Ctrl+C
         add(copyItem);
 
@@ -61,7 +60,7 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener, Clipboard
         pasteItem.setMnemonic('P'); // Shortcut for accessibility (Alt+P)
         pasteItem.addActionListener(e -> {
             try {
-                clipboardManager.pasteSelection();
+                canvas.pasteSelection();
             } catch (Exception ex) {
                 mainFrame.setStatusMessage("Error pasting clipboard content!");
                 JOptionPane.showMessageDialog(mainFrame,
@@ -80,7 +79,7 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener, Clipboard
         // Add Select All item
         JMenuItem selectAllItem = new JMenuItem("Select All");
         selectAllItem.setMnemonic('A');
-        selectAllItem.addActionListener(e -> selectionManager.selectAll());
+        selectAllItem.addActionListener(e -> canvas.selectAll());
 
         selectAllItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_MASK));
         add(selectAllItem);
@@ -88,7 +87,7 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener, Clipboard
         // Add Delete item
         JMenuItem deleteItem = new JMenuItem("Delete");
         deleteItem.setMnemonic('D');
-        deleteItem.addActionListener(e -> selectionManager.deleteSelection());
+        deleteItem.addActionListener(e -> canvas.deleteSelection());
         deleteItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0));
         add(deleteItem);
 

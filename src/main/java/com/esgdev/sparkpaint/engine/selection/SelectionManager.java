@@ -65,7 +65,7 @@ public class SelectionManager {
      */
     private BufferedImage createCompositeImage() {
         // Get the dimensions from the current layer
-        BufferedImage currentLayer = canvas.getLayerManager().getCurrentLayerImage();
+        BufferedImage currentLayer = canvas.getCurrentLayerImage();
         if (currentLayer == null) return null;
 
         int width = currentLayer.getWidth();
@@ -75,7 +75,7 @@ public class SelectionManager {
         Graphics2D g2d = composite.createGraphics();
 
         // Draw all visible layers
-        List<Layer> layers = canvas.getLayerManager().getLayers();
+        List<Layer> layers = canvas.getLayers();
         for (Layer layer : layers) {
             if (layer.isVisible()) {
                 g2d.drawImage(layer.getImage(), 0, 0, null);
@@ -95,7 +95,7 @@ public class SelectionManager {
         }
 
         canvas.saveToUndoStack();
-        Graphics2D g2d = canvas.getLayerManager().getCurrentLayerImage().createGraphics();
+        Graphics2D g2d = canvas.getCurrentLayerImage().createGraphics();
         g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.CLEAR));
 
         GeneralPath path = selection.getPath();
@@ -145,7 +145,7 @@ public class SelectionManager {
         Selection selection = getSelection();
         if (selection == null || !selection.hasOutline()) {
             // No selection, return current layer graphics
-            return (Graphics2D) canvas.getLayerManager().getCurrentLayerImage().getGraphics();
+            return (Graphics2D) canvas.getCurrentLayerImage().getGraphics();
         }
 
         // We have a selection - prepare a graphics context for its content
@@ -153,7 +153,7 @@ public class SelectionManager {
         Rectangle bounds = selection.getBounds();
 
         if (content == null || bounds == null) {
-            return (Graphics2D) canvas.getLayerManager().getCurrentLayerImage().getGraphics();
+            return (Graphics2D) canvas.getCurrentLayerImage().getGraphics();
         }
 
         Graphics2D g2d = content.createGraphics();

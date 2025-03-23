@@ -46,8 +46,8 @@ public class BrushTool implements DrawingTool {
 
     @Override
     public void mousePressed(MouseEvent e) {
-        SelectionManager selectionManager = canvas.getSelectionManager();
-        Selection selection = selectionManager.getSelection();
+        //SelectionManager selectionManager = canvas.getSelectionManager();
+        Selection selection = canvas.getSelection();
 
         // Convert screen point to world coordinates
         Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
@@ -58,16 +58,16 @@ public class BrushTool implements DrawingTool {
         }
 
         // Save last point and update canvas
-        lastPoint = selectionManager.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
+        lastPoint = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
         canvas.saveToUndoStack();
 
         // Get appropriate graphics context and draw
         Graphics2D g2d;
         if (selection != null && selection.hasOutline()) {
-            g2d = selectionManager.getDrawingGraphics(canvas);
+            g2d = canvas.getDrawingGraphics();
         } else {
             // Draw on current layer
-            g2d = (Graphics2D) canvas.getLayerManager().getCurrentLayerImage().getGraphics();
+            g2d = (Graphics2D) canvas.getCurrentLayerImage().getGraphics();
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                     useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
         }
@@ -80,8 +80,8 @@ public class BrushTool implements DrawingTool {
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        SelectionManager selectionManager = canvas.getSelectionManager();
-        Selection selection = selectionManager.getSelection();
+        //SelectionManager selectionManager = canvas.getSelectionManager();
+        Selection selection = canvas.getSelection();
 
         // Convert screen point to world coordinates
         Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
@@ -92,16 +92,16 @@ public class BrushTool implements DrawingTool {
         }
 
         // Get current point and update
-        Point currentPoint = selectionManager.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
+        Point currentPoint = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
 
 
         // Get appropriate graphics context and draw
         Graphics2D g2d;
         if (selection != null && selection.hasOutline()) {
-            g2d = selectionManager.getDrawingGraphics(canvas);
+            g2d = canvas.getDrawingGraphics();
         } else {
             // Draw on current layer
-            g2d = (Graphics2D) canvas.getLayerManager().getCurrentLayerImage().getGraphics();
+            g2d = (Graphics2D) canvas.getCurrentLayerImage().getGraphics();
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                     useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
         }
@@ -126,11 +126,11 @@ public class BrushTool implements DrawingTool {
 
         // Get the target image for drawing
         BufferedImage targetImage;
-        SelectionManager selectionManager = canvas.getSelectionManager();
-        if (selectionManager.isWithinSelection(DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint()))) {
-            targetImage = selectionManager.getSelection().getContent();
+        //SelectionManager selectionManager = canvas.getSelectionManager();
+        if (canvas.isWithinSelection(DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint()))) {
+            targetImage = canvas.getSelection().getContent();
         } else {
-            targetImage = canvas.getLayerManager().getCurrentLayerImage();
+            targetImage = canvas.getCurrentLayerImage();
         }
 
         int x = p.x - size / 2;

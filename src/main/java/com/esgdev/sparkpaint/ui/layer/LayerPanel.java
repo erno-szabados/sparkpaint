@@ -17,14 +17,16 @@ import java.awt.event.MouseEvent;
 import java.util.function.Consumer;
 
 public class LayerPanel extends JPanel {
-    private final LayerManager layerManager;
+    //private final LayerManager layerManager;
     private final JList<Layer> layerList;
     private final StatusMessageHandler statusMessageHandler;
     private final DefaultListModel<Layer> listModel;
+    private final DrawingCanvas canvas;
 
     public LayerPanel(DrawingCanvas canvas, StatusMessageHandler statusMessageHandler) {
-        this.layerManager = canvas.getLayerManager();
+        //this.layerManager = canvas.getLayerManager();
         this.statusMessageHandler = statusMessageHandler;
+        this.canvas = canvas;
 
         setLayout(new BorderLayout());
         setBorder(BorderFactory.createTitledBorder("Layers"));
@@ -47,10 +49,10 @@ public class LayerPanel extends JPanel {
                     int modelIndex = listModel.getSize() - 1 - selectedIndex;
 
                     // Update current layer in LayerManager
-                    layerManager.setCurrentLayerIndex(modelIndex);
+                    canvas.setCurrentLayerIndex(modelIndex);
 
                     // Update UI
-                    Layer selectedLayer = layerManager.getLayers().get(layerManager.getCurrentLayerIndex());
+                    Layer selectedLayer = canvas.getLayers().get(canvas.getCurrentLayerIndex());
                     statusMessageHandler.setStatusMessage("Selected layer: " + selectedLayer.getName());
                 }
             }
@@ -101,7 +103,7 @@ public class LayerPanel extends JPanel {
                 int selectedIndex = layerList.getSelectedIndex();
                 // Convert visual index to model index (reverse order)
                 int modelIndex = listModel.getSize() - 1 - selectedIndex;
-                Layer selectedLayer = layerManager.getLayers().get(modelIndex);
+                Layer selectedLayer = canvas.getLayers().get(modelIndex);
                 nameField.setText(selectedLayer.getName());
             }
         });
@@ -153,11 +155,11 @@ public class LayerPanel extends JPanel {
      */
     public void refreshLayerList() {
         listModel.clear();
-        java.util.List<Layer> layers = layerManager.getLayers();
+        java.util.List<Layer> layers = canvas.getLayers();
         for (int i = layers.size() - 1; i >= 0; i--) {
             listModel.addElement(layers.get(i));
         }
-        int index = layerManager.getLayerCount() - layerManager.getCurrentLayerIndex() - 1;
+        int index = canvas.getLayerCount() - canvas.getCurrentLayerIndex() - 1;
         layerList.setSelectedIndex(index);
         layerList.repaint();
         layerList.ensureIndexIsVisible(index);
@@ -188,7 +190,7 @@ public class LayerPanel extends JPanel {
             layer.setVisible(checkBox.isSelected());
             statusMessageHandler.setStatusMessage("Layer visibility toggled for " + layer.getName());
             layerList.repaint();
-            layerManager.getCanvas().repaint();
+            canvas.repaint();
         }
     }
 
@@ -215,13 +217,13 @@ public class LayerPanel extends JPanel {
         );
 
         if (deleteButtonRect.contains(e.getPoint())) {
-            if (layerManager.getLayerCount() <= 1) {
+            if (canvas.getLayerCount() <= 1) {
                 statusMessageHandler.setStatusMessage("Cannot delete the only layer");
                 return;
             }
 
             if (confirmLayerDeletion(layer.getName())) {
-                layerManager.deleteLayer(listModel.getSize() - 1 - index);
+                canvas.deleteLayer(listModel.getSize() - 1 - index);
                 refreshLayerList();
                 statusMessageHandler.setStatusMessage("Layer deleted: " + layer.getName());
             }
@@ -237,7 +239,7 @@ public class LayerPanel extends JPanel {
      */
     private void applyNameChange(String newName) {
         if (layerList.getSelectedIndex() != -1) {
-            Layer selectedLayer = layerManager.getLayers().get(layerManager.getCurrentLayerIndex());
+            Layer selectedLayer = canvas.getLayers().get(canvas.getCurrentLayerIndex());
             selectedLayer.setName(newName);
             refreshLayerList();
             statusMessageHandler.setStatusMessage("Layer renamed to: " + newName);
@@ -264,7 +266,7 @@ public class LayerPanel extends JPanel {
      * Adds a new layer to the layer manager and refreshes the layer list.
      */
     private void addLayer() {
-        layerManager.addNewLayer();
+        canvas.addNewLayer();
         refreshLayerList();
         statusMessageHandler.setStatusMessage("New layer added");
     }
@@ -273,7 +275,7 @@ public class LayerPanel extends JPanel {
      * Duplicates the current layer and refreshes the layer list.
      */
     private void duplicateLayer() {
-        boolean success = layerManager.duplicateCurrentLayer();
+        boolean success = canvas.duplicateCurrentLayer();
         if (success) {
             refreshLayerList();
             statusMessageHandler.setStatusMessage("Layer duplicated");
@@ -287,14 +289,14 @@ public class LayerPanel extends JPanel {
      * If there is only one layer, it shows a warning message.
      */
     private void deleteLayer() {
-        if (layerManager.getLayerCount() <= 1) {
+        if (canvas.getLayerCount() <= 1) {
             statusMessageHandler.setStatusMessage("Cannot delete the only layer");
             return;
         }
 
-        Layer selectedLayer = layerManager.getLayers().get(layerManager.getCurrentLayerIndex());
+        Layer selectedLayer = canvas.getLayers().get(canvas.getCurrentLayerIndex());
         if (confirmLayerDeletion(selectedLayer.getName())) {
-            layerManager.deleteCurrentLayer();
+            canvas.deleteCurrentLayer();
             refreshLayerList();
             statusMessageHandler.setStatusMessage("Layer deleted");
         }
@@ -305,7 +307,7 @@ public class LayerPanel extends JPanel {
      * If there is no layer below, it shows a warning message.
      */
     private void mergeLayerDown() {
-        boolean success = layerManager.mergeCurrentLayerDown();
+        boolean success = canvas.mergeCurrentLayerDown();
         if (success) {
             refreshLayerList();
             statusMessageHandler.setStatusMessage("Layer merged down");
@@ -319,13 +321,13 @@ public class LayerPanel extends JPanel {
      * This operation cannot be undone.
      */
     private void flattenLayers() {
-        if (layerManager.getLayerCount() <= 1) {
+        if (canvas.getLayerCount() <= 1) {
             statusMessageHandler.setStatusMessage("Nothing to flatten - only one layer exists");
             return;
         }
 
         if (confirmFlattenLayers()) {
-            boolean success = layerManager.flattenLayers();
+            boolean success = canvas.flattenLayers();
             if (success) {
                 refreshLayerList();
                 statusMessageHandler.setStatusMessage("All layers flattened into one");
@@ -428,7 +430,7 @@ public class LayerPanel extends JPanel {
                     int modelSourceIndex = listModel.getSize() - visualSourceIndex - 1;
 
                     // Move the layer in the layer manager
-                    boolean success = layerManager.moveLayer(modelSourceIndex, modelDropIndex);
+                    boolean success = canvas.moveLayer(modelSourceIndex, modelDropIndex);
                     if (success) {
                         refreshLayerList();
                         statusMessageHandler.setStatusMessage("Layer reordered");

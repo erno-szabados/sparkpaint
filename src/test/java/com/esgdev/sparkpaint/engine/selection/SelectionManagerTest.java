@@ -2,7 +2,6 @@ package com.esgdev.sparkpaint.engine.selection;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.layer.Layer;
-import com.esgdev.sparkpaint.engine.layer.LayerManager;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -62,11 +61,9 @@ public class SelectionManagerTest {
         List<Layer> layers = new ArrayList<>();
         layers.add(mockLayer);
 
-        // Mock the layer manager
-        LayerManager mockLayerManager = mock(LayerManager.class);
-        when(mockCanvas.getLayerManager()).thenReturn(mockLayerManager);
-        when(mockLayerManager.getCurrentLayerImage()).thenReturn(mockImage);
-        when(mockLayerManager.getLayers()).thenReturn(layers);
+        // Mock the canvas methods directly instead of accessing layer manager
+        when(mockCanvas.getCurrentLayerImage()).thenReturn(mockImage);
+        when(mockCanvas.getLayers()).thenReturn(layers);
 
         // Execute
         selectionManager.selectAll();
@@ -86,10 +83,8 @@ public class SelectionManagerTest {
 
     @Test
     public void testSelectAllWithNoCurrentLayer() {
-        // Mock the layer manager
-        LayerManager mockLayerManager = mock(LayerManager.class);
-        when(mockCanvas.getLayerManager()).thenReturn(mockLayerManager);
-        when(mockLayerManager.getCurrentLayerImage()).thenReturn(null);
+        // Mock the canvas directly
+        when(mockCanvas.getCurrentLayerImage()).thenReturn(null);
 
         selectionManager.selectAll();
 
@@ -104,10 +99,8 @@ public class SelectionManagerTest {
         Rectangle bounds = new Rectangle(10, 10, 50, 50);
         GeneralPath path = new GeneralPath(bounds);
 
-        // Mock the layer manager
-        LayerManager mockLayerManager = mock(LayerManager.class);
-        when(mockCanvas.getLayerManager()).thenReturn(mockLayerManager);
-        when(mockLayerManager.getCurrentLayerImage()).thenReturn(mockImage);
+        // Mock the canvas directly
+        when(mockCanvas.getCurrentLayerImage()).thenReturn(mockImage);
 
         when(mockSelection.getBounds()).thenReturn(bounds);
         when(mockSelection.getPath()).thenReturn(path);
@@ -129,11 +122,7 @@ public class SelectionManagerTest {
         // Setup
         Graphics2D mockGraphics = mock(Graphics2D.class);
 
-        // Mock the layer manager
-        LayerManager mockLayerManager = mock(LayerManager.class);
-        when(mockCanvas.getLayerManager()).thenReturn(mockLayerManager);
-
-        // Since we can't spy on BufferedImage directly, create a test implementation
+        // Create a test image that returns our mock graphics
         BufferedImage testImage = new BufferedImage(100, 100, BufferedImage.TYPE_INT_ARGB) {
             @Override
             public Graphics getGraphics() {
@@ -141,7 +130,7 @@ public class SelectionManagerTest {
             }
         };
 
-        when(mockLayerManager.getCurrentLayerImage()).thenReturn(testImage);
+        when(mockCanvas.getCurrentLayerImage()).thenReturn(testImage);
 
         // Execute
         Graphics2D result = selectionManager.getDrawingGraphics(mockCanvas);
