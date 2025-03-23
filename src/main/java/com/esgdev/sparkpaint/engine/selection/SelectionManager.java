@@ -207,8 +207,7 @@ public class SelectionManager implements SelectionManagement {
 
     @Override
     public Graphics2D getDrawingGraphics() {
-        // FIXME where to get the graphics from?
-        throw new UnsupportedOperationException("Not implemented yet");
+        return selection != null ? getDrawingGraphics(canvas) : (Graphics2D) canvas.getCurrentLayerImage().getGraphics();
     }
 
 }
