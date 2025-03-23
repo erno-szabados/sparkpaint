@@ -1,21 +1,23 @@
 package com.esgdev.sparkpaint.engine;
 
+import com.esgdev.sparkpaint.engine.history.HistoryManagement;
 import com.esgdev.sparkpaint.engine.history.HistoryManager;
 import com.esgdev.sparkpaint.engine.history.LayerState;
 import com.esgdev.sparkpaint.engine.history.UndoRedoChangeListener;
 import com.esgdev.sparkpaint.engine.layer.Layer;
+import com.esgdev.sparkpaint.engine.layer.LayerManagement;
 import com.esgdev.sparkpaint.engine.layer.LayerManager;
 import com.esgdev.sparkpaint.engine.selection.Selection;
+import com.esgdev.sparkpaint.engine.selection.SelectionManagement;
 import com.esgdev.sparkpaint.engine.selection.SelectionManager;
 import com.esgdev.sparkpaint.engine.tools.*;
 import com.esgdev.sparkpaint.engine.tools.DrawingTool;
-import com.esgdev.sparkpaint.io.ClipboardChangeListener;
-import com.esgdev.sparkpaint.io.ClipboardManager;
-import com.esgdev.sparkpaint.io.FileManager;
+import com.esgdev.sparkpaint.io.*;
 import com.esgdev.sparkpaint.ui.ToolChangeListener;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
@@ -29,8 +31,12 @@ import java.util.List;
  * DrawingCanvas is a class that represents a drawing canvas where users can draw shapes, lines, and other graphics.
  * Supports various drawing tools and allows for undo/redo functionality, clipboard operations, and file management.
  */
-public class DrawingCanvas extends JPanel {
-
+public class DrawingCanvas extends JPanel implements
+        HistoryManagement,
+        LayerManagement,
+        SelectionManagement,
+        ClipboardManagement,
+        FileManagement {
 
     public enum Tool {
         BRUSH,
@@ -128,9 +134,9 @@ public class DrawingCanvas extends JPanel {
         repaint();
     }
 
-    public SelectionManager getSelectionManager() {
-        return selectionManager;
-    }
+//    public SelectionManager getSelectionManager() {
+//        return selectionManager;
+//    }
 
     public ClipboardManager getClipboardManager() {
         return clipboardManager;
@@ -155,38 +161,6 @@ public class DrawingCanvas extends JPanel {
                     BufferedImage.TYPE_INT_ARGB);
         }
         return tempCanvas;
-    }
-
-    public void saveToFile(File file) throws IOException {
-        fileManager.saveToFile(file, layerManager.getLayers(), layerManager.getCurrentLayerIndex());
-    }
-
-    public void loadFromFile(File file) throws IOException {
-        zoomFactor = 1.0f;
-
-        // Load layers and active layer index from file
-        LayerState layerState = fileManager.loadFromFile(file);
-
-        // Apply the loaded layers to the layer manager
-        layerManager.setLayers(layerState.getLayers());
-        layerManager.setCurrentLayerIndex(layerState.getCurrentLayerIndex());
-
-        // Get dimensions from first layer
-        BufferedImage firstLayerImage = layerState.getLayers().get(0).getImage();
-
-        // Update canvas size
-        setPreferredSize(new Dimension(firstLayerImage.getWidth(), firstLayerImage.getHeight()));
-        revalidate();
-        repaint();
-        clearHistory();
-    }
-
-    public String getCurrentFilePath() {
-        return fileManager.getCurrentFilePath();
-    }
-
-    public void resetCurrentFilePath() {
-        fileManager.setCurrentFilePath(null);
     }
 
     public void setDrawingColor(Color color) {
@@ -377,64 +351,6 @@ public class DrawingCanvas extends JPanel {
         tools.put(Tool.TEXT, new TextTool(this));
     }
 
-    public boolean canPaste() {
-        return clipboardManager.canPaste();
-    }
-
-    public void addClipboardChangeListener(ClipboardChangeListener listener) {
-        clipboardManager.addClipboardChangeListener(listener);
-    }
-
-    public void notifyClipboardStateChanged() {
-        clipboardManager.notifyClipboardStateChanged();
-    }
-
-    // Undo - redo
-
-    public void saveToUndoStack() {
-        historyManager.saveToUndoStack(layerManager.getLayers(), layerManager.getCurrentLayerIndex());
-    }
-
-    public void undo() {
-        LayerState state = historyManager.undo(layerManager.getLayers(), layerManager.getCurrentLayerIndex());
-        layerManager.setLayers(state.getLayers());
-        layerManager.setCurrentLayerIndex(state.getCurrentLayerIndex());
-
-        Selection selection = selectionManager.getSelection();
-        if (selection != null) {
-            selection.clearOutline();
-        }
-        repaint();
-    }
-
-    public void redo() {
-        LayerState state = historyManager.redo(layerManager.getLayers(), layerManager.getCurrentLayerIndex());
-        layerManager.setLayers(state.getLayers());
-        layerManager.setCurrentLayerIndex(state.getCurrentLayerIndex());
-
-        Selection selection = selectionManager.getSelection();
-        if (selection != null) {
-            selection.clearOutline();
-        }
-        repaint();
-    }
-
-    public boolean canUndo() {
-        return historyManager.canUndo();
-    }
-
-    public boolean canRedo() {
-        return historyManager.canRedo();
-    }
-
-    public void clearHistory() {
-        historyManager.clearHistory();
-    }
-
-    public void addUndoRedoChangeListener(UndoRedoChangeListener listener) {
-        historyManager.addUndoRedoChangeListener(listener);
-    }
-
     public void addCanvasPropertyChangeListener(CanvasPropertyChangeListener listener) {
         propertyChangeListeners.add(listener);
     }
@@ -539,4 +455,267 @@ public class DrawingCanvas extends JPanel {
             repaint();
         }
     }
+
+    /// LayerManagement interface
+
+    @Override
+    public void addNewLayer() {
+        layerManager.addNewLayer();
+    }
+
+    @Override
+    public boolean duplicateCurrentLayer() {
+        return layerManager.duplicateCurrentLayer();
+    }
+
+    @Override
+    public void deleteCurrentLayer() {
+        layerManager.deleteCurrentLayer();
+    }
+
+    @Override
+    public void deleteLayer(int index) {
+        layerManager.deleteLayer(index);
+    }
+
+    @Override
+    public boolean moveLayer(int fromIndex, int toIndex) {
+        return layerManager.moveLayer(fromIndex, toIndex);
+    }
+
+    @Override
+    public List<Layer> getLayers() {
+        return layerManager.getLayers();
+    }
+
+    @Override
+    public int getCurrentLayerIndex() {
+        return layerManager.getCurrentLayerIndex();
+    }
+
+    @Override
+    public void setCurrentLayerIndex(int index) {
+        layerManager.setCurrentLayerIndex(index);
+    }
+
+    @Override
+    public BufferedImage getCurrentLayerImage() {
+        return layerManager.getCurrentLayerImage();
+    }
+
+    @Override
+    public int getLayerCount() {
+        return layerManager.getLayerCount();
+    }
+
+    @Override
+    public boolean mergeCurrentLayerDown() {
+        return layerManager.mergeCurrentLayerDown();
+    }
+
+    @Override
+    public boolean flattenLayers() {
+        return layerManager.flattenLayers();
+    }
+
+    @Override
+    public boolean isTransparencyVisualizationEnabled() {
+        return layerManager.isTransparencyVisualizationEnabled();
+    }
+
+    @Override
+    public void setTransparencyVisualizationEnabled(boolean enabled) {
+        layerManager.setTransparencyVisualizationEnabled(enabled);
+    }
+
+    // SelectionManagement interface
+
+    @Override
+    public Selection getSelection() {
+        return selectionManager.getSelection();
+    }
+
+    @Override
+    public void setSelection(Selection selection) {
+        selectionManager.setSelection(selection);
+    }
+
+    @Override
+    public void clearSelection() {
+        selectionManager.clearSelection();
+    }
+
+    @Override
+    public void selectAll() {
+        selectionManager.selectAll();
+    }
+
+    @Override
+    public void deleteSelection() {
+        selectionManager.deleteSelection();
+    }
+
+    @Override
+    public void rotateSelection(int degrees) {
+        selectionManager.rotateSelection(degrees);
+    }
+
+    @Override
+    public void flipSelection(boolean horizontal) {
+        selectionManager.flipSelection(horizontal);
+    }
+
+    @Override
+    public boolean isWithinSelection(Point worldPoint) {
+        return selectionManager.isWithinSelection(worldPoint);
+    }
+
+    @Override
+    public Graphics2D getDrawingGraphics() {
+        return selectionManager.getDrawingGraphics(this);
+    }
+
+    @Override
+    public Point getDrawingCoordinates(Point screenPoint, float zoomFactor) {
+        return selectionManager.getDrawingCoordinates(screenPoint, zoomFactor);
+    }
+
+    /// FileManagement interface
+
+    @Override
+    public void saveToFile(File file) throws IOException {
+        fileManager.saveToFile(file, layerManager.getLayers(), layerManager.getCurrentLayerIndex());
+    }
+
+    @Override
+    public void loadFromFile(File file) throws IOException {
+        zoomFactor = 1.0f;
+
+        // Load layers and active layer index from file
+        LayerState layerState = fileManager.loadFromFile(file);
+
+        // Apply the loaded layers to the layer manager
+        layerManager.setLayers(layerState.getLayers());
+        layerManager.setCurrentLayerIndex(layerState.getCurrentLayerIndex());
+
+        // Get dimensions from first layer
+        BufferedImage firstLayerImage = layerState.getLayers().get(0).getImage();
+
+        // Update canvas size
+        setPreferredSize(new Dimension(firstLayerImage.getWidth(), firstLayerImage.getHeight()));
+        revalidate();
+        repaint();
+        clearHistory();
+    }
+
+    @Override
+    public String getCurrentFilePath() {
+        return fileManager.getCurrentFilePath();
+    }
+
+    @Override
+    public void resetCurrentFilePath() {
+        fileManager.setCurrentFilePath(null);
+    }
+
+    ///  HistoryManagement interface
+
+    @Override
+    public void saveToUndoStack() {
+        historyManager.saveToUndoStack(layerManager.getLayers(), layerManager.getCurrentLayerIndex());
+    }
+
+    @Override
+    public void undo() {
+        LayerState state = historyManager.undo(layerManager.getLayers(), layerManager.getCurrentLayerIndex());
+        layerManager.setLayers(state.getLayers());
+        layerManager.setCurrentLayerIndex(state.getCurrentLayerIndex());
+
+        Selection selection = selectionManager.getSelection();
+        if (selection != null) {
+            selection.clearOutline();
+        }
+        repaint();
+    }
+
+    @Override
+    public void redo() {
+        LayerState state = historyManager.redo(layerManager.getLayers(), layerManager.getCurrentLayerIndex());
+        layerManager.setLayers(state.getLayers());
+        layerManager.setCurrentLayerIndex(state.getCurrentLayerIndex());
+
+        Selection selection = selectionManager.getSelection();
+        if (selection != null) {
+            selection.clearOutline();
+        }
+        repaint();
+    }
+
+    @Override
+    public boolean canUndo() {
+        return historyManager.canUndo();
+    }
+
+    @Override
+    public boolean canRedo() {
+        return historyManager.canRedo();
+    }
+
+    @Override
+    public void clearHistory() {
+        historyManager.clearHistory();
+    }
+
+    @Override
+    public void addUndoRedoChangeListener(UndoRedoChangeListener listener) {
+        historyManager.addUndoRedoChangeListener(listener);
+    }
+
+    /// ClipboardManagement interface
+
+    @Override
+    public void cutSelection() {
+        clipboardManager.cutSelection();
+    }
+
+    @Override
+    public void copySelection() {
+        clipboardManager.copySelection();
+    }
+
+    @Override
+    public void pasteSelection() throws IOException, UnsupportedFlavorException {
+        clipboardManager.pasteSelection();
+    }
+
+    @Override
+    public void eraseSelection() {
+        clipboardManager.eraseSelection();
+    }
+
+    @Override
+    public boolean hasSelection() {
+        return clipboardManager.hasSelection();
+    }
+
+    @Override
+    public boolean canPaste() {
+        return clipboardManager.canPaste();
+    }
+
+    @Override
+    public void addClipboardChangeListener(ClipboardChangeListener listener) {
+        clipboardManager.addClipboardChangeListener(listener);
+    }
+
+    @Override
+    public void removeClipboardChangeListener(ClipboardChangeListener listener) {
+        clipboardManager.removeClipboardChangeListener(listener);
+    }
+
+    @Override
+    public void notifyClipboardStateChanged() {
+        clipboardManager.notifyClipboardStateChanged();
+    }
+
 }

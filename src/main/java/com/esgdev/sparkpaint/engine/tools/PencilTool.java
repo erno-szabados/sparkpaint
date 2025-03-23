@@ -28,8 +28,8 @@ package com.esgdev.sparkpaint.engine.tools;
 
                 @Override
                 public void mousePressed(MouseEvent e) {
-                    SelectionManager selectionManager = canvas.getSelectionManager();
-                    Selection selection = selectionManager.getSelection();
+                    //SelectionManager selectionManager = canvas.getSelectionManager();
+                    Selection selection = canvas.getSelection();
 
                     // Convert screen point to world coordinates
                     Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
@@ -41,15 +41,15 @@ package com.esgdev.sparkpaint.engine.tools;
                     }
 
                     // Save start point and update canvas
-                    startPoint = selectionManager.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
+                    startPoint = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
                     isDrawing = true;
                     canvas.saveToUndoStack();
                 }
 
                 @Override
                 public void mouseDragged(MouseEvent e) {
-                    SelectionManager selectionManager = canvas.getSelectionManager();
-                    Selection selection = selectionManager.getSelection();
+                    //SelectionManager selectionManager = canvas.getSelectionManager();
+                    Selection selection = canvas.getSelection();
 
                     // Convert screen point to world coordinates
                     Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
@@ -65,19 +65,19 @@ package com.esgdev.sparkpaint.engine.tools;
 
                     // If we weren't drawing before, but now we can, set a new start point
                     if (!isDrawing) {
-                        startPoint = selectionManager.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
+                        startPoint = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
                         isDrawing = true;
                         return;
                     }
 
                     // Get current point in appropriate coordinate system
-                    Point point = selectionManager.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
+                    Point point = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
 
                     // Get appropriate graphics context and draw
                     Graphics2D g2d;
 
                     if (selection != null && selection.hasOutline()) {
-                        g2d = selectionManager.getDrawingGraphics(canvas);
+                        g2d = canvas.getDrawingGraphics();
                     } else {
                         // Draw on current layer
                         BufferedImage currentLayerImage = canvas.getLayerManager().getCurrentLayerImage();

@@ -18,15 +18,15 @@ import java.util.List;
 public class ClipboardManager {
     private final DrawingCanvas canvas;
     private final List<ClipboardChangeListener> clipboardChangeListeners = new ArrayList<>();
-    private final SelectionManager selectionManager;
+    //private final SelectionManager selectionManager;
 
     public ClipboardManager(DrawingCanvas canvas) {
         this.canvas = canvas;
-        this.selectionManager = canvas.getSelectionManager();
+       // this.selectionManager = canvas.getSelectionManager();
     }
 
     public void cutSelection() {
-        Selection selection = selectionManager.getSelection();
+        Selection selection = canvas.getSelection();
         if (selection == null) return;
 
         Rectangle selectionRectangle = selection.getBounds();
@@ -37,13 +37,13 @@ public class ClipboardManager {
         }
         copySelection();
         eraseSelection();
-        selectionManager.getSelection().clearOutline();
+        canvas.getSelection().clearOutline();
         canvas.repaint();
         notifyClipboardStateChanged();
     }
 
     public void copySelection() {
-        Selection selection = selectionManager.getSelection();
+        Selection selection = canvas.getSelection();
         if (selection == null) return;
 
         Rectangle selectionRectangle = selection.getBounds();
@@ -52,7 +52,7 @@ public class ClipboardManager {
                 || selectionRectangle.height <= 0) {
             return;
         }
-        BufferedImage selectionImage = selectionManager.getSelection().getContent();
+        BufferedImage selectionImage = canvas.getSelection().getContent();
         ImageSelection.copyImage(selectionImage);
         notifyClipboardStateChanged();
     }
@@ -86,7 +86,7 @@ public class ClipboardManager {
 
             Selection selection = new Selection(selectionRectangle, pastedImage);
             selection.setPath(path);
-            selectionManager.setSelection(selection);
+            canvas.setSelection(selection);
 
             canvas.repaint();
             notifyClipboardStateChanged();
@@ -94,7 +94,7 @@ public class ClipboardManager {
     }
 
     public boolean hasSelection() {
-        Selection selection = selectionManager.getSelection();
+        Selection selection = canvas.getSelection();
         return selection != null && selection.hasOutline();
     }
 
@@ -133,7 +133,7 @@ public class ClipboardManager {
     }
 
     public void eraseSelection() {
-        selectionManager.deleteSelection();
+        canvas.deleteSelection();
     }
 
     // For testing only

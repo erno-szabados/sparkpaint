@@ -20,7 +20,7 @@ import java.io.IOException;
  */
 public class EditMenu extends JMenu implements UndoRedoChangeListener, ClipboardChangeListener {
     private final DrawingCanvas canvas;
-    private final SelectionManager selectionManager;
+    //private final SelectionManager selectionManager;
     private final ClipboardManager clipboardManager;
     private final JMenuItem undoItem;
     private final JMenuItem redoItem;
@@ -37,7 +37,7 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener, Clipboard
     public EditMenu(MainFrame mainFrame) {
         super("Edit");
         this.canvas = mainFrame.getCanvas();
-        this.selectionManager = canvas.getSelectionManager();
+        //this.selectionManager = canvas.getSelectionManager();
         this.clipboardManager = canvas.getClipboardManager();
 
 
@@ -80,7 +80,7 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener, Clipboard
         // Add Select All item
         JMenuItem selectAllItem = new JMenuItem("Select All");
         selectAllItem.setMnemonic('A');
-        selectAllItem.addActionListener(e -> selectionManager.selectAll());
+        selectAllItem.addActionListener(e -> canvas.selectAll());
 
         selectAllItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_MASK));
         add(selectAllItem);
@@ -88,7 +88,7 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener, Clipboard
         // Add Delete item
         JMenuItem deleteItem = new JMenuItem("Delete");
         deleteItem.setMnemonic('D');
-        deleteItem.addActionListener(e -> selectionManager.deleteSelection());
+        deleteItem.addActionListener(e -> canvas.deleteSelection());
         deleteItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0));
         add(deleteItem);
 

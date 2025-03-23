@@ -257,14 +257,14 @@ public class ImageMenu extends JMenu {
 
     private void handleCrop(ActionEvent e) {
         List<Layer> layers = canvas.getLayerManager().getLayers();
-        SelectionManager selectionManager = canvas.getSelectionManager();
+        //SelectionManager selectionManager = canvas.getSelectionManager();
 
-        if (selectionManager.getSelection() == null) {
+        if (canvas.getSelection() == null) {
             JOptionPane.showMessageDialog(mainFrame, "No selection available.", "Crop to Selection", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        Rectangle selection = selectionManager.getSelection().getBounds();
+        Rectangle selection = canvas.getSelection().getBounds();
 
         if (layers == null || layers.isEmpty() || selection == null) {
             JOptionPane.showMessageDialog(mainFrame, "No image or selection available.", "Crop to Selection", JOptionPane.WARNING_MESSAGE);
@@ -314,7 +314,7 @@ public class ImageMenu extends JMenu {
 
         // Update canvas with new layers
         canvas.getLayerManager().setLayers(croppedLayers);
-        selectionManager.clearSelection();
+        canvas.clearSelection();
         canvas.setPreferredSize(new Dimension(selection.width, selection.height));
         canvas.revalidate();
         canvas.repaint();

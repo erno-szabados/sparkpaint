@@ -36,8 +36,8 @@ public class TextTool implements DrawingTool {
 
     @Override
     public void mouseReleased(MouseEvent e) {
-        SelectionManager selectionManager = canvas.getSelectionManager();
-        Selection selection = selectionManager.getSelection();
+        //SelectionManager selectionManager = canvas.getSelectionManager();
+        Selection selection = canvas.getSelection();
 
         // Convert screen point to world coordinates
         Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
@@ -48,12 +48,12 @@ public class TextTool implements DrawingTool {
         }
 
         // Get the point in the appropriate coordinate system
-        Point drawPoint = selectionManager.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
+        Point drawPoint = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
 
         // Get appropriate graphics context for drawing
         Graphics2D g2d;
         if (selection != null && selection.hasOutline()) {
-            g2d = selectionManager.getDrawingGraphics(canvas);
+            g2d = canvas.getDrawingGraphics();
         } else {
             // Draw on current layer
             g2d = canvas.getLayerManager().getCurrentLayerImage().createGraphics();
