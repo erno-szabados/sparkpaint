@@ -1,127 +1,167 @@
 package com.esgdev.sparkpaint.engine.tools;
 
-            import com.esgdev.sparkpaint.engine.DrawingCanvas;
-            import com.esgdev.sparkpaint.engine.selection.Selection;
-            import com.esgdev.sparkpaint.engine.selection.SelectionManager;
+import com.esgdev.sparkpaint.engine.DrawingCanvas;
+import com.esgdev.sparkpaint.engine.selection.Selection;
 
-            import javax.swing.*;
-            import java.awt.*;
-            import java.awt.event.MouseEvent;
-            import java.awt.event.MouseWheelEvent;
-            import java.awt.image.BufferedImage;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
+import java.awt.image.BufferedImage;
 
-            public class PencilTool implements DrawingTool {
-                private final DrawingCanvas canvas;
-                private final Cursor cursor = Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR);
-                private Point startPoint;
-                private boolean useAntiAliasing = true;
-                private boolean isDrawing = false;
+public class PencilTool implements DrawingTool {
+    private final DrawingCanvas canvas;
+    private final Cursor cursor = Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR);
+    private Point lastPoint;
+    private boolean useAntiAliasing = true;
+    private boolean isDrawing = false;
 
-                public PencilTool(DrawingCanvas canvas) {
-                    this.canvas = canvas;
-                }
+    public PencilTool(DrawingCanvas canvas) {
+        this.canvas = canvas;
+    }
 
-                @Override
-                public void mouseMoved(MouseEvent e) {
-                    // No action needed for mouse moved
-                }
+    @Override
+    public void mouseMoved(MouseEvent e) {
+        // No action needed for mouse moved
+    }
 
-                @Override
-                public void mousePressed(MouseEvent e) {
-                    //SelectionManager selectionManager = canvas.getSelectionManager();
-                    Selection selection = canvas.getSelection();
+    @Override
+    public void mousePressed(MouseEvent e) {
+        Selection selection = canvas.getSelection();
 
-                    // Convert screen point to world coordinates
-                    Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
+        // Convert screen point to world coordinates
+        Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
 
-                    // If there's a selection with outline, only allow drawing inside it
-                    if (selection != null && selection.hasOutline() && !selection.contains(worldPoint)) {
-                        isDrawing = false;
-                        return; // Don't draw outside selection
-                    }
+        // If there's a selection, only proceed if clicking inside it
+        if (selection != null && selection.hasOutline() && !selection.contains(worldPoint)) {
+            isDrawing = false;
+            return; // Don't draw outside selection when one exists
+        }
 
-                    // Save start point and update canvas
-                    startPoint = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
-                    isDrawing = true;
-                    canvas.saveToUndoStack();
-                }
+        // Save last point and update canvas
+        lastPoint = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
+        isDrawing = true;
+        canvas.saveToUndoStack();
 
-                @Override
-                public void mouseDragged(MouseEvent e) {
-                    //SelectionManager selectionManager = canvas.getSelectionManager();
-                    Selection selection = canvas.getSelection();
+        // Get appropriate graphics context and draw a single point
+        drawPoint(e, lastPoint);
+        canvas.repaint();
+    }
 
-                    // Convert screen point to world coordinates
-                    Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
+    @Override
+    public void mouseDragged(MouseEvent e) {
+        Selection selection = canvas.getSelection();
 
-                    // Check if we're crossing a selection boundary
-                    boolean isInsideSelection = selection == null || !selection.hasOutline() || selection.contains(worldPoint);
+        // Convert screen point to world coordinates
+        Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
 
-                    if (!isInsideSelection) {
-                        // We're outside the selection, stop drawing
-                        isDrawing = false;
-                        return;
-                    }
+        // If there's a selection, only proceed if dragging inside it
+        if (selection != null && selection.hasOutline() && !selection.contains(worldPoint)) {
+            isDrawing = false;
+            return; // Don't draw outside selection when one exists
+        }
 
-                    // If we weren't drawing before, but now we can, set a new start point
-                    if (!isDrawing) {
-                        startPoint = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
-                        isDrawing = true;
-                        return;
-                    }
+        // If we weren't drawing before, but now we can, set a new start point
+        if (!isDrawing) {
+            lastPoint = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
+            isDrawing = true;
+            return;
+        }
 
-                    // Get current point in appropriate coordinate system
-                    Point point = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
+        // Get current point in drawing coordinates
+        Point currentPoint = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
 
-                    // Get appropriate graphics context and draw
-                    Graphics2D g2d;
+        // Draw line segment from last point to current point
+        drawLine(e, lastPoint, currentPoint);
 
-                    if (selection != null && selection.hasOutline()) {
-                        g2d = canvas.getDrawingGraphics();
-                    } else {
-                        // Draw on current layer
-                        BufferedImage currentLayerImage = canvas.getCurrentLayerImage();
-                        g2d = (Graphics2D) currentLayerImage.getGraphics();
-                    }
+        // Update last point and repaint
+        lastPoint = currentPoint;
+        canvas.repaint();
+    }
 
-                    g2d.setStroke(new BasicStroke(canvas.getLineThickness()));
-                    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                            useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+    private void drawPoint(MouseEvent e, Point point) {
+        Graphics2D g2d = getGraphicsForDrawing();
+        if (g2d == null) return;
 
-                    if (SwingUtilities.isLeftMouseButton(e)) {
-                        g2d.setColor(canvas.getDrawingColor());
-                    } else if (SwingUtilities.isRightMouseButton(e)) {
-                        g2d.setColor(canvas.getFillColor());
-                    }
+        configureGraphics(e, g2d);
 
-                    g2d.drawLine(startPoint.x, startPoint.y, point.x, point.y);
-                    g2d.dispose();
+        // Convert point if drawing in selection
+        Point drawPoint = adjustPointForSelection(point);
 
-                    startPoint = point;
-                    canvas.repaint();
-                }
+        // Draw a single point (as a 1-pixel line)
+        g2d.drawLine(drawPoint.x, drawPoint.y, drawPoint.x, drawPoint.y);
+        g2d.dispose();
+    }
 
-                @Override
-                public void mouseReleased(MouseEvent e) {
-                    isDrawing = false;  // Reset drawing state when mouse is released
-                }
+    private void drawLine(MouseEvent e, Point from, Point to) {
+        Graphics2D g2d = getGraphicsForDrawing();
+        if (g2d == null) return;
 
-                @Override
-                public void mouseScrolled(MouseWheelEvent e) {
-                    // No action needed for mouse scroll
-                }
+        configureGraphics(e, g2d);
 
-                @Override
-                public void setCursor() {
-                    canvas.setCursor(cursor);
-                }
+        // Convert points if drawing in selection
+        Point fromPoint = adjustPointForSelection(from);
+        Point toPoint = adjustPointForSelection(to);
 
-                @Override
-                public String statusMessage() {
-                    return "Pencil tool selected";
-                }
+        g2d.drawLine(fromPoint.x, fromPoint.y, toPoint.x, toPoint.y);
+        g2d.dispose();
+    }
 
-                public void setAntiAliasing(boolean useAntiAliasing) {
-                    this.useAntiAliasing = useAntiAliasing;
-                }
-            }
+    private Graphics2D getGraphicsForDrawing() {
+        Selection selection = canvas.getSelection();
+
+        if (selection != null && selection.hasOutline()) {
+            return canvas.getDrawingGraphics();
+        } else {
+            BufferedImage currentLayerImage = canvas.getCurrentLayerImage();
+            return currentLayerImage.createGraphics();
+        }
+    }
+
+    private Point adjustPointForSelection(Point point) {
+        Selection selection = canvas.getSelection();
+
+        if (selection != null && selection.hasOutline()) {
+            Rectangle bounds = selection.getBounds();
+            return new Point(point.x - bounds.x, point.y - bounds.y);
+        }
+
+        return point;
+    }
+
+    private void configureGraphics(MouseEvent e, Graphics2D g2d) {
+        g2d.setStroke(new BasicStroke(canvas.getLineThickness()));
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+
+        if (SwingUtilities.isLeftMouseButton(e)) {
+            g2d.setColor(canvas.getDrawingColor());
+        } else if (SwingUtilities.isRightMouseButton(e)) {
+            g2d.setColor(canvas.getFillColor());
+        }
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+        isDrawing = false;  // Reset drawing state when mouse is released
+    }
+
+    @Override
+    public void mouseScrolled(MouseWheelEvent e) {
+        // No action needed for mouse scroll
+    }
+
+    @Override
+    public void setCursor() {
+        canvas.setCursor(cursor);
+    }
+
+    @Override
+    public String statusMessage() {
+        return "Pencil tool selected";
+    }
+
+    public void setAntiAliasing(boolean useAntiAliasing) {
+        this.useAntiAliasing = useAntiAliasing;
+    }
+}
