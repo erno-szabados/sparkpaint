@@ -2,7 +2,6 @@ package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.selection.Selection;
-import com.esgdev.sparkpaint.engine.selection.SelectionManager;
 
 import javax.swing.*;
 import java.awt.*;
@@ -11,8 +10,12 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.image.BufferedImage;
 import java.util.Random;
 
+/**
+ * BrushTool is a drawing tool that allows users to paint on a canvas using various brush shapes.
+ * It supports different brush shapes (square, circle, spray), size adjustments, and antialiasing.
+ * The tool can also blend colors based on the specified blend strength.
+ */
 public class BrushTool implements DrawingTool {
-
 
     public enum BrushShape {
         SQUARE,
@@ -24,7 +27,7 @@ public class BrushTool implements DrawingTool {
     public static final int DEFAULT_BLEND_STRENGTH = 25;
     public static final int DEFAULT_SPRAY_DENSITY = 25;
     public static final int DEFAULT_SPRAY_SIZE = 25;
-    public static final int SPRAY_REFERENCE_SIZE = 5; // Keep this at 5 regardless of DEFAULT_SPRAY_SIZE
+    public static final int SPRAY_REFERENCE_SIZE = 5;
     private final DrawingCanvas canvas;
     private final Cursor cursor = Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR);
     private Point lastPoint;
@@ -33,7 +36,6 @@ public class BrushTool implements DrawingTool {
     private int sprayDensity = DEFAULT_SPRAY_DENSITY;
     private boolean useAntiAliasing = true;
     private float maxBlendStrength = 0.1f;  // Range: 0.01f to 1.0f
-
 
     public BrushTool(DrawingCanvas canvas) {
         this.canvas = canvas;
@@ -44,9 +46,15 @@ public class BrushTool implements DrawingTool {
         // No action needed for mouse moved
     }
 
+    /**
+     * Handles mouse press events to initiate drawing.
+     * Converts the screen coordinates to world coordinates and checks if the click is within a selection.
+     * If a selection exists, it only allows drawing within that selection.
+     *
+     * @param e The mouse event triggering the drawing.
+     */
     @Override
     public void mousePressed(MouseEvent e) {
-        //SelectionManager selectionManager = canvas.getSelectionManager();
         Selection selection = canvas.getSelection();
 
         // Convert screen point to world coordinates
@@ -63,24 +71,39 @@ public class BrushTool implements DrawingTool {
 
         // Get appropriate graphics context and draw
         Graphics2D g2d;
+        Point drawPoint = lastPoint;
+
         if (selection != null && selection.hasOutline()) {
+            // Get drawing graphics from the selection manager
             g2d = canvas.getDrawingGraphics();
+
+            // Get selection bounds to adjust coordinates
+            Rectangle bounds = selection.getBounds();
+
+            // Adjust coordinates relative to the selection bounds
+            drawPoint = new Point(lastPoint.x - bounds.x, lastPoint.y - bounds.y);
         } else {
             // Draw on current layer
-            g2d = (Graphics2D) canvas.getCurrentLayerImage().getGraphics();
+            g2d = canvas.getCurrentLayerImage().createGraphics();
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                     useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
         }
 
-        drawShape(e, lastPoint, g2d);
+        drawShape(e, drawPoint, g2d);
         g2d.dispose();
 
         canvas.repaint();
     }
 
+    /**
+     * Handles mouse drag events to continue drawing.
+     * Converts the screen coordinates to world coordinates and checks if the drag is within a selection.
+     * If a selection exists, it only allows drawing within that selection.
+     *
+     * @param e The mouse event triggering the drawing.
+     */
     @Override
     public void mouseDragged(MouseEvent e) {
-        //SelectionManager selectionManager = canvas.getSelectionManager();
         Selection selection = canvas.getSelection();
 
         // Convert screen point to world coordinates
@@ -94,26 +117,40 @@ public class BrushTool implements DrawingTool {
         // Get current point and update
         Point currentPoint = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
 
-
-        // Get appropriate graphics context and draw
+        // Get appropriate graphics context for drawing
         Graphics2D g2d;
+        Point drawPoint = currentPoint;
+
         if (selection != null && selection.hasOutline()) {
+            // Get drawing graphics from the selection manager
             g2d = canvas.getDrawingGraphics();
+
+            // Get selection bounds to adjust coordinates
+            Rectangle bounds = selection.getBounds();
+
+            // Adjust coordinates relative to the selection bounds
+            drawPoint = new Point(currentPoint.x - bounds.x, currentPoint.y - bounds.y);
         } else {
             // Draw on current layer
-            g2d = (Graphics2D) canvas.getCurrentLayerImage().getGraphics();
+            g2d = canvas.getCurrentLayerImage().createGraphics();
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                     useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
         }
 
-        drawShape(e, currentPoint, g2d);
+        drawShape(e, drawPoint, g2d);
         g2d.dispose();
 
         lastPoint = currentPoint;
         canvas.repaint();
     }
 
-    // Updated drawShape method that accepts a Graphics2D parameter
+    /**
+     * Draws the shape at the specified point using the provided Graphics2D context.
+     *
+     * @param e    The mouse event triggering the drawing.
+     * @param p    The point where the shape should be drawn.
+     * @param g2d  The Graphics2D context for drawing.
+     */
     private void drawShape(MouseEvent e, Point p, Graphics2D g2d) {
         Color paintColor;
         if (SwingUtilities.isLeftMouseButton(e)) {
@@ -126,9 +163,9 @@ public class BrushTool implements DrawingTool {
 
         // Get the target image for drawing
         BufferedImage targetImage;
-        //SelectionManager selectionManager = canvas.getSelectionManager();
-        if (canvas.isWithinSelection(DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint()))) {
-            targetImage = canvas.getSelection().getContent();
+        Selection selection = canvas.getSelection();
+        if (selection != null && selection.hasOutline()) {
+            targetImage = selection.getContent();
         } else {
             targetImage = canvas.getCurrentLayerImage();
         }
@@ -149,7 +186,18 @@ public class BrushTool implements DrawingTool {
         }
     }
 
-    // Updated methods to accept external Graphics2D
+    /**
+     * Draws a blended shape (square or circle) on the target image.
+     *
+     * @param image       The target image to draw on.
+     * @param g2d        The Graphics2D context for drawing.
+     * @param x          The x-coordinate of the shape's top-left corner.
+     * @param y          The y-coordinate of the shape's top-left corner.
+     * @param width      The width of the shape.
+     * @param height     The height of the shape.
+     * @param paintColor The color to use for painting.
+     * @param isSquare   True if the shape is a square, false if it's a circle.
+     */
     private void drawBlendedShape(BufferedImage image, Graphics2D g2d, int x, int y, int width, int height, Color paintColor, boolean isSquare) {
         g2d.setColor(paintColor);
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
@@ -192,89 +240,14 @@ public class BrushTool implements DrawingTool {
         }
     }
 
-    private Color getBlendedColor(int currentRGB, float blendStrength, Color paintColor) {
-        Color currentColor = new Color(currentRGB, true);
-
-        // Extract alpha channel
-        int currentAlpha = currentColor.getAlpha();
-
-        // If completely transparent, just use the paint color with some opacity
-        if (currentAlpha == 0) {
-            return new Color(
-                    paintColor.getRed(),
-                    paintColor.getGreen(),
-                    paintColor.getBlue(),
-                    (int) (255 * blendStrength)
-            );
-        }
-
-        // For partially or fully opaque pixels, blend color components
-        int r = (int) ((1 - blendStrength) * currentColor.getRed() + blendStrength * paintColor.getRed());
-        int g = (int) ((1 - blendStrength) * currentColor.getGreen() + blendStrength * paintColor.getGreen());
-        int b = (int) ((1 - blendStrength) * currentColor.getBlue() + blendStrength * paintColor.getBlue());
-
-        // Blend the alpha channel as well
-        int a = Math.min(255, currentAlpha + (int) (blendStrength * (255 - currentAlpha)));
-
-        return new Color(r, g, b, a);
-    }
-
-    public void setMaxBlendStrength(float strength) {
-        this.maxBlendStrength = Math.max(0.01f, Math.min(1.0f, strength));
-    }
-
-    public float getMaxBlendStrength() {
-        return maxBlendStrength;
-    }
-
-    public void setShape(BrushShape shape) {
-        this.shape = shape;
-        canvas.setCursorShape(shape);
-    }
-
-    public void setSize(int size) {
-        this.size = size;
-        canvas.setCursorSize(size);
-    }
-
-    public void setSprayDensity(int sprayDensity) {
-        this.sprayDensity = sprayDensity;
-    }
-
-    @Override
-    public void mouseReleased(MouseEvent e) {
-        // No action needed for mouse released
-    }
-
-    @Override
-    public void mouseScrolled(MouseWheelEvent e) {
-        // No action needed for mouse scroll
-    }
-
-    @Override
-    public void setCursor() {
-        canvas.setCursor(cursor);
-    }
-
-    @Override
-    public String statusMessage() {
-        switch (shape) {
-            case SQUARE:
-                return "Brush tool: Square mode";
-            case CIRCLE:
-                return "Brush tool: Circle mode";
-            case SPRAY:
-                return "Brush tool: Spray mode";
-            default:
-                return "Brush tool: Unknown mode";
-        }
-    }
-
-    // Add getter/setter for anti-aliasing
-    public void setAntiAliasing(boolean useAntiAliasing) {
-        this.useAntiAliasing = useAntiAliasing;
-    }
-
+    /**
+     * Paints using a spray effect at the specified point.
+     *
+     * @param e      The mouse event triggering the spray.
+     * @param image  The target image to draw on.
+     * @param g2d    The Graphics2D context for drawing.
+     * @param center The center point of the spray effect.
+     */
     private void sprayPaint(MouseEvent e, BufferedImage image, Graphics2D g2d, Point center) {
         Color paintColor;
         if (SwingUtilities.isLeftMouseButton(e)) {
@@ -306,5 +279,95 @@ public class BrushTool implements DrawingTool {
                 }
             }
         }
+    }
+
+    /**
+     * Blends the current color with the paint color based on the blend strength.
+     *
+     * @param currentRGB    The current pixel color in RGB format.
+     * @param blendStrength The strength of the blending (0.0 to 1.0).
+     * @param paintColor    The color to blend with.
+     * @return The blended color.
+     */
+    private Color getBlendedColor(int currentRGB, float blendStrength, Color paintColor) {
+        Color currentColor = new Color(currentRGB, true);
+
+        // Extract alpha channel
+        int currentAlpha = currentColor.getAlpha();
+
+        // If completely transparent, just use the paint color with some opacity
+        if (currentAlpha == 0) {
+            return new Color(
+                    paintColor.getRed(),
+                    paintColor.getGreen(),
+                    paintColor.getBlue(),
+                    (int) (255 * blendStrength)
+            );
+        }
+
+        // For partially or fully opaque pixels, blend color components
+        int r = (int) ((1 - blendStrength) * currentColor.getRed() + blendStrength * paintColor.getRed());
+        int g = (int) ((1 - blendStrength) * currentColor.getGreen() + blendStrength * paintColor.getGreen());
+        int b = (int) ((1 - blendStrength) * currentColor.getBlue() + blendStrength * paintColor.getBlue());
+
+        // Blend the alpha channel as well
+        int a = Math.min(255, currentAlpha + (int) (blendStrength * (255 - currentAlpha)));
+
+        return new Color(r, g, b, a);
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+        // No action needed for mouse released
+    }
+
+    @Override
+    public void mouseScrolled(MouseWheelEvent e) {
+        // No action needed for mouse scroll
+    }
+
+    @Override
+    public void setCursor() {
+        canvas.setCursor(cursor);
+    }
+
+    @Override
+    public String statusMessage() {
+        switch (shape) {
+            case SQUARE:
+                return "Brush tool: Square mode";
+            case CIRCLE:
+                return "Brush tool: Circle mode";
+            case SPRAY:
+                return "Brush tool: Spray mode";
+            default:
+                return "Brush tool: Unknown mode";
+        }
+    }
+
+    public void setMaxBlendStrength(float strength) {
+        this.maxBlendStrength = Math.max(0.01f, Math.min(1.0f, strength));
+    }
+
+    public float getMaxBlendStrength() {
+        return maxBlendStrength;
+    }
+
+    public void setShape(BrushShape shape) {
+        this.shape = shape;
+        canvas.setCursorShape(shape);
+    }
+
+    public void setSize(int size) {
+        this.size = size;
+        canvas.setCursorSize(size);
+    }
+
+    public void setSprayDensity(int sprayDensity) {
+        this.sprayDensity = sprayDensity;
+    }
+
+    public void setAntiAliasing(boolean useAntiAliasing) {
+        this.useAntiAliasing = useAntiAliasing;
     }
 }
