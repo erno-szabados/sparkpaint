@@ -3,6 +3,7 @@ package com.esgdev.sparkpaint.engine.selection;
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.layer.Layer;
 import com.esgdev.sparkpaint.engine.tools.DrawingTool;
+import com.esgdev.sparkpaint.engine.tools.ToolManager;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
@@ -14,7 +15,7 @@ import java.util.List;
  * Manages the selection of areas within the drawing canvas.
  * Handles creating, modifying, and deleting selections.
  */
-public class SelectionManager {
+public class SelectionManager implements SelectionManagement {
     private final DrawingCanvas canvas;
     public Selection selection;
 
@@ -41,7 +42,7 @@ public class SelectionManager {
      * Selects all visible layers in the canvas and creates a selection rectangle around them.
      */
     public void selectAll() {
-        canvas.setCurrentTool(DrawingCanvas.Tool.RECTANGLE_SELECTION);
+        canvas.setCurrentTool(ToolManager.Tool.RECTANGLE_SELECTION);
 
         // Create a composite image of all visible layers
         BufferedImage compositeImage = createCompositeImage();
@@ -65,7 +66,7 @@ public class SelectionManager {
      */
     private BufferedImage createCompositeImage() {
         // Get the dimensions from the current layer
-        BufferedImage currentLayer = canvas.getLayerManager().getCurrentLayerImage();
+        BufferedImage currentLayer = canvas.getCurrentLayerImage();
         if (currentLayer == null) return null;
 
         int width = currentLayer.getWidth();
@@ -75,7 +76,7 @@ public class SelectionManager {
         Graphics2D g2d = composite.createGraphics();
 
         // Draw all visible layers
-        List<Layer> layers = canvas.getLayerManager().getLayers();
+        List<Layer> layers = canvas.getLayers();
         for (Layer layer : layers) {
             if (layer.isVisible()) {
                 g2d.drawImage(layer.getImage(), 0, 0, null);
@@ -95,7 +96,7 @@ public class SelectionManager {
         }
 
         canvas.saveToUndoStack();
-        Graphics2D g2d = canvas.getLayerManager().getCurrentLayerImage().createGraphics();
+        Graphics2D g2d = canvas.getCurrentLayerImage().createGraphics();
         g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.CLEAR));
 
         GeneralPath path = selection.getPath();
@@ -145,7 +146,7 @@ public class SelectionManager {
         Selection selection = getSelection();
         if (selection == null || !selection.hasOutline()) {
             // No selection, return current layer graphics
-            return (Graphics2D) canvas.getLayerManager().getCurrentLayerImage().getGraphics();
+            return (Graphics2D) canvas.getCurrentLayerImage().getGraphics();
         }
 
         // We have a selection - prepare a graphics context for its content
@@ -153,7 +154,7 @@ public class SelectionManager {
         Rectangle bounds = selection.getBounds();
 
         if (content == null || bounds == null) {
-            return (Graphics2D) canvas.getLayerManager().getCurrentLayerImage().getGraphics();
+            return (Graphics2D) canvas.getCurrentLayerImage().getGraphics();
         }
 
         Graphics2D g2d = content.createGraphics();
@@ -178,19 +179,18 @@ public class SelectionManager {
      * @param zoomFactor  Current canvas zoom factor
      * @return Point in the appropriate coordinate system
      */
+    @Override
     public Point getDrawingCoordinates(Point screenPoint, float zoomFactor) {
         // First convert to canvas world coordinates
         Point worldPoint = DrawingTool.screenToWorld(zoomFactor, screenPoint);
 
         Selection selection = getSelection();
-        if (selection == null || !selection.contains(worldPoint)) {
-            // No selection or point is outside selection, return world coordinates
+        if (selection != null && selection.hasOutline()) {
+            // No need to offset coordinates for preview - the clip will handle containment
             return worldPoint;
         }
 
-        // Convert to selection-local coordinates
-        Rectangle bounds = selection.getBounds();
-        return new Point(worldPoint.x - bounds.x, worldPoint.y - bounds.y);
+        return worldPoint;
     }
 
     /**
@@ -202,6 +202,16 @@ public class SelectionManager {
     public boolean isWithinSelection(Point worldPoint) {
         Selection selection = getSelection();
         return selection != null && selection.hasOutline() && selection.contains(worldPoint);
+    }
+
+    /**
+     * Gets a graphics context appropriate for drawing - either for the current selection or current layer.
+     *
+     * @return Graphics2D context configured with proper transforms and clipping
+     */
+    @Override
+    public Graphics2D getDrawingGraphics() {
+        return selection != null ? getDrawingGraphics(canvas) : (Graphics2D) canvas.getCurrentLayerImage().getGraphics();
     }
 
 }

@@ -19,7 +19,7 @@ public class BrushToolSettings extends BaseToolSettings {
 
     public BrushToolSettings(DrawingCanvas canvas) {
         super(canvas);
-        this.brushTool = (BrushTool) canvas.getTool(DrawingCanvas.Tool.BRUSH);
+        this.brushTool = (BrushTool) canvas.getTool(ToolManager.Tool.BRUSH);
     }
 
     @Override
@@ -127,7 +127,7 @@ public class BrushToolSettings extends BaseToolSettings {
 
     @Override
     public void applySettings() {
-        if (canvas.getCurrentTool() == DrawingCanvas.Tool.BRUSH) {
+        if (canvas.getCurrentTool() == ToolManager.Tool.BRUSH) {
             brushTool.setSize(sizeSlider.getValue());
             brushTool.setShape((BrushTool.BrushShape) shapeComboBox.getSelectedItem());
             brushTool.setSprayDensity(sprayDensitySlider.getValue());

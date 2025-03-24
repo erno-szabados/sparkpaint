@@ -4,13 +4,21 @@ import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 
+import com.esgdev.sparkpaint.engine.selection.Selection;
+
 public interface DrawingTool {
     void mouseMoved(MouseEvent e);
+
     void mousePressed(MouseEvent e);
+
     void mouseDragged(MouseEvent e);
+
     void mouseReleased(MouseEvent e);
+
     void mouseScrolled(MouseWheelEvent e);
+
     void setCursor();
+
     String statusMessage();
 
     static Point screenToWorld(float zoomFactor, Point point) {
@@ -24,7 +32,7 @@ public interface DrawingTool {
     // Scale a rectangle from screen space to world space
     static Rectangle screenToWorld(Rectangle screenRect, float zoomFactor) {
         double x = (screenRect.x / zoomFactor);
-        double y =  (screenRect.y / zoomFactor);
+        double y = (screenRect.y / zoomFactor);
         double width = (screenRect.width / zoomFactor);
         double height = (screenRect.height / zoomFactor);
         return new Rectangle((int) x, (int) y, (int) width, (int) height);
@@ -46,5 +54,12 @@ public interface DrawingTool {
         int width = (int) (worldRect.width * zoomFactor);
         int height = (int) (worldRect.height * zoomFactor);
         return new Rectangle(x, y, width, height);
+    }
+
+    default void applySelectionClip(Graphics2D g2d, Selection selection) {
+        if (selection != null && selection.hasOutline()) {
+            Rectangle selectionBounds = selection.getBounds();
+            g2d.setClip(selectionBounds);
+        }
     }
 }

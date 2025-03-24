@@ -28,8 +28,8 @@ package com.esgdev.sparkpaint.engine.tools;
             Point point = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
 
             // Get all layers from the layer manager
-            List<Layer> layers = canvas.getLayerManager().getLayers();
-            int currentLayerIndex = canvas.getLayerManager().getCurrentLayerIndex();
+            List<Layer> layers = canvas.getLayers();
+            int currentLayerIndex = canvas.getCurrentLayerIndex();
 
             // Start with current layer
             Color pickedColor;

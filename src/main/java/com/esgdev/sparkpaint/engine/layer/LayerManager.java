@@ -7,7 +7,7 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
-public class LayerManager {
+public class LayerManager implements LayerManagement {
     private List<Layer> layers = new ArrayList<>();
     private int currentLayerIndex = 0;
     private final DrawingCanvas canvas;
@@ -16,6 +16,7 @@ public class LayerManager {
     private static final Color CHECKERBOARD_COLOR1 = new Color(200, 200, 200); // Light gray
     private static final Color CHECKERBOARD_COLOR2 = new Color(255, 255, 255); // White
     private boolean transparencyVisualizationEnabled = true;
+    private final List<LayerChangeListener> layerChangeListeners = new ArrayList<>();
 
 
     public LayerManager(DrawingCanvas canvas) {
@@ -77,7 +78,7 @@ public class LayerManager {
 
         // Create a new layer with the same dimensions
         Layer duplicatedLayer = new Layer(currentLayer.getImage().getWidth(),
-                                         currentLayer.getImage().getHeight());
+                currentLayer.getImage().getHeight());
 
         // Copy the image data from the current layer
         Graphics2D g2d = duplicatedLayer.getImage().createGraphics();
@@ -181,6 +182,7 @@ public class LayerManager {
             BufferedImage firstLayer = layers.get(0).getImage();
             createTransparencyBackground(firstLayer.getWidth(), firstLayer.getHeight());
         }
+        notifyLayersChanged();
         canvas.repaint();
     }
 
@@ -283,5 +285,24 @@ public class LayerManager {
             }
         }
         g2d.dispose();
+    }
+
+    @Override
+    public void addLayerChangeListener(LayerChangeListener listener) {
+        if (listener != null && !layerChangeListeners.contains(listener)) {
+            layerChangeListeners.add(listener);
+        }
+    }
+
+    @Override
+    public void removeLayerChangeListener(LayerChangeListener listener) {
+        layerChangeListeners.remove(listener);
+    }
+
+    @Override
+    public void notifyLayersChanged() {
+        for (LayerChangeListener listener : layerChangeListeners) {
+            listener.onLayersChanged();
+        }
     }
 }

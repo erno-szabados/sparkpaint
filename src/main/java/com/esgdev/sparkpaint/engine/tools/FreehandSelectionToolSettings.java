@@ -23,7 +23,7 @@ public class FreehandSelectionToolSettings extends BaseToolSettings {
      */
     public FreehandSelectionToolSettings(DrawingCanvas canvas) {
         super(canvas);
-        this.freehandSelectionTool = (FreeHandSelectionTool) canvas.getTool(DrawingCanvas.Tool.FREEHAND_SELECTION);
+        this.freehandSelectionTool = (FreeHandSelectionTool) canvas.getTool(ToolManager.Tool.FREEHAND_SELECTION);
         this.transparencyCheckbox = new JCheckBox("Transparent Background");
         this.transparencyCheckbox.setToolTipText("Make selection background transparent");
     }
@@ -42,22 +42,22 @@ public class FreehandSelectionToolSettings extends BaseToolSettings {
         JButton rotateLeftButton = new JButton();
         rotateLeftButton.setIcon(IconLoader.loadAndScaleIcon("rotate-left.png", ICON_SIZE, ICON_SIZE));
         rotateLeftButton.setToolTipText("Rotate Left 90°");
-        rotateLeftButton.addActionListener(e -> canvas.getSelectionManager().rotateSelection(-90));
+        rotateLeftButton.addActionListener(e -> canvas.rotateSelection(-90));
 
         JButton rotateRightButton = new JButton();
         rotateRightButton.setIcon(IconLoader.loadAndScaleIcon("rotate-right.png", ICON_SIZE, ICON_SIZE));
         rotateRightButton.setToolTipText("Rotate Right 90°");
-        rotateRightButton.addActionListener(e -> canvas.getSelectionManager().rotateSelection(90));
+        rotateRightButton.addActionListener(e -> canvas.rotateSelection(90));
 
         JButton horizontalMirrorButton = new JButton();
         horizontalMirrorButton.setIcon(IconLoader.loadAndScaleIcon("horizontal-mirror.png", ICON_SIZE, ICON_SIZE));
         horizontalMirrorButton.setToolTipText("Mirror Horizontally");
-        horizontalMirrorButton.addActionListener(e -> canvas.getSelectionManager().flipSelection(true));
+        horizontalMirrorButton.addActionListener(e -> canvas.flipSelection(true));
 
         JButton verticalMirrorButton = new JButton();
         verticalMirrorButton.setIcon(IconLoader.loadAndScaleIcon("vertical-mirror.png", ICON_SIZE, ICON_SIZE));
         verticalMirrorButton.setToolTipText("Mirror Vertically");
-        verticalMirrorButton.addActionListener(e -> canvas.getSelectionManager().flipSelection(false));
+        verticalMirrorButton.addActionListener(e -> canvas.flipSelection(false));
 
         JPanel transformationPanel = new JPanel(new GridLayout(1, 4, 5, 5));
         transformationPanel.add(rotateLeftButton);

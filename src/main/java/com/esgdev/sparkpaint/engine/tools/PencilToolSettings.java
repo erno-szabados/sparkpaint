@@ -59,7 +59,7 @@ public class PencilToolSettings extends BaseToolSettings {
     @Override
     public void applySettings() {
 
-        if (canvas.getCurrentTool() == DrawingCanvas.Tool.PENCIL) {
+        if (canvas.getCurrentTool() == ToolManager.Tool.PENCIL) {
             PencilTool tool = (PencilTool) canvas.getActiveTool();
             canvas.setLineThickness(thicknessSlider.getValue());
             useAntiAliasing = antiAliasingCheckbox.isSelected();

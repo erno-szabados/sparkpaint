@@ -65,8 +65,8 @@ public class ImageMenu extends JMenu {
 
     private void handleInfo(ActionEvent e) {
         String filePath = canvas.getCurrentFilePath();
-        List<Layer> layers = canvas.getLayerManager().getLayers();
-        int currentLayerIndex = canvas.getLayerManager().getCurrentLayerIndex();
+        List<Layer> layers = canvas.getLayers();
+        int currentLayerIndex = canvas.getCurrentLayerIndex();
 
         if (layers != null && !layers.isEmpty()) {
             BufferedImage firstLayer = layers.get(0).getImage();
@@ -82,7 +82,7 @@ public class ImageMenu extends JMenu {
     }
 
     private void handleResize(ActionEvent e) {
-        List<Layer> layers = canvas.getLayerManager().getLayers();
+        List<Layer> layers = canvas.getLayers();
         if (layers == null || layers.isEmpty()) {
             JOptionPane.showMessageDialog(mainFrame, "No image loaded.", "Resize", JOptionPane.WARNING_MESSAGE);
             return;
@@ -162,7 +162,8 @@ public class ImageMenu extends JMenu {
             }
 
             // Update canvas with new layers
-            canvas.getLayerManager().setLayers(resizedLayers);
+            canvas.saveToUndoStack();
+            canvas.setLayers(resizedLayers);
             canvas.setPreferredSize(new Dimension(newWidth, newHeight));
             canvas.revalidate();
             canvas.repaint();
@@ -170,7 +171,7 @@ public class ImageMenu extends JMenu {
     }
 
     private void handleScale(ActionEvent e) {
-        List<Layer> layers = canvas.getLayerManager().getLayers();
+        List<Layer> layers = canvas.getLayers();
         if (layers == null || layers.isEmpty()) {
             JOptionPane.showMessageDialog(mainFrame, "No image loaded.", "Scale", JOptionPane.WARNING_MESSAGE);
             return;
@@ -248,7 +249,8 @@ public class ImageMenu extends JMenu {
             }
 
             // Update canvas with new layers
-            canvas.getLayerManager().setLayers(scaledLayers);
+            canvas.saveToUndoStack();
+            canvas.setLayers(scaledLayers);
             canvas.setPreferredSize(new Dimension(newWidth, newHeight));
             canvas.revalidate();
             canvas.repaint();
@@ -256,15 +258,15 @@ public class ImageMenu extends JMenu {
     }
 
     private void handleCrop(ActionEvent e) {
-        List<Layer> layers = canvas.getLayerManager().getLayers();
-        SelectionManager selectionManager = canvas.getSelectionManager();
+        List<Layer> layers = canvas.getLayers();
+        //SelectionManager selectionManager = canvas.getSelectionManager();
 
-        if (selectionManager.getSelection() == null) {
+        if (canvas.getSelection() == null) {
             JOptionPane.showMessageDialog(mainFrame, "No selection available.", "Crop to Selection", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        Rectangle selection = selectionManager.getSelection().getBounds();
+        Rectangle selection = canvas.getSelection().getBounds();
 
         if (layers == null || layers.isEmpty() || selection == null) {
             JOptionPane.showMessageDialog(mainFrame, "No image or selection available.", "Crop to Selection", JOptionPane.WARNING_MESSAGE);
@@ -313,8 +315,9 @@ public class ImageMenu extends JMenu {
         }
 
         // Update canvas with new layers
-        canvas.getLayerManager().setLayers(croppedLayers);
-        selectionManager.clearSelection();
+        canvas.saveToUndoStack();
+        canvas.setLayers(croppedLayers);
+        canvas.clearSelection();
         canvas.setPreferredSize(new Dimension(selection.width, selection.height));
         canvas.revalidate();
         canvas.repaint();

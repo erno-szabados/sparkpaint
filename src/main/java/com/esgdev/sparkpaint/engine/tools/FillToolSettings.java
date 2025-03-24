@@ -82,7 +82,7 @@ public class FillToolSettings extends BaseToolSettings {
 
     @Override
     public void applySettings() {
-        FillTool tool = (FillTool) canvas.getTool(DrawingCanvas.Tool.FILL);
+        FillTool tool = (FillTool) canvas.getTool(ToolManager.Tool.FILL);
         int mappedEpsilon = epsilonSlider.getValue() * 2;
         tool.setEpsilon(mappedEpsilon);
         // Map 0-100 UI range to 0-255 technical range for edge threshold

@@ -18,7 +18,7 @@ import java.util.zip.Inflater;
  * HistoryManager is responsible for managing the undo and redo history of layers.
  * It compresses and decompresses layer data to save memory and improve performance.
  */
-public class HistoryManager {
+public class HistoryManager implements HistoryManagement {
     private final Deque<CompressedLayerState> undoStack = new ArrayDeque<>();
     private final Deque<CompressedLayerState> redoStack = new ArrayDeque<>();
     private final List<UndoRedoChangeListener> undoRedoChangeListeners;
@@ -146,6 +146,23 @@ public class HistoryManager {
         }
 
         return new LayerState(layers, compressedState.getCurrentLayerIndex());
+    }
+
+    @Override
+    public void saveToUndoStack() {
+        throw new UnsupportedOperationException("Direct calls unsupported, use saveToUndoStack(List<Layer>, int) instead.");
+    }
+
+    @Override
+    public LayerState undo() {
+        throw new UnsupportedOperationException("Direct calls unsupported, use undo(List<Layer> currentLayers, int currentLayerIndex) instead.");
+
+    }
+
+    @Override
+    public LayerState redo() {
+        throw new UnsupportedOperationException("Direct calls unsupported, use redo(List<Layer> currentLayers, int currentLayerIndex) instead.");
+
     }
 
     /**

@@ -23,7 +23,7 @@ public class FreeHandSelectionTool extends AbstractSelectionTool {
 
     @Override
     protected void handleSelectionStart(MouseEvent e) {
-        Selection selection = selectionManager.getSelection();
+        Selection selection = canvas.getSelection();
 
         if (selection == null || !selection.hasOutline()) {
             // Start new path selection
@@ -42,7 +42,7 @@ public class FreeHandSelectionTool extends AbstractSelectionTool {
         currentPath.moveTo(worldStartPoint.x, worldStartPoint.y);
         isDrawingPath = true;
         Selection selection = new Selection(currentPath, null);
-        selectionManager.setSelection(selection);
+        canvas.setSelection(selection);
     }
 
     private void startDragging(Selection selection) {
@@ -56,7 +56,7 @@ public class FreeHandSelectionTool extends AbstractSelectionTool {
 
     @Override
     public void mouseReleased(MouseEvent e) {
-        Selection selection = selectionManager.getSelection();
+        Selection selection = canvas.getSelection();
         if (selection == null) {
             return;
         }
@@ -78,7 +78,7 @@ public class FreeHandSelectionTool extends AbstractSelectionTool {
 
         // Check if selection is too small and clear if so
         if (isSelectionTooSmall(selectionBounds)) {
-            selectionManager.clearSelection();
+            canvas.clearSelection();
             originalSelectionLocation = null;
             return;
         }
@@ -105,7 +105,7 @@ public class FreeHandSelectionTool extends AbstractSelectionTool {
         g2d.setClip(translatedPath);
 
         // Draw the composite of all visible layers instead of just the canvas image
-        List<Layer> layers = canvas.getLayerManager().getLayers();
+        List<Layer> layers = canvas.getLayers();
         for (Layer layer : layers) {
             if (layer.isVisible()) {
                 g2d.drawImage(layer.getImage(), -selectionBounds.x, -selectionBounds.y, null);
@@ -129,7 +129,7 @@ public class FreeHandSelectionTool extends AbstractSelectionTool {
     @Override
     public void mouseDragged(MouseEvent e) {
         Point worldDragPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
-        Selection selection = selectionManager.getSelection();
+        Selection selection = canvas.getSelection();
 
         if (selection == null) {
             return;

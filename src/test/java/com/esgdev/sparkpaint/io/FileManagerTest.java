@@ -66,7 +66,7 @@ public class FileManagerTest {
     @Test
     public void testSaveAndLoadPNG() throws IOException {
         // Save to PNG
-        fileManager.saveToFile(pngFile, testLayers, 0);
+        fileManager.saveToFile(pngFile, testLayers);
 
         // Verify file was created
         assertTrue("PNG file should exist", pngFile.exists());
@@ -85,7 +85,7 @@ public class FileManagerTest {
     @Test
     public void testSaveAndLoadJPG() throws IOException {
         // Save to JPG
-        fileManager.saveToFile(jpgFile, testLayers, 0);
+        fileManager.saveToFile(jpgFile, testLayers);
 
         // Verify file was created
         assertTrue("JPG file should exist", jpgFile.exists());
@@ -102,7 +102,7 @@ public class FileManagerTest {
     @Test
     public void testSaveAndLoadBMP() throws IOException {
         // Save to BMP
-        fileManager.saveToFile(bmpFile, testLayers, 0);
+        fileManager.saveToFile(bmpFile, testLayers);
 
         // Verify file was created
         assertTrue("BMP file should exist", bmpFile.exists());
@@ -122,7 +122,7 @@ public class FileManagerTest {
         testLayers.get(1).setVisible(false);
 
         // Save file
-        fileManager.saveToFile(pngFile, testLayers, 0);
+        fileManager.saveToFile(pngFile, testLayers);
 
         // Load image directly to verify content
         BufferedImage loaded = ImageIO.read(pngFile);
@@ -151,7 +151,7 @@ public class FileManagerTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testCreateFlattenedImageWithEmptyLayers() throws IOException {
-        fileManager.saveToFile(pngFile, new ArrayList<>(), 0);
+        fileManager.saveToFile(pngFile, new ArrayList<>());
     }
 
     @Test

@@ -8,13 +8,14 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * FileManager is responsible for saving and loading images to and from files.
  */
-public class FileManager {
+public class FileManager implements FileManagement {
     private String currentFilePath;
 
     /**
@@ -22,10 +23,9 @@ public class FileManager {
      *
      * @param file              The file to save to.
      * @param layers            The layers to flatten and save.
-     * @param currentLayerIndex The index of the current active layer.
      * @throws IOException If an error occurs during saving.
      */
-    public void saveToFile(File file, List<Layer> layers, int currentLayerIndex) throws IOException {
+    public void saveToFile(File file, List<Layer> layers) throws IOException {
         // Create a flattened image from all visible layers
         BufferedImage flattened = createFlattenedImage(layers);
 
@@ -77,6 +77,11 @@ public class FileManager {
         return composite;
     }
 
+    @Override
+    public void saveToFile(File file) throws IOException {
+        throw  new UnsupportedEncodingException("Direct calls unsupported. Use saveToFile(File file, List<Layer> layers) instead.");
+    }
+
     /**
      * Loads a file, creating a single layer from the image.
      *
@@ -124,6 +129,11 @@ public class FileManager {
      */
     public String getCurrentFilePath() {
         return currentFilePath;
+    }
+
+    @Override
+    public void resetCurrentFilePath() {
+
     }
 
     /**

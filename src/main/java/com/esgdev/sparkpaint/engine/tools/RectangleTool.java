@@ -2,7 +2,6 @@ package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.selection.Selection;
-import com.esgdev.sparkpaint.engine.selection.SelectionManager;
 
 import java.awt.*;
 import java.awt.event.MouseEvent;
@@ -28,8 +27,8 @@ public class RectangleTool implements DrawingTool {
 
     @Override
     public void mousePressed(MouseEvent e) {
-        SelectionManager selectionManager = canvas.getSelectionManager();
-        Selection selection = selectionManager.getSelection();
+        //SelectionManager selectionManager = canvas.getSelectionManager();
+        Selection selection = canvas.getSelection();
 
         // Convert to world coordinates and check if we're in a selection
         Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
@@ -38,7 +37,7 @@ public class RectangleTool implements DrawingTool {
         }
 
         // Save start point using appropriate coordinate system
-        startPoint = selectionManager.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
+        startPoint = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
         canvas.saveToUndoStack();
     }
 
@@ -46,13 +45,13 @@ public class RectangleTool implements DrawingTool {
     public void mouseDragged(MouseEvent e) {
         if (startPoint == null) return;
 
-        SelectionManager selectionManager = canvas.getSelectionManager();
+        Selection selection = canvas.getSelection();
 
         // Get current point in appropriate coordinate system
-        Point point = selectionManager.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
+        Point point = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
 
         // Create temporary canvas for preview
-        BufferedImage tempCanvas = canvas.getTempCanvas();
+        BufferedImage tempCanvas = canvas.getToolCanvas();
         Graphics2D g2d = tempCanvas.createGraphics();
 
         // Clear the temp canvas
@@ -64,6 +63,9 @@ public class RectangleTool implements DrawingTool {
         g2d.setStroke(new BasicStroke(canvas.getLineThickness()));
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                 useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+
+        // Apply selection clip
+        applySelectionClip(g2d, selection);
 
         // Calculate rectangle dimensions
         int x = Math.min(startPoint.x, point.x);
@@ -89,19 +91,29 @@ public class RectangleTool implements DrawingTool {
     public void mouseReleased(MouseEvent e) {
         if (startPoint == null) return;
 
-        SelectionManager selectionManager = canvas.getSelectionManager();
-        Selection selection = selectionManager.getSelection();
+        Selection selection = canvas.getSelection();
 
         // Get current point in appropriate coordinate system
-        Point point = selectionManager.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
+        Point point = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
 
         // Get appropriate graphics context for drawing
         Graphics2D g2d;
+        Point adjustedStartPoint = startPoint;
+        Point adjustedEndPoint = point;
+
         if (selection != null && selection.hasOutline()) {
-            g2d = selectionManager.getDrawingGraphics(canvas);
+            // Get drawing graphics from the selection manager
+            g2d = canvas.getDrawingGraphics();
+
+            // Get selection bounds to adjust coordinates
+            Rectangle bounds = selection.getBounds();
+
+            // Adjust coordinates relative to the selection bounds
+            adjustedStartPoint = new Point(startPoint.x - bounds.x, startPoint.y - bounds.y);
+            adjustedEndPoint = new Point(point.x - bounds.x, point.y - bounds.y);
         } else {
-            // Draw on current layer instead of main image
-            BufferedImage currentLayerImage = canvas.getLayerManager().getCurrentLayerImage();
+            // Draw on current layer
+            BufferedImage currentLayerImage = canvas.getCurrentLayerImage();
             g2d = (Graphics2D) currentLayerImage.getGraphics();
         }
 
@@ -111,10 +123,10 @@ public class RectangleTool implements DrawingTool {
                 useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
 
         // Calculate rectangle dimensions
-        int x = Math.min(startPoint.x, point.x);
-        int y = Math.min(startPoint.y, point.y);
-        int width = Math.abs(point.x - startPoint.x);
-        int height = Math.abs(point.y - startPoint.y);
+        int x = Math.min(adjustedStartPoint.x, adjustedEndPoint.x);
+        int y = Math.min(adjustedStartPoint.y, adjustedEndPoint.y);
+        int width = Math.abs(adjustedEndPoint.x - adjustedStartPoint.x);
+        int height = Math.abs(adjustedEndPoint.y - adjustedStartPoint.y);
 
         // Draw filled rectangle if needed
         if (isFilled) {
@@ -128,7 +140,7 @@ public class RectangleTool implements DrawingTool {
         g2d.dispose();
 
         // Clear the temp canvas and reset state
-        canvas.setTempCanvas(null);
+        canvas.setToolCanvas(null);
         startPoint = null;
         canvas.repaint();
     }

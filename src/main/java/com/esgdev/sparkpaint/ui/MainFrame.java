@@ -44,7 +44,7 @@ public class MainFrame extends JFrame {
 
 
         // Add main canvas (at the center). Must precede menu, toolbar and tool settings!
-        canvas = new DrawingCanvas();
+        canvas = DrawingCanvas.create();
 
         // Create and set up the menu bar
         JMenuBar menuBar = new JMenuBar();
