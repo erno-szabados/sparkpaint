@@ -242,8 +242,8 @@ public class LayerPanel extends JPanel implements LayerChangeListener {
     private void applyNameChange(String newName) {
         if (layerList.getSelectedIndex() != -1) {
             Layer selectedLayer = canvas.getLayers().get(canvas.getCurrentLayerIndex());
-            selectedLayer.setName(newName);
             canvas.saveToUndoStack();
+            selectedLayer.setName(newName);
             refreshLayerList();
             statusMessageHandler.setStatusMessage("Layer renamed to: " + newName);
         }

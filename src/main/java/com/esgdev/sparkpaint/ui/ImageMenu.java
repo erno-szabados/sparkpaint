@@ -162,8 +162,8 @@ public class ImageMenu extends JMenu {
             }
 
             // Update canvas with new layers
-            canvas.setLayers(resizedLayers);
             canvas.saveToUndoStack();
+            canvas.setLayers(resizedLayers);
             canvas.setPreferredSize(new Dimension(newWidth, newHeight));
             canvas.revalidate();
             canvas.repaint();
@@ -249,6 +249,7 @@ public class ImageMenu extends JMenu {
             }
 
             // Update canvas with new layers
+            canvas.saveToUndoStack();
             canvas.setLayers(scaledLayers);
             canvas.setPreferredSize(new Dimension(newWidth, newHeight));
             canvas.revalidate();
@@ -314,6 +315,7 @@ public class ImageMenu extends JMenu {
         }
 
         // Update canvas with new layers
+        canvas.saveToUndoStack();
         canvas.setLayers(croppedLayers);
         canvas.clearSelection();
         canvas.setPreferredSize(new Dimension(selection.width, selection.height));
