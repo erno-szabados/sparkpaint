@@ -67,14 +67,12 @@ public class LayerPanel extends JPanel implements LayerChangeListener {
 
         // Buttons panel
         JPanel buttonsPanel = new JPanel();
-        buttonsPanel.setLayout(new GridLayout(1, 5, 5, 0)); // 1 row, 4 columns, with 5px horizontal gap
+        buttonsPanel.setLayout(new GridLayout(1, 4, 5, 0)); // 1 row, 4 columns, with 5px horizontal gap
 
         JButton addButton = createButton(IconLoader.loadAndScaleIcon("add.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight)
                 , "Add new layer", e -> addLayer());
         JButton duplicateButton = createButton(IconLoader.loadAndScaleIcon("copy.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight)
                 , "Duplicate layer", e -> duplicateLayer());
-        JButton deleteButton = createButton(IconLoader.loadAndScaleIcon("delete.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight)
-                , "Remove layer", e -> deleteLayer());
         JButton flattenButton = createButton(IconLoader.loadAndScaleIcon("flatten.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight)
                 , "Flatten all layers", e -> flattenLayers());
         JButton mergeDownButton = createButton(IconLoader.loadAndScaleIcon("layers.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight)
@@ -84,7 +82,6 @@ public class LayerPanel extends JPanel implements LayerChangeListener {
         buttonsPanel.add(duplicateButton);
         buttonsPanel.add(mergeDownButton);
         buttonsPanel.add(flattenButton);
-        buttonsPanel.add(deleteButton);
         buttonsPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
 
         // Create a compound panel for all controls

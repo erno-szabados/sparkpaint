@@ -50,10 +50,11 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, 
         canvas.addToolChangeListener(this);
     }
 
+
     private void initializeToolbar() {
         this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-        this.setFloatable(false); // Disable floating toolbar
-
+        this.setFloatable(false);
+        this.setRollover(true);
         this.add(createSelectButton());
         this.add(createFreehandSelectButton());
         // Undo/redo tools

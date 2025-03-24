@@ -62,7 +62,10 @@ public class LayerListCellRenderer extends JPanel implements ListCellRenderer<La
 
         int adjustedIndex = model.getSize() - 1 - index;
         // Setup name field
-        nameField.setText(layer.getName());
+        int maxDisplayLength = Math.min(layer.getName().length(), 12); // Maximum number of characters to display
+        nameField.setText(layer.getName().substring(0, maxDisplayLength) + ((maxDisplayLength != layer.getName().length()) ? "..." : ""));
+        nameField.setOpaque(false);
+        setToolTipText(layer.getName());
         if (isSelected) {
             setBackground(list.getSelectionBackground());
             setForeground(list.getSelectionForeground());
