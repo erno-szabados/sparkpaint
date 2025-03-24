@@ -2,6 +2,7 @@ package com.esgdev.sparkpaint.ui.layer;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.layer.Layer;
+import com.esgdev.sparkpaint.engine.layer.LayerChangeListener;
 import com.esgdev.sparkpaint.engine.layer.LayerManager;
 import com.esgdev.sparkpaint.ui.DrawingToolbar;
 import com.esgdev.sparkpaint.ui.IconLoader;
@@ -16,7 +17,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.function.Consumer;
 
-public class LayerPanel extends JPanel {
+public class LayerPanel extends JPanel implements LayerChangeListener {
     //private final LayerManager layerManager;
     private final JList<Layer> layerList;
     private final StatusMessageHandler statusMessageHandler;
@@ -147,6 +148,7 @@ public class LayerPanel extends JPanel {
                 }
             }
         });
+        canvas.addLayerChangeListener(this);
     }
 
     /**
@@ -241,6 +243,7 @@ public class LayerPanel extends JPanel {
         if (layerList.getSelectedIndex() != -1) {
             Layer selectedLayer = canvas.getLayers().get(canvas.getCurrentLayerIndex());
             selectedLayer.setName(newName);
+            canvas.saveToUndoStack();
             refreshLayerList();
             statusMessageHandler.setStatusMessage("Layer renamed to: " + newName);
         }
@@ -444,4 +447,8 @@ public class LayerPanel extends JPanel {
         });
     }
 
+    @Override
+    public void onLayersChanged() {
+        refreshLayerList();
+    }
 }

@@ -163,6 +163,7 @@ public class ImageMenu extends JMenu {
 
             // Update canvas with new layers
             canvas.setLayers(resizedLayers);
+            canvas.saveToUndoStack();
             canvas.setPreferredSize(new Dimension(newWidth, newHeight));
             canvas.revalidate();
             canvas.repaint();

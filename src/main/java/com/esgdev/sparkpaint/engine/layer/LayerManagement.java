@@ -125,4 +125,23 @@ public interface LayerManagement {
      * @return the transparency background image
      */
     BufferedImage getTransparencyBackground();
+
+    /**
+     * Adds a listener to be notified of layer changes.
+     *
+     * @param listener the listener to add
+     */
+    void addLayerChangeListener(LayerChangeListener listener);
+
+    /**
+     * Removes a layer change listener.
+     *
+     * @param listener the listener to remove
+     */
+    void removeLayerChangeListener(LayerChangeListener listener);
+
+    /**
+     * Notifies all registered listeners that layers have changed.
+     */
+    void notifyLayersChanged();
 }

@@ -75,25 +75,26 @@ public class HistoryManagerTest {
      */
    @Test
     public void redoRestoresFutureState() {
-        // Create clone of layers to preserve initial state
-        List<Layer> initialLayers = new ArrayList<>();
-        initialLayers.add(createTestLayer(100, 100, "Layer 1"));
-        initialLayers.add(createTestLayer(100, 100, "Layer 2"));
+       // Create initial state layers
+       List<Layer> initialLayers = new ArrayList<>();
+       initialLayers.add(createTestLayer(100, 100, "Layer 1"));
+       initialLayers.add(createTestLayer(100, 100, "Layer 2"));
 
-        // Save initial state
-        historyManager.saveToUndoStack(initialLayers, 0);
+       // Save initial state
+       historyManager.saveToUndoStack(initialLayers, 0);
 
-        // Modify and save second state
-        List<Layer> modifiedLayers = new ArrayList<>();
-        modifiedLayers.add(createTestLayer(100, 100, "Modified Layer"));
-        modifiedLayers.add(createTestLayer(100, 100, "Layer 2"));
+       // Create modified state layers
+       List<Layer> modifiedLayers = new ArrayList<>();
+       modifiedLayers.add(createTestLayer(100, 100, "Modified Layer"));
+       modifiedLayers.add(createTestLayer(100, 100, "Layer 2"));
+
+        // Save modified state ("Modified Layer")
         historyManager.saveToUndoStack(modifiedLayers, 0);
 
-        // Undo to first state
         LayerState undoState = historyManager.undo(modifiedLayers, 0);
         assertEquals("Modified Layer", undoState.getLayers().get(0).getName());
 
-        // Redo to second state
+        // Redo correctly expects "Modified Layer"
         LayerState redoState = historyManager.redo(undoState.getLayers(), undoState.getCurrentLayerIndex());
         assertEquals("Modified Layer", redoState.getLayers().get(0).getName());
     }

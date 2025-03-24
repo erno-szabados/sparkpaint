@@ -5,6 +5,7 @@ import com.esgdev.sparkpaint.engine.history.HistoryManager;
 import com.esgdev.sparkpaint.engine.history.LayerState;
 import com.esgdev.sparkpaint.engine.history.UndoRedoChangeListener;
 import com.esgdev.sparkpaint.engine.layer.Layer;
+import com.esgdev.sparkpaint.engine.layer.LayerChangeListener;
 import com.esgdev.sparkpaint.engine.layer.LayerManagement;
 import com.esgdev.sparkpaint.engine.layer.LayerManager;
 import com.esgdev.sparkpaint.engine.selection.Selection;
@@ -691,4 +692,18 @@ public class DrawingCanvas extends JPanel implements
         clipboardManager.notifyClipboardStateChanged();
     }
 
+    @Override
+    public void addLayerChangeListener(LayerChangeListener listener) {
+layerManager.addLayerChangeListener(listener);
+    }
+
+    @Override
+    public void removeLayerChangeListener(LayerChangeListener listener) {
+layerManager.removeLayerChangeListener(listener);
+    }
+
+    @Override
+    public void notifyLayersChanged() {
+layerManager.notifyLayersChanged();
+    }
 }
