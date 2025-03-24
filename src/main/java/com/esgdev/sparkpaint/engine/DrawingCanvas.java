@@ -88,27 +88,27 @@ public class DrawingCanvas extends JPanel implements
     /**
      * Creates a DrawingCanvas for testing purposes with all required dependencies.
      *
-     * @param historyManager    The HistoryManagement instance
-     * @param selectionManager  The SelectionManagement instance
-     * @param clipboardManager  The ClipboardManagement instance
-     * @param layerManager      The LayerManagement instance
-     * @param fileManager       The FileManagement instance
-     * @param toolManager       The ToolManagement instance
-     * @param mouseAdapter      The CanvasMouseAdapter instance
+     * @param historyManager   The HistoryManagement instance
+     * @param selectionManager The SelectionManagement instance
+     * @param clipboardManager The ClipboardManagement instance
+     * @param layerManager     The LayerManagement instance
+     * @param fileManager      The FileManagement instance
+     * @param toolManager      The ToolManagement instance
+     * @param mouseAdapter     The CanvasMouseAdapter instance
      * @return The configured DrawingCanvas for testing
      */
     static DrawingCanvas createForTesting(
-        HistoryManagement historyManager,
-        SelectionManagement selectionManager,
-        ClipboardManagement clipboardManager,
-        LayerManagement layerManager,
-        FileManagement fileManager,
-        ToolManagement toolManager,
-        CanvasMouseAdapter mouseAdapter) {
+            HistoryManagement historyManager,
+            SelectionManagement selectionManager,
+            ClipboardManagement clipboardManager,
+            LayerManagement layerManager,
+            FileManagement fileManager,
+            ToolManagement toolManager,
+            CanvasMouseAdapter mouseAdapter) {
 
         DrawingCanvas canvas = new DrawingCanvas();
         canvas.initialize(historyManager, selectionManager, clipboardManager,
-                        layerManager, fileManager, toolManager, mouseAdapter);
+                layerManager, fileManager, toolManager, mouseAdapter);
         return canvas;
     }
 
@@ -124,12 +124,12 @@ public class DrawingCanvas extends JPanel implements
 
     // Add an initialize method
     private void initialize(HistoryManagement historyManager,
-                           SelectionManagement selectionManager,
-                           ClipboardManagement clipboardManager,
-                           LayerManagement layerManager,
-                           FileManagement fileManager,
-                           ToolManagement toolManager,
-                           CanvasMouseAdapter mouseAdapter) {
+                            SelectionManagement selectionManager,
+                            ClipboardManagement clipboardManager,
+                            LayerManagement layerManager,
+                            FileManagement fileManager,
+                            ToolManagement toolManager,
+                            CanvasMouseAdapter mouseAdapter) {
 
         this.historyManager = historyManager;
         this.selectionManager = selectionManager;
@@ -293,14 +293,15 @@ public class DrawingCanvas extends JPanel implements
             }
         }
 
-        // Rest of the painting code...
-        if (toolManager.getToolCanvas() != null) {
-            g2d.drawImage(toolManager.getToolCanvas(), 0, 0, null);
-        }
-
         Selection selection = selectionManager.getSelection();
         if (selection != null) {
             selection.drawSelectionContent(g2d);
+        }
+
+        // Draw the tool canvas AFTER selection content
+        // so it's visible over the selection
+        if (toolManager.getToolCanvas() != null) {
+            g2d.drawImage(toolManager.getToolCanvas(), 0, 0, null);
         }
 
         // Reset scale for grid drawing
@@ -545,7 +546,7 @@ public class DrawingCanvas extends JPanel implements
 
     @Override
     public void saveToFile(File file) throws IOException {
-        ((FileManager)fileManager).saveToFile(file, layerManager.getLayers());
+        ((FileManager) fileManager).saveToFile(file, layerManager.getLayers());
     }
 
     @Override
@@ -594,12 +595,12 @@ public class DrawingCanvas extends JPanel implements
         int currentLayerIndex = layerManager.getCurrentLayerIndex();
 
         // Pass these to the historyManager's detailed method
-        ((HistoryManager)historyManager).saveToUndoStack(layers, currentLayerIndex);
+        ((HistoryManager) historyManager).saveToUndoStack(layers, currentLayerIndex);
     }
 
     @Override
     public LayerState undo() {
-        LayerState state = ((HistoryManager)historyManager).undo(layerManager.getLayers(), layerManager.getCurrentLayerIndex());
+        LayerState state = ((HistoryManager) historyManager).undo(layerManager.getLayers(), layerManager.getCurrentLayerIndex());
         layerManager.setLayers(state.getLayers());
         layerManager.setCurrentLayerIndex(state.getCurrentLayerIndex());
 
@@ -613,7 +614,7 @@ public class DrawingCanvas extends JPanel implements
 
     @Override
     public LayerState redo() {
-        LayerState state = ((HistoryManager)historyManager).redo(layerManager.getLayers(), layerManager.getCurrentLayerIndex());
+        LayerState state = ((HistoryManager) historyManager).redo(layerManager.getLayers(), layerManager.getCurrentLayerIndex());
         layerManager.setLayers(state.getLayers());
         layerManager.setCurrentLayerIndex(state.getCurrentLayerIndex());
 
@@ -694,16 +695,16 @@ public class DrawingCanvas extends JPanel implements
 
     @Override
     public void addLayerChangeListener(LayerChangeListener listener) {
-layerManager.addLayerChangeListener(listener);
+        layerManager.addLayerChangeListener(listener);
     }
 
     @Override
     public void removeLayerChangeListener(LayerChangeListener listener) {
-layerManager.removeLayerChangeListener(listener);
+        layerManager.removeLayerChangeListener(listener);
     }
 
     @Override
     public void notifyLayersChanged() {
-layerManager.notifyLayersChanged();
+        layerManager.notifyLayersChanged();
     }
 }

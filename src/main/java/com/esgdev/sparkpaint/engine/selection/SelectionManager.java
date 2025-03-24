@@ -179,19 +179,18 @@ public class SelectionManager implements SelectionManagement {
      * @param zoomFactor  Current canvas zoom factor
      * @return Point in the appropriate coordinate system
      */
+    @Override
     public Point getDrawingCoordinates(Point screenPoint, float zoomFactor) {
         // First convert to canvas world coordinates
         Point worldPoint = DrawingTool.screenToWorld(zoomFactor, screenPoint);
 
         Selection selection = getSelection();
-        if (selection == null || !selection.contains(worldPoint)) {
-            // No selection or point is outside selection, return world coordinates
+        if (selection != null && selection.hasOutline()) {
+            // No need to offset coordinates for preview - the clip will handle containment
             return worldPoint;
         }
 
-        // Convert to selection-local coordinates
-        Rectangle bounds = selection.getBounds();
-        return new Point(worldPoint.x - bounds.x, worldPoint.y - bounds.y);
+        return worldPoint;
     }
 
     /**
@@ -205,6 +204,11 @@ public class SelectionManager implements SelectionManagement {
         return selection != null && selection.hasOutline() && selection.contains(worldPoint);
     }
 
+    /**
+     * Gets a graphics context appropriate for drawing - either for the current selection or current layer.
+     *
+     * @return Graphics2D context configured with proper transforms and clipping
+     */
     @Override
     public Graphics2D getDrawingGraphics() {
         return selection != null ? getDrawingGraphics(canvas) : (Graphics2D) canvas.getCurrentLayerImage().getGraphics();
