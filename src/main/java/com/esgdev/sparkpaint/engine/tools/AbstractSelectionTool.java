@@ -111,8 +111,10 @@ public abstract class AbstractSelectionTool implements DrawingTool {
         if (selection == null) {
             return;
         }
+        if (selection.isActive()) {
+            copySelectionToPermanentCanvas();
+        }
         canvas.clearSelection();
-        canvas.undo();
         isDragging = false;
         originalSelectionLocation = null;
     }
