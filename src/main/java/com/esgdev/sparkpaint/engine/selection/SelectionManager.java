@@ -88,9 +88,10 @@ public class SelectionManager implements SelectionManagement {
     }
 
     /**
-     * Deletes the current selection from the current layer.
+     * Deletes the current selection area from the current layer.
+     * This method clears the selection and removes the selected area from the layer.
      */
-    public void deleteSelection() {
+    public void deleteSelectionAreaFromCurrentLayer() {
         if (selection == null || selection.getBounds() == null) {
             return;
         }

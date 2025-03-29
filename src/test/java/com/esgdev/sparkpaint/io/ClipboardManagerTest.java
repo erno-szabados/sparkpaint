@@ -63,7 +63,7 @@ package com.esgdev.sparkpaint.io;
                         clipboardManager.cutSelection();
 
                         // Verify
-                        verify(mockCanvas).deleteSelection();
+                        verify(mockCanvas).deleteSelectionAreaFromCurrentLayer();
                         verify(mockSelection).clearOutline();
                         imageSelectionMock.verify(() -> ImageSelection.copyImage(selectionImage));
                     }
@@ -78,7 +78,7 @@ package com.esgdev.sparkpaint.io;
                     clipboardManager.cutSelection();
 
                     // Verify - nothing should happen
-                    verify(mockCanvas, never()).deleteSelection();
+                    verify(mockCanvas, never()).deleteSelectionAreaFromCurrentLayer();
                 }
 
                 @Test
@@ -90,7 +90,7 @@ package com.esgdev.sparkpaint.io;
                     clipboardManager.cutSelection();
 
                     // Verify - nothing should happen
-                    verify(mockCanvas, never()).deleteSelection();
+                    verify(mockCanvas, never()).deleteSelectionAreaFromCurrentLayer();
                 }
 
                 @Test
@@ -281,11 +281,11 @@ package com.esgdev.sparkpaint.io;
                 }
 
                 @Test
-                public void testEraseSelection() {
+                public void testDeleteSelectionAreaFromCurrentLayer() {
                     // Execute
-                    clipboardManager.eraseSelection();
+                    clipboardManager.deleteSelectionAreaFromCurrentLayer();
 
                     // Verify
-                    verify(mockCanvas).deleteSelection();
+                    verify(mockCanvas).deleteSelectionAreaFromCurrentLayer();
                 }
             }

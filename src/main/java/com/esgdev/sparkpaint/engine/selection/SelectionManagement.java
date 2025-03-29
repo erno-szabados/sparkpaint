@@ -1,9 +1,6 @@
 package com.esgdev.sparkpaint.engine.selection;
 
-import com.esgdev.sparkpaint.engine.DrawingCanvas;
-
 import java.awt.*;
-import java.awt.image.BufferedImage;
 
 /**
  * Interface that exposes selection management functionality.
@@ -38,7 +35,7 @@ public interface SelectionManagement {
     /**
      * Deletes the content within the current selection.
      */
-    void deleteSelection();
+    void deleteSelectionAreaFromCurrentLayer();
 
     /**
      * Rotates the selection content by the specified degrees.

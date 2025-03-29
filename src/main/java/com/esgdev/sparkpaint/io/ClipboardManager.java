@@ -36,7 +36,7 @@ public class ClipboardManager implements ClipboardManagement {
             return;
         }
         copySelection();
-        eraseSelection();
+        deleteSelectionAreaFromCurrentLayer();
         canvas.getSelection().clearOutline();
         canvas.repaint();
         notifyClipboardStateChanged();
@@ -53,7 +53,12 @@ public class ClipboardManager implements ClipboardManagement {
             return;
         }
         BufferedImage selectionImage = canvas.getSelection().getContent();
-        ImageSelection.copyImage(selectionImage);
+        try {
+            ImageSelection.copyImage(selectionImage);
+        } catch (IOException e) {
+            //throw new RuntimeException(e);
+        }
+        selection.setActive(true);
         notifyClipboardStateChanged();
     }
 
@@ -85,6 +90,7 @@ public class ClipboardManager implements ClipboardManagement {
             GeneralPath path = new GeneralPath(selectionRectangle);
 
             Selection selection = new Selection(selectionRectangle, pastedImage);
+            selection.setActive(true);
             selection.setPath(path);
             canvas.setSelection(selection);
 
@@ -104,7 +110,7 @@ public class ClipboardManager implements ClipboardManagement {
             DataFlavor[] flavors = clipboard.getAvailableDataFlavors();
 
             for (DataFlavor flavor : flavors) {
-                if (DataFlavor.imageFlavor.equals(flavor)) {
+                if (ImageSelection.PNG_FLAVOR.equals(flavor)) {
                     return true;
                 }
             }
@@ -132,8 +138,12 @@ public class ClipboardManager implements ClipboardManagement {
         }
     }
 
-    public void eraseSelection() {
-        canvas.deleteSelection();
+    public void deleteSelectionAreaFromCurrentLayer() {
+        canvas.deleteSelectionAreaFromCurrentLayer();
+    }
+
+    public void deleteCurrentSelection() {
+        canvas.clearSelection();
     }
 
     // For testing only

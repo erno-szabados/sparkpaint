@@ -94,7 +94,7 @@ public class SelectionManagerTest {
     }
 
     @Test
-    public void testDeleteSelection() {
+    public void testDeleteSelectionAreaFromCurrentLayer() {
         // Setup
         BufferedImage mockImage = new BufferedImage(100, 100, BufferedImage.TYPE_INT_ARGB);
         Rectangle bounds = new Rectangle(10, 10, 50, 50);
@@ -109,7 +109,7 @@ public class SelectionManagerTest {
         selectionManager.setSelection(mockSelection);
 
         // Execute
-        selectionManager.deleteSelection();
+        selectionManager.deleteSelectionAreaFromCurrentLayer();
 
         // Verify
         verify(mockCanvas).saveToUndoStack();
@@ -168,8 +168,8 @@ public class SelectionManagerTest {
     }
 
     @Test
-    public void testDeleteSelectionWhenNull() {
-        selectionManager.deleteSelection(); // Should not throw
+    public void testDeleteSelectionAreaFromCurrentLayerWhenNull() {
+        selectionManager.deleteSelectionAreaFromCurrentLayer(); // Should not throw
         verify(mockCanvas, never()).saveToUndoStack();
     }
 

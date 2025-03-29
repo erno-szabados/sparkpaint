@@ -28,7 +28,7 @@ public class FreeHandSelectionTool extends AbstractSelectionTool {
         if (selection == null || !selection.hasOutline()) {
             // Start new path selection
             startNewPath();
-        } else if (selection.contains(worldStartPoint)) {
+        } else if (selection.contains(worldStartPoint) && selection.isActive()) {
             // Start dragging existing selection
             startDragging(selection);
         } else {
@@ -86,11 +86,10 @@ public class FreeHandSelectionTool extends AbstractSelectionTool {
         BufferedImage selectionContent = createSelectionImage();
         BufferedImage transparentContent = createTransparentSelectionImage(selectionContent);
 
-        selection.setTransparent(true);
-        selection.setContent(transparentContent);
+        selection.setTransparent(transparencyEnabled);
+        selection.setContent(transparentContent, canvas.getFillColor());
         originalSelectionLocation = new Point(selectionBounds.x, selectionBounds.y);
 
-        clearOriginalSelectionAreaWithTransparency();
         canvas.notifyClipboardStateChanged();
     }
 
