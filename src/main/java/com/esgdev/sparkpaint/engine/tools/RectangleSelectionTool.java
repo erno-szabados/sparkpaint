@@ -99,8 +99,8 @@ public class RectangleSelectionTool extends AbstractSelectionTool {
         if (!selection.hasOutline()) {
             // Start new rectangle selection
             startNewRectangle();
-        } else if (selection.contains(worldStartPoint)) {
-            // Start dragging existing selection
+        } else if (selection.contains(worldStartPoint) && selection.isActive()) {
+            // Start dragging existing selection (only if the selection is active)
             startDragging(selection);
         } else {
             // Start new rectangle at different location
@@ -126,13 +126,9 @@ public class RectangleSelectionTool extends AbstractSelectionTool {
             BufferedImage selectionContent = createSelectionImage(selectionRectangle);
             BufferedImage transparentContent = createTransparentSelectionImage(selectionContent);
 
-            // Always keep the selection transparent
-            selection.setTransparent(true);
-            selection.setContent(transparentContent);
+            selection.setTransparent(transparencyEnabled);
+            selection.setContent(transparentContent, canvas.getFillColor());
             originalSelectionLocation = new Point(selectionRectangle.x, selectionRectangle.y);
-
-            // Clear the original area by replacing it with transparency
-            clearOriginalSelectionAreaWithTransparency();
         } else {
             selection.setContent(null);
             originalSelectionLocation = null;

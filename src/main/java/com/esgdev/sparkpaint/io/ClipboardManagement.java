@@ -30,7 +30,7 @@ public interface ClipboardManagement {
     /**
      * Erases the current selection from the canvas.
      */
-    void eraseSelection();
+    void deleteSelectionAreaFromCurrentLayer();
 
     /**
      * Checks if there is a valid selection that can be copied/cut.
@@ -64,4 +64,9 @@ public interface ClipboardManagement {
      * Notifies listeners that the clipboard state has changed.
      */
     void notifyClipboardStateChanged();
+
+    /**
+     * Deletes the current selection.
+     */
+    void deleteCurrentSelection();
 }

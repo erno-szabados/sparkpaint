@@ -40,7 +40,7 @@ public abstract class AbstractSelectionTool implements DrawingTool {
             return;
         }
         Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
-        if (selection.contains(worldPoint)) {
+        if (selection.contains(worldPoint) && selection.isActive()) {
             canvas.setCursor(handCursor);
         } else {
             canvas.setCursor(crosshairCursor);
@@ -62,7 +62,7 @@ public abstract class AbstractSelectionTool implements DrawingTool {
         Selection selection = canvas.getSelection();
 
         // Apply existing selection if clicking outside
-        if (selection != null && selection.hasOutline()) {
+        if (selection != null && selection.hasOutline() && selection.isActive()) {
             Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
             if (!selection.contains(worldPoint)) {
                 // Apply the selection to the current layer instead of clearing it
@@ -115,34 +115,6 @@ public abstract class AbstractSelectionTool implements DrawingTool {
         canvas.undo();
         isDragging = false;
         originalSelectionLocation = null;
-    }
-
-    /**
-     * Clears the original selection area with transparency.
-     * This method is called when the selection is finalized or cleared.
-     */
-    protected void clearOriginalSelectionAreaWithTransparency() {
-        Selection selection = canvas.getSelection();
-        if (selection == null || originalSelectionLocation == null) {
-            return;
-        }
-
-        // Save to undo stack before modifying
-        canvas.saveToUndoStack();
-
-        // Get the current layer image
-        BufferedImage currentLayer = canvas.getCurrentLayerImage();
-        Graphics2D g2d = currentLayer.createGraphics();
-
-        // Use Clear composite for transparency
-        g2d.setComposite(AlphaComposite.Clear);
-
-        // Clear the area based on selection shape
-        if (selection.getPath() != null) {
-            g2d.fill(selection.getPath());
-        }
-
-        g2d.dispose();
     }
 
    /**

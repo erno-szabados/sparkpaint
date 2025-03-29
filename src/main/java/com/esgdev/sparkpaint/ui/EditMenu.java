@@ -1,10 +1,8 @@
 package com.esgdev.sparkpaint.ui;
 
-import com.esgdev.sparkpaint.engine.selection.SelectionManager;
 import com.esgdev.sparkpaint.io.ClipboardChangeListener;
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.history.UndoRedoChangeListener;
-import com.esgdev.sparkpaint.io.ClipboardManager;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -87,7 +85,7 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener, Clipboard
         // Add Delete item
         JMenuItem deleteItem = new JMenuItem("Delete");
         deleteItem.setMnemonic('D');
-        deleteItem.addActionListener(e -> canvas.deleteSelection());
+        deleteItem.addActionListener(e -> canvas.deleteCurrentSelection());
         deleteItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0));
         add(deleteItem);
 

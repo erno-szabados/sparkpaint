@@ -16,7 +16,7 @@ public class ImageSelectionTest {
     private ImageSelection imageSelection;
 
     @Before
-    public void setUp() {
+    public void setUp() throws IOException {
         // Create a simple test image
         testImage = new BufferedImage(100, 100, BufferedImage.TYPE_INT_RGB);
         Graphics2D g2d = testImage.createGraphics();
@@ -41,7 +41,7 @@ public class ImageSelectionTest {
     }
 
     @Test
-    public void testGetTransferData() {
+    public void testGetTransferData() throws IOException, UnsupportedFlavorException {
         Object data = imageSelection.getTransferData(DataFlavor.imageFlavor);
         assertNotNull(data);
         assertTrue(data instanceof BufferedImage);
@@ -69,7 +69,7 @@ public class ImageSelectionTest {
     }
 
     @Test
-    public void testImageCopy() {
+    public void testImageCopy() throws IOException, UnsupportedFlavorException {
         // Ensure the constructor makes a defensive copy
         BufferedImage original = new BufferedImage(10, 10, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = original.createGraphics();

@@ -521,8 +521,18 @@ public class DrawingCanvas extends JPanel implements
     }
 
     @Override
-    public void deleteSelection() {
-        selectionManager.deleteSelection();
+    public void deleteSelectionAreaFromCurrentLayer() {
+        selectionManager.deleteSelectionAreaFromCurrentLayer();
+    }
+
+    public void deleteCurrentSelection() {
+        Selection selection = selectionManager.getSelection();
+        if (selection != null) {
+            if (!selection.isActive()) {
+                selectionManager.deleteSelectionAreaFromCurrentLayer();
+            }
+            selectionManager.clearSelection();
+        }
     }
 
     @Override
@@ -669,11 +679,6 @@ public class DrawingCanvas extends JPanel implements
     @Override
     public void pasteSelection() throws IOException, UnsupportedFlavorException {
         clipboardManager.pasteSelection();
-    }
-
-    @Override
-    public void eraseSelection() {
-        clipboardManager.eraseSelection();
     }
 
     @Override

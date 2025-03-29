@@ -7,6 +7,7 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
@@ -16,7 +17,8 @@ import java.io.IOException;
  */
 public class ImageSelection implements Transferable {
 
-    private final BufferedImage image;
+    private ByteArrayInputStream bais;
+    public static final DataFlavor PNG_FLAVOR = new DataFlavor("image/png", "PNG Image");
 
     /**
      * Constructor that creates a new ImageSelection object.
@@ -24,15 +26,17 @@ public class ImageSelection implements Transferable {
      *
      * @param image The BufferedImage to be copied to the clipboard.
      */
-    public ImageSelection(BufferedImage image) {
-        // We're losing alpha channel here, but java clipboard doesn't support it for the
-        // image flavor, so we're preventing the ioexception.
-        BufferedImage copy = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
-        Graphics2D g2d = copy.createGraphics();
-        g2d.drawImage(image, 0, 0, null);
-        g2d.dispose();
-        this.image = copy;
+    public ImageSelection(BufferedImage image) throws IOException {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(image, "png", baos);
+            baos.flush();
+            byte[] imageInBytes = baos.toByteArray();
+            baos.close();
+            bais = new ByteArrayInputStream(imageInBytes);
+    }
 
+    public ImageSelection(ByteArrayInputStream byteArrayInputStream) {
+        bais = byteArrayInputStream;
     }
 
     /**
@@ -43,7 +47,7 @@ public class ImageSelection implements Transferable {
      */
     @Override
     public DataFlavor[] getTransferDataFlavors() {
-        return new DataFlavor[]{DataFlavor.imageFlavor};
+        return new DataFlavor[]{PNG_FLAVOR};
     }
 
     /**
@@ -56,7 +60,7 @@ public class ImageSelection implements Transferable {
     @Override
     public boolean isDataFlavorSupported(DataFlavor flavor) {
         try {
-            return DataFlavor.imageFlavor.equals(flavor);
+            return flavor.equals(PNG_FLAVOR);
         } catch (Exception e) {
             return false;
         }
@@ -69,11 +73,12 @@ public class ImageSelection implements Transferable {
      * @return The image data if supported, null otherwise.
      */
     @Override
-    public Object getTransferData(DataFlavor flavor) {
+    public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException {
         if (!isDataFlavorSupported(flavor)) {
-            return null;
+            throw new UnsupportedFlavorException(flavor);
         }
-        return image;
+
+        return bais;
     }
 
     /**
@@ -83,44 +88,41 @@ public class ImageSelection implements Transferable {
      * @param image The BufferedImage to copy to the clipboard.
      */
     // Static helper method to copy an image to the clipboard
-    public static void copyImage(BufferedImage image) {
-        ImageSelection selection = new ImageSelection(image);
-        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-        clipboard.setContents(selection, null);
+    public static void copyImage(BufferedImage image) throws IOException {
+
+            // Convert the image to a format that supports transparency (e.g., PNG)
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(image, "png", baos);
+            baos.flush();
+            byte[] imageInBytes = baos.toByteArray();
+            baos.close();
+
+            // Create an ImageSelection object with the PNG image
+            ImageSelection selection = new ImageSelection(new ByteArrayInputStream(imageInBytes));
+            Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+
+            clipboard.setContents(selection, null);
     }
 
     /**
-     * Attempts to paste an image from the system clipboard.
-     * This method checks for the image flavor and retrieves the image data.
+     * Pastes an image from the system clipboard.
+     * This method retrieves the image data from the clipboard and returns it as a BufferedImage.
      *
-     * @return A BufferedImage if available, null otherwise.
-     * @throws IOException                If an error occurs while accessing the clipboard.
-     * @throws UnsupportedFlavorException If the clipboard does not contain an image.
+     * @return The pasted BufferedImage, or null if no image is available.
+     * @throws IOException                  If there is an error reading the image data.
+     * @throws UnsupportedFlavorException   If the clipboard content is not supported.
      */
     public static BufferedImage pasteImage() throws IOException, UnsupportedFlavorException {
         Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-        // Get all available data flavors
-        DataFlavor[] flavors = clipboard.getAvailableDataFlavors();
-
-        // Only proceed if an image flavor is available
-        if (flavors != null) {
-            for (DataFlavor flavor : flavors) {
-                // Strictly check for image flavor
-                if (flavor != null && DataFlavor.imageFlavor.equals(flavor)) {
-                    // Safely attempt to get image data
-                    Transferable transferable = clipboard.getContents(null);
-                    if (transferable != null && transferable.isDataFlavorSupported(DataFlavor.imageFlavor)) {
-                        Object data = transferable.getTransferData(DataFlavor.imageFlavor);
-
-                        // Ensure it's a BufferedImage
-                        if (data instanceof BufferedImage) {
-                            return (BufferedImage) data;
-                        }
-                    }
-                }
+        if (clipboard.isDataFlavorAvailable(PNG_FLAVOR)) {
+            Transferable transferable = clipboard.getContents(null);
+            if (transferable != null && transferable.isDataFlavorSupported(PNG_FLAVOR)) {
+                ByteArrayInputStream bais = (ByteArrayInputStream) transferable.getTransferData(PNG_FLAVOR);
+                bais.reset();
+                BufferedImage image = ImageIO.read(bais);
+                return image;
             }
         }
-
         return null;
     }
 }

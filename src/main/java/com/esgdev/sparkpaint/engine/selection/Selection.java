@@ -14,6 +14,7 @@ public class Selection {
     private GeneralPath path;
     private BufferedImage content;
     private boolean transparent;
+    private boolean active;
 
     /**
      * Creates a new Selection object with the specified rectangle and content.
@@ -52,6 +53,33 @@ public class Selection {
 
     public void setContent(BufferedImage content) {
         this.content = content;
+    }
+
+    public void setContent(BufferedImage content, Color canvasBackgroundColor) {
+        if (transparent && content != null) {
+            // Create a new image with transparency
+            BufferedImage transparentImage = new BufferedImage(
+                content.getWidth(), content.getHeight(), BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2dTransparent = transparentImage.createGraphics();
+
+            // Draw the original content onto the new image
+            g2dTransparent.drawImage(content, 0, 0, null);
+
+            // Make the background color transparent
+            int backgroundColor = canvasBackgroundColor.getRGB();
+            for (int y = 0; y < transparentImage.getHeight(); y++) {
+                for (int x = 0; x < transparentImage.getWidth(); x++) {
+                    int pixel = transparentImage.getRGB(x, y);
+                    if (pixel == backgroundColor) { // Check if the pixel matches the background color
+                        transparentImage.setRGB(x, y, 0x00FFFFFF); // Set it to fully transparent
+                    }
+                }
+            }
+            g2dTransparent.dispose();
+            this.content = transparentImage;
+        } else {
+            this.content = content;
+        }
     }
 
     public boolean isTransparent() {
@@ -212,5 +240,18 @@ public class Selection {
         g2d.dispose();
 
         setContent(mirrored);
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    /**
+     * Only active selections can be moved.
+     * Active status is set when the selection is copied or cut.
+     * @param active true if the selection is active, false otherwise.
+     */
+    public void setActive(boolean active) {
+        this.active = active;
     }
 }
