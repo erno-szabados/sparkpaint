@@ -28,6 +28,7 @@ public class LayerManager implements LayerManagement {
         layers.clear();
         layers.add(new Layer(width, height));
         currentLayerIndex = 0;
+        notifyLayersChanged();
         createTransparencyBackground(width, height);
     }
 
