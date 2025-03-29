@@ -117,7 +117,7 @@ public class SelectionManager implements SelectionManagement {
      * @param degrees The angle in degrees to rotate the selection.
      */
     public void rotateSelection(int degrees) {
-        if (selection == null || selection.getContent() == null) return;
+        if (selection == null || selection.getContent() == null || !selection.isActive()) return;
         selection.rotate(degrees);
         canvas.repaint();
     }
@@ -128,7 +128,7 @@ public class SelectionManager implements SelectionManagement {
      * @param horizontal true to flip horizontally, false to flip vertically
      */
     public void flipSelection(boolean horizontal) {
-        if (selection == null || selection.getContent() == null) return;
+        if (selection == null || selection.getContent() == null || !selection.isActive()) return;
         if (horizontal) {
             selection.flipHorizontal();
         } else {
