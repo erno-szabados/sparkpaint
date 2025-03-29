@@ -54,6 +54,7 @@ public class DrawingCanvas extends JPanel implements
     private LayerManagement layerManager;
     private FileManagement fileManager;
     private ToolManagement toolManager;
+    private final PaletteManager paletteManager;
     private Point cursorShapeCenter = new Point(0, 0);
     private int cursorSize = 0;
     private BrushTool.BrushShape cursorShape;
@@ -120,6 +121,8 @@ public class DrawingCanvas extends JPanel implements
     private DrawingCanvas() {
         // Minimal initialization, enough to create a valid JPanel
         setBackground(Color.WHITE);
+        // FIXME: this should be injected
+        this.paletteManager = new PaletteManager();
     }
 
     // Add an initialize method
@@ -186,6 +189,11 @@ public class DrawingCanvas extends JPanel implements
 
     public BufferedImage getToolCanvas() {
         return toolManager.getToolCanvas();
+    }
+
+    // TODO: make this injectable as the other managers once palette generator is complete
+    public PaletteManager getPaletteManager() {
+        return paletteManager;
     }
 
     public void setDrawingColor(Color color) {
@@ -707,4 +715,9 @@ public class DrawingCanvas extends JPanel implements
     public void notifyLayersChanged() {
         layerManager.notifyLayersChanged();
     }
+
+    public void setActivePalette(List<Color> generatedPalette) {
+        this.paletteManager.setActivePalette(generatedPalette);
+    }
+
 }

@@ -2,7 +2,7 @@ package com.esgdev.sparkpaint.ui;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.layer.Layer;
-import com.esgdev.sparkpaint.engine.selection.SelectionManager;
+import com.esgdev.sparkpaint.ui.PaletteGeneratorDialog;
 
 import javax.swing.*;
 import java.awt.*;
@@ -61,6 +61,25 @@ public class ImageMenu extends JMenu {
         cropItem.addActionListener(this::handleCrop);
         cropItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_MASK | InputEvent.SHIFT_MASK));
         add(cropItem);
+
+        addSeparator();
+
+        // Palette from Image menu item
+        JMenuItem paletteFromImageItem = new JMenuItem("Palette from Image...");
+        paletteFromImageItem.setMnemonic('P');
+        paletteFromImageItem.addActionListener(this::handlePaletteFromImage);
+        add(paletteFromImageItem);
+    }
+
+    private void handlePaletteFromImage(ActionEvent e) {
+        List<Layer> layers = canvas.getLayers();
+        if (layers == null || layers.isEmpty()) {
+            JOptionPane.showMessageDialog(mainFrame, "No image loaded.", "Generate Palette", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        PaletteGeneratorDialog dialog = new PaletteGeneratorDialog(mainFrame, canvas);
+        dialog.setVisible(true);
     }
 
     private void handleInfo(ActionEvent e) {
