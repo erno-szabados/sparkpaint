@@ -62,6 +62,7 @@ public class FillTool implements DrawingTool {
         if (selection != null && selection.hasOutline() && selection.contains(worldPoint)) {
             targetImage = selection.getContent();
             if (targetImage == null) return;
+            selection.setModified(true);
 
             Rectangle bounds = selection.getBounds();
 

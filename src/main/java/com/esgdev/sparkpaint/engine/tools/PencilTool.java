@@ -91,6 +91,11 @@ public class PencilTool implements DrawingTool {
         // Draw a single point (as a 1-pixel line)
         g2d.drawLine(drawPoint.x, drawPoint.y, drawPoint.x, drawPoint.y);
         g2d.dispose();
+        // Set the modified flag if we drew into a selection
+        Selection selection = canvas.getSelection();
+        if (selection != null && selection.hasOutline()) {
+            selection.setModified(true);
+        }
     }
 
     private void drawLine(MouseEvent e, Point from, Point to) {
@@ -105,6 +110,11 @@ public class PencilTool implements DrawingTool {
 
         g2d.drawLine(fromPoint.x, fromPoint.y, toPoint.x, toPoint.y);
         g2d.dispose();
+        // Set the modified flag if we drew into a selection
+        Selection selection = canvas.getSelection();
+        if (selection != null && selection.hasOutline()) {
+            selection.setModified(true);
+        }
     }
 
     private Graphics2D getGraphicsForDrawing() {

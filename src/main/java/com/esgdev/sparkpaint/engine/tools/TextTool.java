@@ -55,6 +55,7 @@ package com.esgdev.sparkpaint.engine.tools;
                 if (selection != null && selection.hasOutline()) {
                     // Get drawing graphics from the selection manager
                     g2d = canvas.getDrawingGraphics();
+                    selection.setModified(true);
 
                     // Get selection bounds to adjust coordinates
                     Rectangle bounds = selection.getBounds();

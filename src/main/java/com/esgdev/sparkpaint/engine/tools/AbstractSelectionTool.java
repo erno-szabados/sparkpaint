@@ -62,7 +62,7 @@ public abstract class AbstractSelectionTool implements DrawingTool {
         Selection selection = canvas.getSelection();
 
         // Apply existing selection if clicking outside
-        if (selection != null && selection.hasOutline() && selection.isActive()) {
+        if (selection != null && selection.hasOutline() && (selection.isActive() || selection.isModified())) {
             Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
             if (!selection.contains(worldPoint)) {
                 // Apply the selection to the current layer instead of clearing it

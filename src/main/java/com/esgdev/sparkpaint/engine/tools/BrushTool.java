@@ -74,6 +74,7 @@ public class BrushTool implements DrawingTool {
         Point drawPoint = lastPoint;
 
         if (selection != null && selection.hasOutline()) {
+            selection.setModified(true);
             // Get drawing graphics from the selection manager
             g2d = canvas.getDrawingGraphics();
 

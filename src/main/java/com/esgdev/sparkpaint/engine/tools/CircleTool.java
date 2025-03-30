@@ -36,6 +36,7 @@ public class CircleTool implements DrawingTool {
             return; // Don't start drawing outside selection
         }
 
+
         // Save start point using appropriate coordinate system
         startPoint = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
         canvas.saveToUndoStack();
@@ -101,6 +102,7 @@ public class CircleTool implements DrawingTool {
         if (selection != null && selection.hasOutline()) {
             // Get drawing graphics from the selection manager
             g2d = canvas.getDrawingGraphics();
+            selection.setModified(true);
 
             // Get selection bounds to adjust coordinates
             Rectangle bounds = selection.getBounds();

@@ -15,6 +15,7 @@ public class Selection {
     private BufferedImage content;
     private boolean transparent;
     private boolean active;
+    private boolean modified;
 
     /**
      * Creates a new Selection object with the specified rectangle and content.
@@ -253,5 +254,18 @@ public class Selection {
      */
     public void setActive(boolean active) {
         this.active = active;
+    }
+
+    public boolean isModified() {
+        return modified;
+    }
+
+    /**
+     * Modified selections must be copied to the permanent canvas.
+     * Modified status is set when the selection is painted into (tools set this).
+     * @param modified true if the selection is modified, false otherwise.
+     */
+    public void setModified(boolean modified) {
+        this.modified = modified;
     }
 }
