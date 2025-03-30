@@ -20,30 +20,25 @@ public class FillToolSettings extends BaseToolSettings {
     public JComponent createSettingsPanel() {
         JPanel panel = (JPanel) super.createSettingsPanel();
 
-        // Fill Mode selection
+        // Fill Mode selection (dropdown) - keeping this as is
         JLabel fillModeLabel = new JLabel("Fill Type:");
         fillModeLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // Create combo box for fill modes
         fillModeComboBox = new JComboBox<>();
         fillModeComboBox.setMaximumSize(new Dimension(200, 25));
         fillModeComboBox.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // Current selected fill mode
         FillTool.FillMode currentMode = ((FillTool) canvas.getTool(ToolManager.Tool.FILL)).getFillMode();
 
-        // Add all fill modes to the combo box
         for (FillTool.FillMode mode : FillTool.FillMode.values()) {
             FillModeOption option = new FillModeOption(mode);
             fillModeComboBox.addItem(option);
 
-            // Set the current selection
             if (mode == currentMode) {
                 fillModeComboBox.setSelectedItem(option);
             }
         }
 
-        // Add action listener
         fillModeComboBox.addActionListener(e -> {
             FillModeOption selected = (FillModeOption) fillModeComboBox.getSelectedItem();
             if (selected != null) {
@@ -56,7 +51,7 @@ public class FillToolSettings extends BaseToolSettings {
         panel.add(fillModeComboBox);
         panel.add(Box.createVerticalStrut(10));
 
-        // Epsilon slider
+        // Epsilon slider (color tolerance) - keeping this as is
         JLabel epsilonLabel = new JLabel("Color Tolerance:");
         epsilonLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -69,7 +64,7 @@ public class FillToolSettings extends BaseToolSettings {
         epsilonSlider.setMajorTickSpacing(20);
         epsilonSlider.setMinorTickSpacing(5);
 
-        epsilonValueLabel = new JLabel(String.valueOf(currentEpsilon));
+        epsilonValueLabel = new JLabel(String.valueOf(currentEpsilon / 2));
         epsilonValueLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         epsilonSlider.addChangeListener(e -> {
@@ -77,20 +72,21 @@ public class FillToolSettings extends BaseToolSettings {
             applySettings();
         });
 
-        // Edge threshold slider
+        // Edge threshold slider - UPDATED to show 0-100 range
         JLabel edgeThresholdLabel = new JLabel("Edge Detection:");
         edgeThresholdLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         int currentEdgeThreshold = FillTool.DEFAULT_EDGE_THRESHOLD;
+        int scaledThreshold = (int)(currentEdgeThreshold / 2.55); // Convert 0-255 to 0-100
 
-        edgeThresholdSlider = new JSlider(JSlider.HORIZONTAL, 0, 255, (int) (currentEdgeThreshold / 2.55));
+        edgeThresholdSlider = new JSlider(JSlider.HORIZONTAL, 0, 100, scaledThreshold);
         edgeThresholdSlider.setMaximumSize(new Dimension(150, 25));
         edgeThresholdSlider.setAlignmentX(Component.LEFT_ALIGNMENT);
         edgeThresholdSlider.setPaintTicks(true);
-        edgeThresholdSlider.setMajorTickSpacing(50);
-        edgeThresholdSlider.setMinorTickSpacing(10);
+        edgeThresholdSlider.setMajorTickSpacing(20); // Changed to match epsilon slider
+        edgeThresholdSlider.setMinorTickSpacing(5);  // Changed to match epsilon slider
 
-        edgeThresholdValueLabel = new JLabel(String.valueOf(currentEdgeThreshold));
+        edgeThresholdValueLabel = new JLabel(String.valueOf(scaledThreshold));
         edgeThresholdValueLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         edgeThresholdSlider.addChangeListener(e -> {
@@ -121,6 +117,7 @@ public class FillToolSettings extends BaseToolSettings {
         FillTool tool = (FillTool) canvas.getTool(ToolManager.Tool.FILL);
         int mappedEpsilon = epsilonSlider.getValue() * 2;
         tool.setEpsilon(mappedEpsilon);
+
         // Map 0-100 UI range to 0-255 technical range for edge threshold
         int mappedThreshold = (int) (edgeThresholdSlider.getValue() * 2.55);
         tool.setEdgeThreshold(mappedThreshold);
@@ -128,9 +125,11 @@ public class FillToolSettings extends BaseToolSettings {
 
     @Override
     public void resetToDefaults() {
-        // Reset sliders
+        // Reset sliders to display the default values in 0-100 range
         epsilonSlider.setValue(FillTool.DEFAULT_FILL_EPSILON / 2);
         epsilonValueLabel.setText(String.valueOf(epsilonSlider.getValue()));
+
+        // Reset edge threshold to 0-100 range
         edgeThresholdSlider.setValue((int) (FillTool.DEFAULT_EDGE_THRESHOLD / 2.55));
         edgeThresholdValueLabel.setText(String.valueOf(edgeThresholdSlider.getValue()));
 
