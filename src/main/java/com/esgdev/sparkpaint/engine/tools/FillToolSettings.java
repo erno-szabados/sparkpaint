@@ -20,7 +20,7 @@ public class FillToolSettings extends BaseToolSettings {
     public JComponent createSettingsPanel() {
         JPanel panel = (JPanel) super.createSettingsPanel();
 
-        // Fill Mode selection (dropdown) - keeping this as is
+        // Fill Mode selection (dropdown)
         JLabel fillModeLabel = new JLabel("Fill Type:");
         fillModeLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -39,19 +39,7 @@ public class FillToolSettings extends BaseToolSettings {
             }
         }
 
-        fillModeComboBox.addActionListener(e -> {
-            FillModeOption selected = (FillModeOption) fillModeComboBox.getSelectedItem();
-            if (selected != null) {
-                ((FillTool) canvas.getTool(ToolManager.Tool.FILL)).setFillMode(selected.getMode());
-            }
-        });
-
-        panel.add(fillModeLabel);
-        panel.add(Box.createVerticalStrut(2));
-        panel.add(fillModeComboBox);
-        panel.add(Box.createVerticalStrut(10));
-
-        // Epsilon slider (color tolerance) - keeping this as is
+        // Epsilon slider (color tolerance)
         JLabel epsilonLabel = new JLabel("Color Tolerance:");
         epsilonLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -72,19 +60,19 @@ public class FillToolSettings extends BaseToolSettings {
             applySettings();
         });
 
-        // Edge threshold slider - UPDATED to show 0-100 range
+        // Edge threshold slider
         JLabel edgeThresholdLabel = new JLabel("Edge Detection:");
         edgeThresholdLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         int currentEdgeThreshold = FillTool.DEFAULT_EDGE_THRESHOLD;
-        int scaledThreshold = (int)(currentEdgeThreshold / 2.55); // Convert 0-255 to 0-100
+        int scaledThreshold = (int) (currentEdgeThreshold / 2.55); // Convert 0-255 to 0-100
 
         edgeThresholdSlider = new JSlider(JSlider.HORIZONTAL, 0, 100, scaledThreshold);
         edgeThresholdSlider.setMaximumSize(new Dimension(150, 25));
         edgeThresholdSlider.setAlignmentX(Component.LEFT_ALIGNMENT);
         edgeThresholdSlider.setPaintTicks(true);
-        edgeThresholdSlider.setMajorTickSpacing(20); // Changed to match epsilon slider
-        edgeThresholdSlider.setMinorTickSpacing(5);  // Changed to match epsilon slider
+        edgeThresholdSlider.setMajorTickSpacing(20);
+        edgeThresholdSlider.setMinorTickSpacing(5);
 
         edgeThresholdValueLabel = new JLabel(String.valueOf(scaledThreshold));
         edgeThresholdValueLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -94,7 +82,27 @@ public class FillToolSettings extends BaseToolSettings {
             applySettings();
         });
 
+        // Set initial slider states based on current mode
+        updateSliderEnabledStates(currentMode);
+
+        // Add action listener to update slider states when fill mode changes
+        fillModeComboBox.addActionListener(e -> {
+            FillModeOption selected = (FillModeOption) fillModeComboBox.getSelectedItem();
+            if (selected != null) {
+                FillTool.FillMode mode = selected.getMode();
+                ((FillTool) canvas.getTool(ToolManager.Tool.FILL)).setFillMode(mode);
+
+                // Update slider enabled states based on selected mode
+                updateSliderEnabledStates(mode);
+            }
+        });
+
         // Add components
+        panel.add(fillModeLabel);
+        panel.add(Box.createVerticalStrut(2));
+        panel.add(fillModeComboBox);
+        panel.add(Box.createVerticalStrut(10));
+
         panel.add(epsilonLabel);
         panel.add(Box.createVerticalStrut(2));
         panel.add(epsilonSlider);
@@ -112,15 +120,22 @@ public class FillToolSettings extends BaseToolSettings {
         return panel;
     }
 
-    @Override
-    public void applySettings() {
-        FillTool tool = (FillTool) canvas.getTool(ToolManager.Tool.FILL);
-        int mappedEpsilon = epsilonSlider.getValue() * 2;
-        tool.setEpsilon(mappedEpsilon);
+    /**
+     * Updates the enabled state of sliders based on the selected fill mode
+     *
+     * @param mode The current fill mode
+     */
+    private void updateSliderEnabledStates(FillTool.FillMode mode) {
+        boolean usesSmartSettings = mode == FillTool.FillMode.SMART_FILL ||
+                mode == FillTool.FillMode.SMART_GRADIENT_FILL;
 
-        // Map 0-100 UI range to 0-255 technical range for edge threshold
-        int mappedThreshold = (int) (edgeThresholdSlider.getValue() * 2.55);
-        tool.setEdgeThreshold(mappedThreshold);
+        // Update epsilon slider (color tolerance)
+        epsilonSlider.setEnabled(usesSmartSettings);
+        epsilonValueLabel.setEnabled(usesSmartSettings);
+
+        // Update edge detection slider
+        edgeThresholdSlider.setEnabled(usesSmartSettings);
+        edgeThresholdValueLabel.setEnabled(usesSmartSettings);
     }
 
     @Override
@@ -144,7 +159,22 @@ public class FillToolSettings extends BaseToolSettings {
         }
         ((FillTool) canvas.getTool(ToolManager.Tool.FILL)).setFillMode(defaultMode);
 
+        // Update slider enabled states based on default mode
+        updateSliderEnabledStates(defaultMode);
+
         applySettings();
+    }
+
+
+    @Override
+    public void applySettings() {
+        FillTool tool = (FillTool) canvas.getTool(ToolManager.Tool.FILL);
+        int mappedEpsilon = epsilonSlider.getValue() * 2;
+        tool.setEpsilon(mappedEpsilon);
+
+        // Map 0-100 UI range to 0-255 technical range for edge threshold
+        int mappedThreshold = (int) (edgeThresholdSlider.getValue() * 2.55);
+        tool.setEdgeThreshold(mappedThreshold);
     }
 
     // Wrapper class for fill mode items in combo box
