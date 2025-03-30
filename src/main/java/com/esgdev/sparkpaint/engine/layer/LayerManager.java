@@ -58,9 +58,17 @@ public class LayerManager implements LayerManagement {
      * Adds a new layer to the layer manager.
      */
     public void addNewLayer() {
-        layers.add(new Layer(canvas.getWidth(), canvas.getHeight()));
+        // Get dimensions from the first layer instead of the component size
+        if (!layers.isEmpty()) {
+            BufferedImage firstImage = layers.get(0).getImage();
+            layers.add(new Layer(firstImage.getWidth(), firstImage.getHeight()));
+        } else {
+            // Fallback if no layers exist yet
+            layers.add(new Layer(canvas.getWidth(), canvas.getHeight()));
+        }
         currentLayerIndex = layers.size() - 1;
         canvas.repaint();
+        notifyLayersChanged();
     }
 
     /**
