@@ -7,6 +7,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.KeyEvent;
 
 
 public class MainFrame extends JFrame {
@@ -138,6 +139,20 @@ public class MainFrame extends JFrame {
         canvas.addMouseWheelListener(e -> {
             int zoomPercentage = Math.round(canvas.getZoomFactor() * 100);
             zoomLabel.setText(String.format("%d%%", zoomPercentage));
+        });
+
+        // Paste events always directed to the canvas
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(e -> {
+            // Check for paste key combination (Ctrl+V)
+            if (e.getKeyCode() == KeyEvent.VK_V && e.isControlDown() && e.getID() == KeyEvent.KEY_PRESSED) {
+                try {
+                    canvas.pasteSelection();
+                    return true; // Consume the event
+                } catch (Exception ex) {
+                    setStatusMessage("Paste failed: " + ex.getMessage());
+                }
+            }
+            return false; // Let other key events pass through
         });
 
         // Attach a listener to update the cursor position label

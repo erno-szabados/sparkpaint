@@ -414,6 +414,16 @@ public class LayerPanel extends JPanel implements LayerChangeListener {
                     return false;
                 }
 
+                // For paste operations, redirect to the canvas
+                if (!support.isDrop()) {
+                    try {
+                        canvas.pasteSelection();
+                        return true;
+                    } catch (Exception e) {
+                        return false;
+                    }
+                }
+
                 JList.DropLocation dl = (JList.DropLocation) support.getDropLocation();
                 int visualDropIndex = dl.getIndex();
                 if (visualDropIndex == -1) {
@@ -437,7 +447,6 @@ public class LayerPanel extends JPanel implements LayerChangeListener {
                     }
                     return success;
                 } catch (Exception e) {
-                    //e.printStackTrace();
                     return false;
                 }
             }
