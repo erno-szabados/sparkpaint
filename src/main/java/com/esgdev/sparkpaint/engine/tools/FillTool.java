@@ -3,7 +3,6 @@ package com.esgdev.sparkpaint.engine.tools;
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.filters.SobelFilter;
 import com.esgdev.sparkpaint.engine.selection.Selection;
-import com.esgdev.sparkpaint.engine.selection.SelectionManager;
 
 import javax.swing.*;
 import java.awt.*;
@@ -23,10 +22,36 @@ public class FillTool implements DrawingTool {
     private int edgeThreshold; // Adjustable threshold for edge detection
     private boolean useAntiAliasing = true;
 
+    public enum FillMode {
+        SMART_FILL("Smart Fill"),
+        CANVAS_FILL("Entire region");
+        // GRADIENT_FILL("Gradient Fill"); // Future implementation
+
+        private final String displayName;
+
+        FillMode(String displayName) {
+            this.displayName = displayName;
+        }
+
+        public String getDisplayName() {
+            return displayName;
+        }
+    }
+
+    private FillMode fillMode = FillMode.SMART_FILL;
+
     public FillTool(DrawingCanvas canvas) {
         this.canvas = canvas;
         this.epsilon = DEFAULT_FILL_EPSILON;
         this.edgeThreshold = DEFAULT_EDGE_THRESHOLD; // Default edge threshold
+    }
+
+    public void setFillMode(FillMode mode) {
+        this.fillMode = mode;
+    }
+
+    public FillMode getFillMode() {
+        return fillMode;
     }
 
     public void setEpsilon(int value) {
@@ -103,8 +128,19 @@ public class FillTool implements DrawingTool {
         Color replacementColor = SwingUtilities.isLeftMouseButton(e) ?
                 canvas.getDrawingColor() : canvas.getFillColor();
 
-        // Perform the fill operation on the appropriate target
-        floodFill(targetImage, fillPoint.x, fillPoint.y, targetColor, replacementColor, epsilon, clipPath);
+
+        // Perform the appropriate fill operation based on the mode
+        switch (fillMode) {
+            case SMART_FILL:
+
+                // Perform the fill operation on the appropriate target
+                smartFill(targetImage, fillPoint.x, fillPoint.y, targetColor, replacementColor, epsilon, clipPath);
+                break;
+            case CANVAS_FILL:
+                canvasFill(targetImage, replacementColor, clipPath);
+                break;
+        }
+
 
         canvas.repaint();
     }
@@ -138,8 +174,32 @@ public class FillTool implements DrawingTool {
         this.useAntiAliasing = useAntiAliasing;
     }
 
-   private void floodFill(BufferedImage image, int x, int y, Color targetColor, Color replacementColor,
-                          int epsilon, GeneralPath clipPath) {
+    private void canvasFill(BufferedImage image, Color replacementColor, GeneralPath clipPath) {
+        int width = image.getWidth();
+        int height = image.getHeight();
+        int replacementRGB = replacementColor.getRGB();
+
+        // Use clipPath if available, otherwise fill entire image
+        if (clipPath != null) {
+            // Fill only within the clip path
+            Graphics2D g2d = image.createGraphics();
+            g2d.setColor(replacementColor);
+            g2d.setClip(clipPath);
+            g2d.fillRect(0, 0, width, height);
+            g2d.dispose();
+        } else {
+            // Fill the entire image
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    image.setRGB(x, y, replacementRGB);
+                }
+            }
+        }
+    }
+
+
+    private void smartFill(BufferedImage image, int x, int y, Color targetColor, Color replacementColor,
+                           int epsilon, GeneralPath clipPath) {
         int width = image.getWidth();
         int height = image.getHeight();
         int targetRGB = targetColor.getRGB();
@@ -232,7 +292,7 @@ public class FillTool implements DrawingTool {
         double deltaG = Math.abs(g1 - g2) * colorWeight;
         double deltaB = Math.abs(b1 - b2) * colorWeight;
 
-        return Math.sqrt(deltaR*deltaR + deltaG*deltaG + deltaB*deltaB + deltaA*deltaA);
+        return Math.sqrt(deltaR * deltaR + deltaG * deltaG + deltaB * deltaB + deltaA * deltaA);
     }
 
     // Helper method to blend colors for antialiasing
