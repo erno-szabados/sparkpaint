@@ -54,7 +54,6 @@ public class SelectionManager implements SelectionManagement {
             g2d.drawImage(compositeImage, 0, 0, null);
             g2d.dispose();
             selection = new Selection(rect, content);
-            selection.setActive(true);
             canvas.setSelection(selection);
             canvas.notifyClipboardStateChanged();
             canvas.repaint();
