@@ -503,129 +503,85 @@ public class FillTool implements DrawingTool {
         if (clickPoint == null) return;
 
         Selection selection = canvas.getSelection();
-        BufferedImage currentImage = canvas.getCurrentLayerImage();
-        GeneralPath clipPath = null;
-        Point adjustedClickPoint = clickPoint;
-        Point adjustedStart = start;
-        Point adjustedEnd = end;
-        Rectangle bounds = null;
 
         // Apply selection clipping if it exists
         if (selection != null && selection.hasOutline()) {
-            clipPath = selection.getPath();
-            g2d.setClip(clipPath);
-
-            // Get selection bounds for coordinate adjustments
-            bounds = selection.getBounds();
-
-            // When working with a selection, use the selection content image
-            BufferedImage selectionContent = selection.getContent();
-            if (selectionContent != null) {
-                currentImage = selectionContent;
-
-                // Adjust all coordinates to selection's local coordinate system
-                adjustedClickPoint = new Point(clickPoint.x - bounds.x, clickPoint.y - bounds.y);
-                adjustedStart = new Point(start.x - bounds.x, start.y - bounds.y);
-                adjustedEnd = new Point(end.x - bounds.x, end.y - bounds.y);
-
-                // Create a local clip path for the mask generation
-                if (clipPath != null) {
-                    clipPath = new GeneralPath(clipPath);
-                    AffineTransform transform = AffineTransform.getTranslateInstance(-bounds.x, -bounds.y);
-                    clipPath.transform(transform);
-                }
-            }
+            g2d.setClip(selection.getPath());
         }
 
-        // Generate the mask if it doesn't exist or if click point changed
+        // Get coordinate context with adjusted points
+        CoordinateContext ctx = createCoordinateContext(selection, clickPoint, start, end);
+
+        // Generate the mask if needed
         if (smartGradientMask == null || lastMaskClickPoint == null ||
-                !lastMaskClickPoint.equals(adjustedClickPoint)) {
+                !lastMaskClickPoint.equals(ctx.adjustedClickPoint)) {
 
             try {
-                // Create a new mask with dimensions matching the target image
-                int width = currentImage.getWidth();
-                int height = currentImage.getHeight();
-                smartGradientMask = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-
-                // Check if adjusted click point is within bounds
-                if (adjustedClickPoint.x >= 0 && adjustedClickPoint.x < width &&
-                        adjustedClickPoint.y >= 0 && adjustedClickPoint.y < height) {
-
-                    // Ensure gradient points are within bounds for mask generation
-                    int safeStartX = Math.max(0, Math.min(width - 1, adjustedStart.x));
-                    int safeStartY = Math.max(0, Math.min(height - 1, adjustedStart.y));
-                    int safeEndX = Math.max(0, Math.min(width - 1, adjustedEnd.x));
-                    int safeEndY = Math.max(0, Math.min(height - 1, adjustedEnd.y));
-
-                    adjustedStart = new Point(safeStartX, safeStartY);
-                    adjustedEnd = new Point(safeEndX, safeEndY);
-
-                    // Get target color at initial click point
-                    int targetRGB = currentImage.getRGB(adjustedClickPoint.x, adjustedClickPoint.y);
-                    Color targetColor = new Color(targetRGB, true);
-
-                    // Generate the mask using edge detection and color similarity
-                    generateSmartFillMask(smartGradientMask, currentImage, adjustedClickPoint.x,
-                            adjustedClickPoint.y, targetColor, epsilon, clipPath);
-
-                    lastMaskClickPoint = new Point(adjustedClickPoint);
-                }
+                generateMaskForGradient(ctx);
+                lastMaskClickPoint = new Point(ctx.adjustedClickPoint);
             } catch (Exception ex) {
-                // Handle exceptions gracefully
                 System.err.println("Error in preview: " + ex.getMessage());
             }
         }
 
-        // Draw gradient vector line and markers in screen space
+        // Draw gradient direction indicators
         drawColorMarkers(g2d, start, end);
         g2d.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_BUTT,
                 BasicStroke.JOIN_BEVEL, 0, new float[]{5}, 0));
         g2d.setColor(Color.BLACK);
         g2d.drawLine(start.x, start.y, end.x, end.y);
 
-        // Apply the gradient preview if we have a valid mask
-        if (smartGradientMask != null) {
-            // Create gradient for preview
-            GradientPaint paint = new GradientPaint(
-                    adjustedStart.x, adjustedStart.y, canvas.getDrawingColor(),
-                    adjustedEnd.x, adjustedEnd.y, canvas.getFillColor(), false
-            );
+        // Draw the gradient preview
+        drawGradientWithMask(g2d, ctx);
+    }
 
-            // Draw the preview respecting the selection bounds
-            if (bounds != null) {
-                // For selections, draw the mask at the selection position
-                g2d.translate(bounds.x, bounds.y);
-                g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.6f));
+    // Helper method to generate mask
+    private void generateMaskForGradient(CoordinateContext ctx) {
+        int width = ctx.currentImage.getWidth();
+        int height = ctx.currentImage.getHeight();
 
-                // Draw the gradient through the mask
-                BufferedImage previewImage = new BufferedImage(
-                        smartGradientMask.getWidth(), smartGradientMask.getHeight(), BufferedImage.TYPE_INT_ARGB);
-                Graphics2D previewG2d = previewImage.createGraphics();
-                previewG2d.setPaint(paint);
-                previewG2d.fillRect(0, 0, previewImage.getWidth(), previewImage.getHeight());
-                previewG2d.dispose();
+        // Create new mask
+        smartGradientMask = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 
-                g2d.drawImage(smartGradientMask, 0, 0, null);
-                g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_IN, 1.0f));
-                g2d.drawImage(previewImage, 0, 0, null);
+        // Get target color and generate mask
+        int targetRGB = ctx.currentImage.getRGB(ctx.adjustedClickPoint.x, ctx.adjustedClickPoint.y);
+        Color targetColor = new Color(targetRGB, true);
 
-                // Reset transform
-                g2d.translate(-bounds.x, -bounds.y);
-            } else {
-                // For non-selections, draw directly
-                g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.6f));
+        generateSmartFillMask(smartGradientMask, ctx.currentImage,
+                ctx.adjustedClickPoint.x, ctx.adjustedClickPoint.y,
+                targetColor, epsilon, ctx.clipPath);
+    }
 
-                BufferedImage previewImage = new BufferedImage(
-                        currentImage.getWidth(), currentImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
-                Graphics2D previewG2d = previewImage.createGraphics();
-                previewG2d.setPaint(paint);
-                previewG2d.fillRect(0, 0, previewImage.getWidth(), previewImage.getHeight());
-                previewG2d.dispose();
+    // Helper method to draw gradient with mask
+    private void drawGradientWithMask(Graphics2D g2d, CoordinateContext ctx) {
+        if (smartGradientMask == null) return;
 
-                g2d.drawImage(smartGradientMask, 0, 0, null);
-                g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_IN, 1.0f));
-                g2d.drawImage(previewImage, 0, 0, null);
-            }
+        // Create gradient paint
+        GradientPaint paint = new GradientPaint(
+                ctx.adjustedStart.x, ctx.adjustedStart.y, canvas.getDrawingColor(),
+                ctx.adjustedEnd.x, ctx.adjustedEnd.y, canvas.getFillColor(), false
+        );
+
+        // Create gradient image
+        BufferedImage previewImage = new BufferedImage(
+                ctx.currentImage.getWidth(), ctx.currentImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D previewG2d = previewImage.createGraphics();
+        previewG2d.setPaint(paint);
+        previewG2d.fillRect(0, 0, previewImage.getWidth(), previewImage.getHeight());
+        previewG2d.dispose();
+
+        // Apply mask with proper transformation
+        if (ctx.bounds != null) {
+            g2d.translate(ctx.bounds.x, ctx.bounds.y);
+        }
+
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.6f));
+        g2d.drawImage(smartGradientMask, 0, 0, null);
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_IN, 1.0f));
+        g2d.drawImage(previewImage, 0, 0, null);
+
+        if (ctx.bounds != null) {
+            g2d.translate(-ctx.bounds.x, -ctx.bounds.y);
         }
     }
 
@@ -822,5 +778,64 @@ public class FillTool implements DrawingTool {
                 }
             }
         }
+    }
+
+    // 1. Create a helper method for coordinate adjustment
+    private Point adjustToImageBounds(Point p, int width, int height) {
+        int x = Math.max(0, Math.min(width - 1, p.x));
+        int y = Math.max(0, Math.min(height - 1, p.y));
+        return new Point(x, y);
+    }
+
+    // 2. Extract coordinate transformations for selection handling
+    private CoordinateContext createCoordinateContext(Selection selection, Point clickPoint,
+                                                      Point startPoint, Point endPoint) {
+        CoordinateContext ctx = new CoordinateContext();
+        ctx.currentImage = canvas.getCurrentLayerImage();
+        ctx.adjustedClickPoint = clickPoint;
+        ctx.adjustedStart = startPoint;
+        ctx.adjustedEnd = endPoint;
+
+        if (selection != null && selection.hasOutline()) {
+            ctx.clipPath = selection.getPath();
+            ctx.bounds = selection.getBounds();
+
+            BufferedImage selectionContent = selection.getContent();
+            if (selectionContent != null) {
+                ctx.currentImage = selectionContent;
+
+                // Adjust all coordinates to selection's local coordinate system
+                ctx.adjustedClickPoint = new Point(clickPoint.x - ctx.bounds.x, clickPoint.y - ctx.bounds.y);
+                ctx.adjustedStart = new Point(startPoint.x - ctx.bounds.x, startPoint.y - ctx.bounds.y);
+                ctx.adjustedEnd = new Point(endPoint.x - ctx.bounds.x, endPoint.y - ctx.bounds.y);
+
+                // Transform clip path to selection's coordinate system
+                if (ctx.clipPath != null) {
+                    ctx.clipPath = new GeneralPath(ctx.clipPath);
+                    AffineTransform transform = AffineTransform.getTranslateInstance(-ctx.bounds.x, -ctx.bounds.y);
+                    ctx.clipPath.transform(transform);
+                }
+            }
+        }
+
+        int width = ctx.currentImage.getWidth();
+        int height = ctx.currentImage.getHeight();
+
+        // Apply bounds checking to all adjusted points
+        ctx.adjustedClickPoint = adjustToImageBounds(ctx.adjustedClickPoint, width, height);
+        ctx.adjustedStart = adjustToImageBounds(ctx.adjustedStart, width, height);
+        ctx.adjustedEnd = adjustToImageBounds(ctx.adjustedEnd, width, height);
+
+        return ctx;
+    }
+
+    // 3. Helper class to store coordinate context
+    private static class CoordinateContext {
+        BufferedImage currentImage;
+        GeneralPath clipPath;
+        Rectangle bounds;
+        Point adjustedClickPoint;
+        Point adjustedStart;
+        Point adjustedEnd;
     }
 }
