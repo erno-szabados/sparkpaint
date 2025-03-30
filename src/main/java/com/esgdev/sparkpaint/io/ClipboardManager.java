@@ -104,13 +104,13 @@ public class ClipboardManager implements ClipboardManagement {
         return selection != null && selection.hasOutline();
     }
 
-    public boolean canPaste() {
+   public boolean canPaste() {
         try {
             Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
             DataFlavor[] flavors = clipboard.getAvailableDataFlavors();
 
             for (DataFlavor flavor : flavors) {
-                if (ImageSelection.PNG_FLAVOR.equals(flavor)) {
+                if (ImageSelection.PNG_FLAVOR.equals(flavor) || DataFlavor.imageFlavor.equals(flavor)) {
                     return true;
                 }
             }
