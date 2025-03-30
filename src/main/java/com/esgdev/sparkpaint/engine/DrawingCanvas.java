@@ -162,6 +162,7 @@ public class DrawingCanvas extends JPanel implements
         this.fillColor = Color.WHITE;
 
         // Initialize layers
+        Layer.resetCounter();
         layerManager.initializeLayers(width, height);
 
         // Fill the base layer with background color
@@ -570,6 +571,7 @@ public class DrawingCanvas extends JPanel implements
     @Override
     public LayerState loadFromFile(File file) throws IOException {
         zoomFactor = 1.0f;
+        Layer.resetCounter();
 
         // Load layers and active layer index from file
         LayerState layerState = fileManager.loadFromFile(file);

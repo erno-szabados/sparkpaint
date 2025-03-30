@@ -131,6 +131,7 @@ public class HistoryManager implements HistoryManagement {
      * @return The decompressed state of the layers.
      */
     private LayerState decompressLayers(CompressedLayerState compressedState) {
+        Layer.resetCounter();
         List<Layer> layers = new ArrayList<>();
 
         for (CompressedLayer compressedLayer : compressedState.getCompressedLayers()) {
