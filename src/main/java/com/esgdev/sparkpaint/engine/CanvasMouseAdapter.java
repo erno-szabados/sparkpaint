@@ -59,7 +59,7 @@ public class CanvasMouseAdapter extends MouseAdapter {
     @Override
     public void mouseWheelMoved(MouseWheelEvent e) {
         // Apply zoom
-        float[] zoomLevels = {1.0f, 2.0f, 4.0f, 8.0f, 12.0f};
+        float[] zoomLevels = {0.5f, 1.0f, 2.0f, 4.0f, 8.0f, 12.0f};
         double zoomFactor = canvas.getZoomFactor();
 
         if (e.getWheelRotation() < 0) {
