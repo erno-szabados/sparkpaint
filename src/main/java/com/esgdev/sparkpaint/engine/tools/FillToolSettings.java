@@ -1,20 +1,16 @@
 package com.esgdev.sparkpaint.engine.tools;
 
-
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.HashMap;
-import java.util.Map;
 
 public class FillToolSettings extends BaseToolSettings {
     private JSlider epsilonSlider;
     private JLabel epsilonValueLabel;
     private JSlider edgeThresholdSlider;
     private JLabel edgeThresholdValueLabel;
-    private ButtonGroup fillModeGroup;
-    private Map<FillTool.FillMode, JRadioButton> fillModeButtons;
+    private JComboBox<FillModeOption> fillModeComboBox;
 
     public FillToolSettings(DrawingCanvas canvas) {
         super(canvas);
@@ -28,37 +24,36 @@ public class FillToolSettings extends BaseToolSettings {
         JLabel fillModeLabel = new JLabel("Fill Type:");
         fillModeLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JPanel fillModePanel = new JPanel();
-        fillModePanel.setLayout(new BoxLayout(fillModePanel, BoxLayout.Y_AXIS));
-        fillModePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        fillModePanel.setMaximumSize(new Dimension(200, 60));
+        // Create combo box for fill modes
+        fillModeComboBox = new JComboBox<>();
+        fillModeComboBox.setMaximumSize(new Dimension(200, 25));
+        fillModeComboBox.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        fillModeGroup = new ButtonGroup();
-        fillModeButtons = new HashMap<>();
+        // Current selected fill mode
+        FillTool.FillMode currentMode = ((FillTool) canvas.getTool(ToolManager.Tool.FILL)).getFillMode();
 
-        // Create radio buttons for each fill mode
+        // Add all fill modes to the combo box
         for (FillTool.FillMode mode : FillTool.FillMode.values()) {
-            JRadioButton radioButton = new JRadioButton(mode.getDisplayName());
-            radioButton.setAlignmentX(Component.LEFT_ALIGNMENT);
-            radioButton.setActionCommand(mode.name());
+            FillModeOption option = new FillModeOption(mode);
+            fillModeComboBox.addItem(option);
 
-            if (mode == ((FillTool)canvas.getTool(ToolManager.Tool.FILL)).getFillMode()) {
-                radioButton.setSelected(true);
+            // Set the current selection
+            if (mode == currentMode) {
+                fillModeComboBox.setSelectedItem(option);
             }
-
-            radioButton.addActionListener(e -> {
-                FillTool.FillMode selectedMode = FillTool.FillMode.valueOf(e.getActionCommand());
-                ((FillTool)canvas.getTool(ToolManager.Tool.FILL)).setFillMode(selectedMode);
-            });
-
-            fillModeGroup.add(radioButton);
-            fillModeButtons.put(mode, radioButton);
-            fillModePanel.add(radioButton);
         }
+
+        // Add action listener
+        fillModeComboBox.addActionListener(e -> {
+            FillModeOption selected = (FillModeOption) fillModeComboBox.getSelectedItem();
+            if (selected != null) {
+                ((FillTool) canvas.getTool(ToolManager.Tool.FILL)).setFillMode(selected.getMode());
+            }
+        });
 
         panel.add(fillModeLabel);
         panel.add(Box.createVerticalStrut(2));
-        panel.add(fillModePanel);
+        panel.add(fillModeComboBox);
         panel.add(Box.createVerticalStrut(10));
 
         // Epsilon slider
@@ -127,22 +122,47 @@ public class FillToolSettings extends BaseToolSettings {
         int mappedEpsilon = epsilonSlider.getValue() * 2;
         tool.setEpsilon(mappedEpsilon);
         // Map 0-100 UI range to 0-255 technical range for edge threshold
-        int mappedThreshold = (int)(edgeThresholdSlider.getValue() * 2.55);
+        int mappedThreshold = (int) (edgeThresholdSlider.getValue() * 2.55);
         tool.setEdgeThreshold(mappedThreshold);
     }
 
- @Override
- public void resetToDefaults() {
-     // Existing reset code
-     epsilonSlider.setValue(FillTool.DEFAULT_FILL_EPSILON / 2);
-     epsilonValueLabel.setText(String.valueOf(epsilonSlider.getValue()));
-     edgeThresholdSlider.setValue((int)(FillTool.DEFAULT_EDGE_THRESHOLD / 2.55));
-     edgeThresholdValueLabel.setText(String.valueOf(edgeThresholdSlider.getValue()));
+    @Override
+    public void resetToDefaults() {
+        // Reset sliders
+        epsilonSlider.setValue(FillTool.DEFAULT_FILL_EPSILON / 2);
+        epsilonValueLabel.setText(String.valueOf(epsilonSlider.getValue()));
+        edgeThresholdSlider.setValue((int) (FillTool.DEFAULT_EDGE_THRESHOLD / 2.55));
+        edgeThresholdValueLabel.setText(String.valueOf(edgeThresholdSlider.getValue()));
 
-     FillTool.FillMode defaultMode = FillTool.FillMode.SMART_FILL;
-     fillModeButtons.get(defaultMode).setSelected(true);
-     ((FillTool)canvas.getTool(ToolManager.Tool.FILL)).setFillMode(defaultMode);
+        // Reset fill mode to default
+        FillTool.FillMode defaultMode = FillTool.FillMode.SMART_FILL;
+        for (int i = 0; i < fillModeComboBox.getItemCount(); i++) {
+            FillModeOption option = fillModeComboBox.getItemAt(i);
+            if (option.getMode() == defaultMode) {
+                fillModeComboBox.setSelectedIndex(i);
+                break;
+            }
+        }
+        ((FillTool) canvas.getTool(ToolManager.Tool.FILL)).setFillMode(defaultMode);
 
-     applySettings();
- }
+        applySettings();
+    }
+
+    // Wrapper class for fill mode items in combo box
+    private static class FillModeOption {
+        private final FillTool.FillMode mode;
+
+        public FillModeOption(FillTool.FillMode mode) {
+            this.mode = mode;
+        }
+
+        public FillTool.FillMode getMode() {
+            return mode;
+        }
+
+        @Override
+        public String toString() {
+            return mode.getDisplayName();
+        }
+    }
 }
