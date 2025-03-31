@@ -39,11 +39,46 @@ public class LineToolSettings extends BaseToolSettings {
             }
         }
 
+        // Curve tension slider
+        JLabel tensionLabel = new JLabel("Curve Tension:");
+        tensionLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        float currentTension = ((LineTool) canvas.getTool(ToolManager.Tool.LINE)).getCurveTension();
+        int tensionValue = Math.round(currentTension * 100);
+
+        JSlider tensionSlider = new JSlider(JSlider.HORIZONTAL, 0, 100, tensionValue);
+        tensionSlider.setMaximumSize(new Dimension(150, 25));
+        tensionSlider.setAlignmentX(Component.LEFT_ALIGNMENT);
+        tensionSlider.setPaintTicks(true);
+        tensionSlider.setMajorTickSpacing(25);
+        tensionSlider.setMinorTickSpacing(5);
+
+        JLabel tensionValueLabel = new JLabel(String.format("%d", tensionSlider.getValue()));
+        tensionValueLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        tensionSlider.addChangeListener(e -> {
+            float tension = tensionSlider.getValue() / 100.0f;
+            tensionValueLabel.setText(String.format("%d", tensionSlider.getValue()));
+            ((LineTool) canvas.getTool(ToolManager.Tool.LINE)).setCurveTension(tension);
+        });
+
+        // Enable/disable tension controls based on mode
+        boolean isCurveMode = currentMode == LineTool.LineMode.CURVE;
+        tensionLabel.setEnabled(isCurveMode);
+        tensionSlider.setEnabled(isCurveMode);
+        tensionValueLabel.setEnabled(isCurveMode);
+
         modeComboBox.addActionListener(e -> {
             LineModeOption selected = (LineModeOption) modeComboBox.getSelectedItem();
             if (selected != null) {
                 LineTool.LineMode mode = selected.getMode();
                 ((LineTool) canvas.getTool(ToolManager.Tool.LINE)).setMode(mode);
+
+                // Enable/disable tension controls
+                boolean enableTension = mode == LineTool.LineMode.CURVE;
+                tensionLabel.setEnabled(enableTension);
+                tensionSlider.setEnabled(enableTension);
+                tensionValueLabel.setEnabled(enableTension);
             }
         });
 
@@ -78,14 +113,26 @@ public class LineToolSettings extends BaseToolSettings {
         panel.add(Box.createVerticalStrut(2));
         panel.add(modeComboBox);
         panel.add(Box.createVerticalStrut(10));
+
+        // Thickness controls
         panel.add(thicknessLabel);
         panel.add(Box.createVerticalStrut(2));
         panel.add(thicknessSlider);
         panel.add(Box.createVerticalStrut(2));
         panel.add(thicknessValueLabel);
         panel.add(Box.createVerticalStrut(5));
+
+        // Tension controls (always visible but possibly disabled)
+        panel.add(tensionLabel);
+        panel.add(Box.createVerticalStrut(2));
+        panel.add(tensionSlider);
+        panel.add(Box.createVerticalStrut(2));
+        panel.add(tensionValueLabel);
+        panel.add(Box.createVerticalStrut(10));
+
         panel.add(antiAliasingCheckbox);
         panel.add(Box.createVerticalGlue());
+
         return panel;
     }
 
