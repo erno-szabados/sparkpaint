@@ -20,21 +20,22 @@ public class LineTool implements DrawingTool {
     private float curveTension = 0.5f; // Default tension (0.5 is standard Catmull-Rom)
     private LineMode mode = LineMode.SINGLE_LINE;
 
-   public enum LineMode {
-       SINGLE_LINE("Single Line"),
-       POLYLINE("Polyline"),
-       CURVE("Smooth Curve");
+    public enum LineMode {
+        SINGLE_LINE("Single Line"),
+        POLYLINE("Polyline"),
+        CURVE("Smooth Curve"),
+        CLOSED_CURVE("Closed Curve");
 
-       private final String displayName;
+        private final String displayName;
 
-       LineMode(String displayName) {
-           this.displayName = displayName;
-       }
+        LineMode(String displayName) {
+            this.displayName = displayName;
+        }
 
-       public String getDisplayName() {
-           return displayName;
-       }
-   }
+        public String getDisplayName() {
+            return displayName;
+        }
+    }
 
     public LineTool(DrawingCanvas canvas) {
         this.canvas = canvas;
@@ -61,7 +62,7 @@ public class LineTool implements DrawingTool {
 
     @Override
     public void mouseMoved(MouseEvent e) {
-        if ((mode == LineMode.POLYLINE || mode == LineMode.CURVE) && !polylinePoints.isEmpty()) {
+        if ((mode == LineMode.POLYLINE || mode == LineMode.CURVE || mode == LineMode.CLOSED_CURVE) && !polylinePoints.isEmpty()) {
             Point point = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
             if (mode == LineMode.POLYLINE) {
                 drawPolylinePreview(point);
@@ -88,7 +89,7 @@ public class LineTool implements DrawingTool {
             // Single line mode - save start point
             startPoint = point;
             canvas.saveToUndoStack();
-        } else if (mode == LineMode.POLYLINE || mode == LineMode.CURVE) {
+        } else if (mode == LineMode.POLYLINE || mode == LineMode.CURVE || mode == LineMode.CLOSED_CURVE) {
             // Check if right-click to complete polyline/curve
             if (SwingUtilities.isRightMouseButton(e)) {
                 if (polylinePoints.size() >= 2) {
@@ -357,6 +358,11 @@ public class LineTool implements DrawingTool {
         List<Point> tempPoints = new ArrayList<>(polylinePoints);
         tempPoints.add(currentPoint);
 
+        // For closed curve mode, add the first point to the end to close the shape
+        if (mode == LineMode.CLOSED_CURVE && tempPoints.size() > 2) {
+            tempPoints.add(tempPoints.get(0));
+        }
+
         // Calculate and draw the curve
         List<Point> curvePoints = calculateCurvePoints(tempPoints);
         if (curvePoints.size() > 1) {
@@ -411,6 +417,11 @@ public class LineTool implements DrawingTool {
         // Get appropriate graphics context
         Graphics2D g2d;
         List<Point> adjustedPoints = new ArrayList<>(polylinePoints);
+
+        // For closed curve mode, add the first point to the end to close the shape
+        if (mode == LineMode.CLOSED_CURVE && adjustedPoints.size() > 2) {
+            adjustedPoints.add(adjustedPoints.get(0));
+        }
 
         if (selection != null && selection.hasOutline()) {
             g2d = canvas.getDrawingGraphics();
