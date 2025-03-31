@@ -1,78 +1,89 @@
 package com.esgdev.sparkpaint.io;
 
+import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 public class ImageSelection implements Transferable {
 
-    private final BufferedImage image;
+    private ByteArrayInputStream bais;
+    public static final DataFlavor PNG_FLAVOR = new DataFlavor("image/png", "PNG Image");
 
-    public ImageSelection(BufferedImage image) {
-        BufferedImage copy = new BufferedImage(image.getWidth(), image.getHeight(), image.getType());
-        Graphics2D g2d = copy.createGraphics();
-        g2d.drawImage(image, 0, 0, null);
-        g2d.dispose();
-        this.image = copy;
-
+    // Only store the bytes for PNG data to avoid transparency issues
+    public ImageSelection(BufferedImage image) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", baos);
+        baos.flush();
+        byte[] imageInBytes = baos.toByteArray();
+        baos.close();
+        bais = new ByteArrayInputStream(imageInBytes);
     }
 
     @Override
     public DataFlavor[] getTransferDataFlavors() {
-        return new DataFlavor[]{DataFlavor.imageFlavor};
+        // Only offer PNG flavor when copying from our app to preserve transparency
+        return new DataFlavor[]{PNG_FLAVOR};
     }
 
     @Override
     public boolean isDataFlavorSupported(DataFlavor flavor) {
-        try {
-            return DataFlavor.imageFlavor.equals(flavor);
-        } catch (Exception e) {
-            return false;
-        }
+        return flavor.equals(PNG_FLAVOR);
     }
 
     @Override
-    public Object getTransferData(DataFlavor flavor) {
+    public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException {
         if (!isDataFlavorSupported(flavor)) {
-            return null;
+            throw new UnsupportedFlavorException(flavor);
         }
-        return image;
+
+        return bais;
     }
 
-    // Static helper method to copy an image to the clipboard
-    public static void copyImage(BufferedImage image) {
+    public static void copyImage(BufferedImage image) throws IOException {
         ImageSelection selection = new ImageSelection(image);
         Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
         clipboard.setContents(selection, null);
     }
 
-    // Static helper method to try to paste an image from the clipboard.
-    // Returns null if no image is available.
     public static BufferedImage pasteImage() throws IOException, UnsupportedFlavorException {
         Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-        // Get all available data flavors
-        DataFlavor[] flavors = clipboard.getAvailableDataFlavors();
+        Transferable transferable = clipboard.getContents(null);
 
-        // Only proceed if an image flavor is available
-        if (flavors != null) {
-            for (DataFlavor flavor : flavors) {
-                // Strictly check for image flavor
-                if (flavor != null && DataFlavor.imageFlavor.equals(flavor)) {
-                    // Safely attempt to get image data
-                    Transferable transferable = clipboard.getContents(null);
-                    if (transferable != null && transferable.isDataFlavorSupported(DataFlavor.imageFlavor)) {
-                        Object data = transferable.getTransferData(DataFlavor.imageFlavor);
+        // First try with PNG_FLAVOR for best transparency support (from our app)
+        if (transferable != null && transferable.isDataFlavorSupported(PNG_FLAVOR)) {
+            ByteArrayInputStream bais = (ByteArrayInputStream) transferable.getTransferData(PNG_FLAVOR);
+            bais.reset();
+            return ImageIO.read(bais);
+        }
 
-                        // Ensure it's a BufferedImage
-                        if (data instanceof BufferedImage) {
-                            return (BufferedImage) data;
-                        }
-                    }
-                }
+        // Fall back to standard image flavor (from other apps)
+        if (transferable != null && transferable.isDataFlavorSupported(DataFlavor.imageFlavor)) {
+            Image img = (Image) transferable.getTransferData(DataFlavor.imageFlavor);
+
+            // Convert Image to BufferedImage with transparency support
+            if (img instanceof BufferedImage) {
+                return (BufferedImage) img;
+            } else {
+                // Create a BufferedImage with transparency
+                BufferedImage bufferedImage = new BufferedImage(
+                        img.getWidth(null),
+                        img.getHeight(null),
+                        BufferedImage.TYPE_INT_ARGB
+                );
+
+                // Draw the image into the BufferedImage
+                Graphics2D g2d = bufferedImage.createGraphics();
+                g2d.drawImage(img, 0, 0, null);
+                g2d.dispose();
+
+                return bufferedImage;
             }
         }
 

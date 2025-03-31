@@ -3,6 +3,8 @@ package com.esgdev.sparkpaint.engine.tools;
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
 
 public class TextToolSettings extends BaseToolSettings {
@@ -27,7 +29,24 @@ public class TextToolSettings extends BaseToolSettings {
         textField = new JTextField("Sample Text", 20);
         textField.setAlignmentX(Component.LEFT_ALIGNMENT);
         textField.setMaximumSize(new Dimension(Integer.MAX_VALUE, textField.getPreferredSize().height));
-        textField.addActionListener(e -> applySettings());
+
+        // Add document listener to apply changes as user types
+        textField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                applySettings();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                applySettings();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                applySettings();
+            }
+        });
 
         // Font dropdown
         JLabel fontLabel = new JLabel("Font:");
@@ -78,7 +97,7 @@ public class TextToolSettings extends BaseToolSettings {
 
     @Override
     public void applySettings() {
-        if (canvas.getCurrentTool() == DrawingCanvas.Tool.TEXT) {
+        if (canvas.getCurrentTool() == ToolManager.Tool.TEXT) {
             TextTool tool = (TextTool) canvas.getActiveTool();
             tool.setText(textField.getText());
             tool.setFont(new Font((String) fontDropdown.getSelectedItem(), Font.PLAIN, fontSizeSlider.getValue()));

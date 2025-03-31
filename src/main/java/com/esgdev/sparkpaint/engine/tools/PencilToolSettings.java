@@ -52,13 +52,14 @@ public class PencilToolSettings extends BaseToolSettings {
         panel.add(thicknessValueLabel);
         panel.add(Box.createVerticalStrut(5));
         panel.add(antiAliasingCheckbox);
+        panel.add(Box.createVerticalGlue());
         return panel;
     }
 
     @Override
     public void applySettings() {
 
-        if (canvas.getCurrentTool() == DrawingCanvas.Tool.PENCIL) {
+        if (canvas.getCurrentTool() == ToolManager.Tool.PENCIL) {
             PencilTool tool = (PencilTool) canvas.getActiveTool();
             canvas.setLineThickness(thicknessSlider.getValue());
             useAntiAliasing = antiAliasingCheckbox.isSelected();

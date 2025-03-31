@@ -1,6 +1,7 @@
 package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
+import com.esgdev.sparkpaint.engine.selection.Selection;
 
 import java.awt.*;
 import java.awt.event.MouseEvent;
@@ -26,66 +27,128 @@ public class RectangleTool implements DrawingTool {
 
     @Override
     public void mousePressed(MouseEvent e) {
-        startPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
+        //SelectionManager selectionManager = canvas.getSelectionManager();
+        Selection selection = canvas.getSelection();
+
+        // Convert to world coordinates and check if we're in a selection
+        Point worldPoint = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
+        if (selection != null && selection.hasOutline() && !selection.contains(worldPoint)) {
+            return; // Don't start drawing outside selection
+        }
+
+        // Save start point using appropriate coordinate system
+        startPoint = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
         canvas.saveToUndoStack();
     }
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        Point point = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
-        BufferedImage tempCanvas = canvas.getTempCanvas();
+        if (startPoint == null) return;
+
+        Selection selection = canvas.getSelection();
+
+        // Get current point in appropriate coordinate system
+        Point point = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
+
+        // Create temporary canvas for preview
+        BufferedImage tempCanvas = canvas.getToolCanvas();
         Graphics2D g2d = tempCanvas.createGraphics();
-        g2d.drawImage(canvas.getImage(), 0, 0, null);
+
+        // Clear the temp canvas
+        g2d.setComposite(AlphaComposite.Clear);
+        g2d.fillRect(0, 0, tempCanvas.getWidth(), tempCanvas.getHeight());
+        g2d.setComposite(AlphaComposite.SrcOver);
+
+        // Apply rendering settings
         g2d.setStroke(new BasicStroke(canvas.getLineThickness()));
-        g2d.setColor(canvas.getDrawingColor());
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+
+        // Apply selection clip
+        applySelectionClip(g2d, selection);
+
+        // Calculate rectangle dimensions
         int x = Math.min(startPoint.x, point.x);
         int y = Math.min(startPoint.y, point.y);
         int width = Math.abs(point.x - startPoint.x);
         int height = Math.abs(point.y - startPoint.y);
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+
+        // Draw filled rectangle if needed
         if (isFilled) {
             g2d.setColor(canvas.getFillColor());
             g2d.fillRect(x, y, width, height);
         }
+
+        // Draw rectangle outline
         g2d.setColor(canvas.getDrawingColor());
         g2d.drawRect(x, y, width, height);
         g2d.dispose();
-        canvas.setTempCanvas(tempCanvas);
+
         canvas.repaint();
     }
 
     @Override
     public void mouseReleased(MouseEvent e) {
-        Point point = DrawingTool.screenToWorld(canvas.getZoomFactor(), e.getPoint());
-        BufferedImage image = canvas.getImage();
-        Graphics2D g2d = image.createGraphics();
-        if (g2d == null) {
-            System.out.println("Graphics is null");
-            return;
+        if (startPoint == null) return;
+
+        Selection selection = canvas.getSelection();
+
+        // Get current point in appropriate coordinate system
+        Point point = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
+
+        // Get appropriate graphics context for drawing
+        Graphics2D g2d;
+        Point adjustedStartPoint = startPoint;
+        Point adjustedEndPoint = point;
+
+        if (selection != null && selection.hasOutline()) {
+            // Get drawing graphics from the selection manager
+            g2d = canvas.getDrawingGraphics();
+            selection.setModified(true);
+
+            // Get selection bounds to adjust coordinates
+            Rectangle bounds = selection.getBounds();
+
+            // Adjust coordinates relative to the selection bounds
+            adjustedStartPoint = new Point(startPoint.x - bounds.x, startPoint.y - bounds.y);
+            adjustedEndPoint = new Point(point.x - bounds.x, point.y - bounds.y);
+        } else {
+            // Draw on current layer
+            BufferedImage currentLayerImage = canvas.getCurrentLayerImage();
+            g2d = (Graphics2D) currentLayerImage.getGraphics();
         }
+
+        // Apply rendering settings
+        g2d.setStroke(new BasicStroke(canvas.getLineThickness()));
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                 useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
 
-        g2d.setStroke(new BasicStroke(canvas.getLineThickness()));
-        int x = Math.min(startPoint.x, point.x);
-        int y = Math.min(startPoint.y, point.y);
-        int width = Math.abs(point.x - startPoint.x);
-        int height = Math.abs(point.y - startPoint.y);
+        // Calculate rectangle dimensions
+        int x = Math.min(adjustedStartPoint.x, adjustedEndPoint.x);
+        int y = Math.min(adjustedStartPoint.y, adjustedEndPoint.y);
+        int width = Math.abs(adjustedEndPoint.x - adjustedStartPoint.x);
+        int height = Math.abs(adjustedEndPoint.y - adjustedStartPoint.y);
+
+        // Draw filled rectangle if needed
         if (isFilled) {
             g2d.setColor(canvas.getFillColor());
             g2d.fillRect(x, y, width, height);
         }
+
+        // Draw rectangle outline
         g2d.setColor(canvas.getDrawingColor());
         g2d.drawRect(x, y, width, height);
         g2d.dispose();
-        canvas.setTempCanvas(null);
+
+        // Clear the temp canvas and reset state
+        canvas.setToolCanvas(null);
+        startPoint = null;
         canvas.repaint();
     }
 
     @Override
     public void mouseScrolled(MouseWheelEvent e) {
-
+        // No action needed for mouse scroll
     }
 
     @Override
@@ -95,11 +158,15 @@ public class RectangleTool implements DrawingTool {
 
     @Override
     public String statusMessage() {
-        return "Rectangle tool selected";
+        return isFilled ? "Rectangle tool (filled)" : "Rectangle tool (outline)";
     }
 
-    public void setFilled(boolean selected) {
-        this.isFilled = selected;
+    public void setFilled(boolean filled) {
+        isFilled = filled;
+    }
+
+    public boolean isFilled() {
+        return isFilled;
     }
 
     public void setAntiAliasing(boolean useAntiAliasing) {

@@ -11,9 +11,6 @@ public class IconLoader {
     // Load and scale an icon to the desired width and height
     public static ImageIcon loadAndScaleIcon(String iconName, int width, int height) {
         ImageIcon originalIcon = loadIcon(iconName);
-        if (originalIcon == null) {
-            return null; // Handle missing icon gracefully
-        }
 
         // Get the image from the original icon
         Image originalImage = originalIcon.getImage();

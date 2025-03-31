@@ -1,13 +1,13 @@
 package com.esgdev.sparkpaint.ui;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
-import com.esgdev.sparkpaint.ui.HelpMenu;
+import com.esgdev.sparkpaint.ui.layer.LayerPanel;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
-
+import java.awt.event.KeyEvent;
 
 
 public class MainFrame extends JFrame {
@@ -45,7 +45,7 @@ public class MainFrame extends JFrame {
 
 
         // Add main canvas (at the center). Must precede menu, toolbar and tool settings!
-        canvas = new DrawingCanvas();
+        canvas = DrawingCanvas.create();
 
         // Create and set up the menu bar
         JMenuBar menuBar = new JMenuBar();
@@ -75,19 +75,28 @@ public class MainFrame extends JFrame {
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 
 
-
         // Add toolbar
         JToolBar toolbar = new DrawingToolbar(canvas, this::setStatusMessage);
         contentPane.add(toolbar, BorderLayout.WEST);
 
         // Add tool settings
         Box toolBox = new DrawingSettingsToolBox(canvas, this::setStatusMessage);
-        // Create the split pane with your existing components
-        JSplitPane splitPane = new JSplitPane(
-                JSplitPane.HORIZONTAL_SPLIT,
-                scrollPane,                // left component
-                toolBox                    // right component
+
+        ///
+        // Create the layer panel
+        LayerPanel layerPanel = new LayerPanel(canvas, this::setStatusMessage);
+
+        // Combine the tool settings box and layer panel in a single vertical panel
+        JPanel rightPanel = new JPanel();
+        rightPanel.setLayout(new BorderLayout());
+        rightPanel.add(toolBox, BorderLayout.NORTH);
+        rightPanel.add(layerPanel, BorderLayout.CENTER);
+
+        // Use this combined panel instead of just the toolBox in the split pane
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, scrollPane,                // left component
+                rightPanel                 // right component (now contains both toolBox and layerPanel)
         );
+
         splitPane.setOneTouchExpandable(true);  // Adds a small button to collapse/expand
         splitPane.setDividerLocation(getWidth() - 200);  // Initial divider location
         splitPane.setResizeWeight(1.0);
@@ -101,6 +110,7 @@ public class MainFrame extends JFrame {
                 }
             }
         });
+
 
         // Add the container to the center of the BorderLayout
         add(splitPane, BorderLayout.CENTER);
@@ -131,12 +141,27 @@ public class MainFrame extends JFrame {
             zoomLabel.setText(String.format("%d%%", zoomPercentage));
         });
 
+        // Paste events always directed to the canvas
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(e -> {
+            // Check for paste key combination (Ctrl+V)
+            if (e.getKeyCode() == KeyEvent.VK_V && e.isControlDown() && e.getID() == KeyEvent.KEY_PRESSED) {
+                try {
+                    canvas.pasteSelection();
+                    return true; // Consume the event
+                } catch (Exception ex) {
+                    setStatusMessage("Paste failed: " + ex.getMessage());
+                }
+            }
+            return false; // Let other key events pass through
+        });
+
         // Attach a listener to update the cursor position label
         addCursorTracking();
     }
 
     public void setStatusMessage(String message) {
-        statusMessage.setText(message);
+        if (statusMessage != null)
+            statusMessage.setText(message);
     }
 
     private void addCursorTracking() {

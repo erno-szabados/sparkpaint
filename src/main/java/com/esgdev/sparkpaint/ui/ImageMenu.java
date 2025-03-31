@@ -1,8 +1,8 @@
 package com.esgdev.sparkpaint.ui;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
-import com.esgdev.sparkpaint.engine.selection.SelectionManager;
-import com.esgdev.sparkpaint.engine.tools.RectangleSelectionTool;
+import com.esgdev.sparkpaint.engine.layer.Layer;
+import com.esgdev.sparkpaint.ui.PaletteGeneratorDialog;
 
 import javax.swing.*;
 import java.awt.*;
@@ -10,22 +10,29 @@ import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.List;
 
+/**
+ * ImageMenu class represents the "Image" menu in the application.
+ * It provides options to view image information, resize, scale, and crop images.
+ */
 public class ImageMenu extends JMenu {
     private final DrawingCanvas canvas;
     private final MainFrame mainFrame;
-    private final JMenuItem infoItem;
-    private final JMenuItem resizeItem;
-    private final JMenuItem scaleItem;
-    private final JMenuItem cropItem;
 
+    /**
+     * Constructor for ImageMenu.
+     *
+     * @param mainFrame The main frame of the application.
+     */
     public ImageMenu(MainFrame mainFrame) {
         super("Image");
         this.mainFrame = mainFrame;
         this.canvas = mainFrame.getCanvas();
 
         // Create and add Info item
-        infoItem = new JMenuItem("Image Info");
+        JMenuItem infoItem = new JMenuItem("Image Info");
         infoItem.setMnemonic('I');
         infoItem.addActionListener(this::handleInfo);
         infoItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, InputEvent.CTRL_MASK | InputEvent.SHIFT_MASK));
@@ -35,35 +42,58 @@ public class ImageMenu extends JMenu {
         addSeparator();
 
         // Create and add Resize item
-        resizeItem = new JMenuItem("Resize...");
+        JMenuItem resizeItem = new JMenuItem("Resize...");
         resizeItem.setMnemonic('R');
         resizeItem.addActionListener(this::handleResize);
         resizeItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_MASK | InputEvent.SHIFT_MASK));
         add(resizeItem);
 
         // Create and add Scale item
-        scaleItem = new JMenuItem("Scale...");
+        JMenuItem scaleItem = new JMenuItem("Scale...");
         scaleItem.setMnemonic('S');
         scaleItem.addActionListener(this::handleScale);
         scaleItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_MASK | InputEvent.SHIFT_MASK));
         add(scaleItem);
 
         // Create and add Crop to Selection item
-        cropItem = new JMenuItem("Crop to Selection");
+        JMenuItem cropItem = new JMenuItem("Crop to Selection");
         cropItem.setMnemonic('C');
         cropItem.addActionListener(this::handleCrop);
         cropItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_MASK | InputEvent.SHIFT_MASK));
         add(cropItem);
+
+        addSeparator();
+
+        // Palette from Image menu item
+        JMenuItem paletteFromImageItem = new JMenuItem("Palette from Image...");
+        paletteFromImageItem.setMnemonic('P');
+        paletteFromImageItem.addActionListener(this::handlePaletteFromImage);
+        add(paletteFromImageItem);
+    }
+
+    private void handlePaletteFromImage(ActionEvent e) {
+        List<Layer> layers = canvas.getLayers();
+        if (layers == null || layers.isEmpty()) {
+            JOptionPane.showMessageDialog(mainFrame, "No image loaded.", "Generate Palette", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        PaletteGeneratorDialog dialog = new PaletteGeneratorDialog(mainFrame, canvas);
+        dialog.setVisible(true);
     }
 
     private void handleInfo(ActionEvent e) {
-        BufferedImage image = canvas.getImage();
         String filePath = canvas.getCurrentFilePath();
+        List<Layer> layers = canvas.getLayers();
+        int currentLayerIndex = canvas.getCurrentLayerIndex();
 
-        if (image != null) {
-            String message = String.format("Image Size: %dx%d pixels\nFile Path: %s",
-                    image.getWidth(), image.getHeight(),
-                    filePath != null ? filePath : "Untitled");
+        if (layers != null && !layers.isEmpty()) {
+            BufferedImage firstLayer = layers.get(0).getImage();
+            String message = String.format("Image Size: %dx%d pixels\n", firstLayer.getWidth(), firstLayer.getHeight()) +
+                    String.format("Number of Layers: %d\n", layers.size()) +
+                    String.format("Active Layer: %d\n", currentLayerIndex + 1) +
+                    String.format("File Path: %s", filePath != null ? filePath : "Untitled");
+
             JOptionPane.showMessageDialog(mainFrame, message, "Image Information", JOptionPane.INFORMATION_MESSAGE);
         } else {
             JOptionPane.showMessageDialog(mainFrame, "No image loaded.", "Image Information", JOptionPane.WARNING_MESSAGE);
@@ -71,11 +101,15 @@ public class ImageMenu extends JMenu {
     }
 
     private void handleResize(ActionEvent e) {
-        BufferedImage currentImage = canvas.getImage();
-        if (currentImage == null) {
+        List<Layer> layers = canvas.getLayers();
+        if (layers == null || layers.isEmpty()) {
             JOptionPane.showMessageDialog(mainFrame, "No image loaded.", "Resize", JOptionPane.WARNING_MESSAGE);
             return;
         }
+
+        BufferedImage currentLayerImage = layers.get(0).getImage();
+        int originalWidth = currentLayerImage.getWidth();
+        int originalHeight = currentLayerImage.getHeight();
 
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -83,14 +117,14 @@ public class ImageMenu extends JMenu {
         // Width input
         JPanel widthPanel = new JPanel();
         JLabel widthLabel = new JLabel("Width:");
-        JSpinner widthSpinner = new JSpinner(new SpinnerNumberModel(currentImage.getWidth(), 1, 10000, 1));
+        JSpinner widthSpinner = new JSpinner(new SpinnerNumberModel(originalWidth, 1, 10000, 1));
         widthPanel.add(widthLabel);
         widthPanel.add(widthSpinner);
 
         // Height input
         JPanel heightPanel = new JPanel();
         JLabel heightLabel = new JLabel("Height:");
-        JSpinner heightSpinner = new JSpinner(new SpinnerNumberModel(currentImage.getHeight(), 1, 10000, 1));
+        JSpinner heightSpinner = new JSpinner(new SpinnerNumberModel(originalHeight, 1, 10000, 1));
         heightPanel.add(heightLabel);
         heightPanel.add(heightSpinner);
 
@@ -100,7 +134,7 @@ public class ImageMenu extends JMenu {
         ratioPanel.add(maintainRatioBox);
 
         // Add change listeners for aspect ratio maintenance
-        double aspectRatio = (double) currentImage.getWidth() / currentImage.getHeight();
+        double aspectRatio = (double) originalWidth / originalHeight;
         widthSpinner.addChangeListener(e1 -> {
             if (maintainRatioBox.isSelected()) {
                 int width = (Integer) widthSpinner.getValue();
@@ -126,32 +160,51 @@ public class ImageMenu extends JMenu {
             int newWidth = (Integer) widthSpinner.getValue();
             int newHeight = (Integer) heightSpinner.getValue();
 
-            canvas.createNewCanvas(newWidth, newHeight, canvas.getCanvasBackground());
-
-            Graphics2D g = (Graphics2D) canvas.getImage().getGraphics();
-            int x = (newWidth - currentImage.getWidth()) / 2;
-            int y = (newHeight - currentImage.getHeight()) / 2;
-            g.drawImage(currentImage, x, y, null);
-            g.dispose();
-
-            canvas.repaint();
+            // Save for undo
             canvas.saveToUndoStack();
+
+            // Create resized layers
+            List<Layer> resizedLayers = new ArrayList<>();
+            for (Layer layer : layers) {
+                Layer newLayer = new Layer(newWidth, newHeight);
+                Graphics2D g = newLayer.getImage().createGraphics();
+                g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+
+                // Center the original image in the new canvas
+                int x = (newWidth - originalWidth) / 2;
+                int y = (newHeight - originalHeight) / 2;
+                g.drawImage(layer.getImage(), x, y, null);
+                g.dispose();
+
+                newLayer.setVisible(layer.isVisible());
+                resizedLayers.add(newLayer);
+            }
+
+            // Update canvas with new layers
+            canvas.saveToUndoStack();
+            canvas.setLayers(resizedLayers);
+            canvas.setPreferredSize(new Dimension(newWidth, newHeight));
+            canvas.revalidate();
+            canvas.repaint();
         }
     }
 
     private void handleScale(ActionEvent e) {
-        BufferedImage currentImage = canvas.getImage();
-        if (currentImage == null) {
+        List<Layer> layers = canvas.getLayers();
+        if (layers == null || layers.isEmpty()) {
             JOptionPane.showMessageDialog(mainFrame, "No image loaded.", "Scale", JOptionPane.WARNING_MESSAGE);
             return;
         }
+
+        BufferedImage currentLayerImage = layers.get(0).getImage();
+        int originalWidth = currentLayerImage.getWidth();
+        int originalHeight = currentLayerImage.getHeight();
 
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 
         // Scale inputs
         JPanel scalePanel = new JPanel();
-        JLabel scaleLabel = new JLabel("Scale (%):");
         JSpinner widthScaleSpinner = new JSpinner(new SpinnerNumberModel(100, 1, 1000, 1));
         JSpinner heightScaleSpinner = new JSpinner(new SpinnerNumberModel(100, 1, 1000, 1));
         scalePanel.add(new JLabel("Width %:"));
@@ -167,7 +220,7 @@ public class ImageMenu extends JMenu {
 
         // Preview dimensions
         JPanel previewPanel = new JPanel();
-        JLabel dimensionsLabel = new JLabel(String.format("Current: %dx%d", currentImage.getWidth(), currentImage.getHeight()));
+        JLabel dimensionsLabel = new JLabel(String.format("Current: %dx%d", originalWidth, originalHeight));
         previewPanel.add(dimensionsLabel);
 
         // Add change listeners for aspect ratio maintenance
@@ -175,14 +228,14 @@ public class ImageMenu extends JMenu {
             if (maintainRatioBox.isSelected()) {
                 heightScaleSpinner.setValue(widthScaleSpinner.getValue());
             }
-            updateScalePreview(currentImage, dimensionsLabel, widthScaleSpinner, heightScaleSpinner);
+            updateScalePreview(originalWidth, originalHeight, dimensionsLabel, widthScaleSpinner, heightScaleSpinner);
         });
 
         heightScaleSpinner.addChangeListener(change -> {
             if (maintainRatioBox.isSelected()) {
                 widthScaleSpinner.setValue(heightScaleSpinner.getValue());
             }
-            updateScalePreview(currentImage, dimensionsLabel, widthScaleSpinner, heightScaleSpinner);
+            updateScalePreview(originalWidth, originalHeight, dimensionsLabel, widthScaleSpinner, heightScaleSpinner);
         });
 
         panel.add(scalePanel);
@@ -195,50 +248,105 @@ public class ImageMenu extends JMenu {
         if (result == JOptionPane.OK_OPTION) {
             int widthScale = (Integer) widthScaleSpinner.getValue();
             int heightScale = (Integer) heightScaleSpinner.getValue();
-            int newWidth = currentImage.getWidth() * widthScale / 100;
-            int newHeight = currentImage.getHeight() * heightScale / 100;
+            int newWidth = originalWidth * widthScale / 100;
+            int newHeight = originalHeight * heightScale / 100;
 
-            canvas.createNewCanvas(newWidth, newHeight, canvas.getCanvasBackground());
-
-            Graphics2D g = (Graphics2D) canvas.getImage().getGraphics();
-            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-            g.drawImage(currentImage, 0, 0, newWidth, newHeight, null);
-            g.dispose();
-
-            canvas.repaint();
+            // Save for undo
             canvas.saveToUndoStack();
+
+            // Create scaled layers
+            List<Layer> scaledLayers = new ArrayList<>();
+            for (Layer layer : layers) {
+                Layer newLayer = new Layer(newWidth, newHeight);
+                Graphics2D g = newLayer.getImage().createGraphics();
+                g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                g.drawImage(layer.getImage(), 0, 0, newWidth, newHeight, null);
+                g.dispose();
+
+                newLayer.setVisible(layer.isVisible());
+                scaledLayers.add(newLayer);
+            }
+
+            // Update canvas with new layers
+            canvas.saveToUndoStack();
+            canvas.setLayers(scaledLayers);
+            canvas.setPreferredSize(new Dimension(newWidth, newHeight));
+            canvas.revalidate();
+            canvas.repaint();
         }
     }
 
     private void handleCrop(ActionEvent e) {
-        BufferedImage currentImage = canvas.getImage();
-        SelectionManager selectionManager = canvas.getSelectionManager();
-        Rectangle selection = selectionManager.getSelection().getBounds();
+        List<Layer> layers = canvas.getLayers();
+        //SelectionManager selectionManager = canvas.getSelectionManager();
 
-        if (currentImage == null || selection == null) {
+        if (canvas.getSelection() == null) {
+            JOptionPane.showMessageDialog(mainFrame, "No selection available.", "Crop to Selection", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        Rectangle selection = canvas.getSelection().getBounds();
+
+        if (layers == null || layers.isEmpty() || selection == null) {
             JOptionPane.showMessageDialog(mainFrame, "No image or selection available.", "Crop to Selection", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        RectangleSelectionTool rectangleSelectionTool = (RectangleSelectionTool) canvas.getTool(DrawingCanvas.Tool.RECTANGLE_SELECTION);
-        rectangleSelectionTool.copySelectionToPermanentCanvas();
+        // Save for undo
+        canvas.saveToUndoStack();
 
-        BufferedImage croppedImage = currentImage.getSubimage(selection.x, selection.y, selection.width, selection.height);
-        canvas.createNewCanvas(croppedImage.getWidth(), croppedImage.getHeight(), canvas.getCanvasBackground());
-        canvas.getSelectionManager().clearSelection();
+        // Create cropped layers
+        List<Layer> croppedLayers = new ArrayList<>();
+        for (Layer layer : layers) {
+            // Create a new layer with the selection dimensions
+            Layer newLayer = new Layer(selection.width, selection.height);
+            newLayer.setVisible(layer.isVisible());
 
-        Graphics2D g = (Graphics2D) canvas.getImage().getGraphics();
-        g.drawImage(croppedImage, 0, 0, null);
-        g.dispose();
+            // Calculate the source coordinates (the part of the original image we're copying from)
+            int srcX = Math.max(0, selection.x);
+            int srcY = Math.max(0, selection.y);
 
+            // Calculate the width and height to copy
+            int copyWidth = Math.min(selection.width, layer.getImage().getWidth() - srcX);
+            int copyHeight = Math.min(selection.height, layer.getImage().getHeight() - srcY);
+
+            // Skip if there's nothing to copy
+            if (copyWidth <= 0 || copyHeight <= 0) {
+                // Just add the empty layer
+                croppedLayers.add(newLayer);
+                continue;
+            }
+
+            // Calculate the destination coordinates in the new layer
+            // This accounts for selections that start outside the image (negative x,y)
+            int dstX = Math.max(0, -selection.x);
+            int dstY = Math.max(0, -selection.y);
+
+            // Draw the cropped portion to the new layer
+            Graphics2D g = newLayer.getImage().createGraphics();
+            g.drawImage(
+                    layer.getImage().getSubimage(srcX, srcY, copyWidth, copyHeight),
+                    dstX, dstY, null
+            );
+            g.dispose();
+
+            croppedLayers.add(newLayer);
+        }
+
+        // Update canvas with new layers
+        canvas.saveToUndoStack();
+        canvas.setLayers(croppedLayers);
+        canvas.clearSelection();
+        canvas.setPreferredSize(new Dimension(selection.width, selection.height));
+        canvas.revalidate();
         canvas.repaint();
     }
 
-    private void updateScalePreview(BufferedImage image, JLabel label, JSpinner widthSpinner, JSpinner heightSpinner) {
+    private void updateScalePreview(int originalWidth, int originalHeight, JLabel label, JSpinner widthSpinner, JSpinner heightSpinner) {
         int widthScale = (Integer) widthSpinner.getValue();
         int heightScale = (Integer) heightSpinner.getValue();
-        int newWidth = image.getWidth() * widthScale / 100;
-        int newHeight = image.getHeight() * heightScale / 100;
+        int newWidth = originalWidth * widthScale / 100;
+        int newHeight = originalHeight * heightScale / 100;
         label.setText(String.format("New: %dx%d", newWidth, newHeight));
     }
 }

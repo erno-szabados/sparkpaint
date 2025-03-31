@@ -10,7 +10,6 @@ public class CircleToolSettings extends BaseToolSettings {
     private JSlider thicknessSlider;
     private JLabel thicknessValueLabel;
     private JCheckBox antiAliasingCheckbox;
-    private JRadioButton cornerBasedButton;
     private JRadioButton centerBasedButton;
     private boolean useAntiAliasing = true;  // Default value
 
@@ -21,15 +20,18 @@ public class CircleToolSettings extends BaseToolSettings {
     @Override
     public JComponent createSettingsPanel() {
         JPanel panel = (JPanel) super.createSettingsPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+
+        // Draw Mode panel
         ButtonGroup drawModeGroup = new ButtonGroup();
         JPanel drawModePanel = new JPanel();
         drawModePanel.setLayout(new BoxLayout(drawModePanel, BoxLayout.Y_AXIS));
         drawModePanel.setBorder(BorderFactory.createTitledBorder("Draw Mode"));
-        JPanel containerPanel = new JPanel(new BorderLayout());
-        containerPanel.add(drawModePanel, BorderLayout.CENTER);
-        containerPanel.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 80));
+        drawModePanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        // Make the panel fill the horizontal space
+        drawModePanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, drawModePanel.getMaximumSize().height));
 
-        cornerBasedButton = new JRadioButton("Ellipse", true);
+        JRadioButton cornerBasedButton = new JRadioButton("Ellipse", true);
         cornerBasedButton.setToolTipText("Draws an ellipse based on the corner points");
         centerBasedButton = new JRadioButton("Circle");
         centerBasedButton.setToolTipText("Draws a circle based on the center point");
@@ -76,9 +78,13 @@ public class CircleToolSettings extends BaseToolSettings {
         antiAliasingCheckbox = new JCheckBox("Anti-aliasing", useAntiAliasing);
         antiAliasingCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
         antiAliasingCheckbox.addActionListener(e -> applySettings());
+        // Try setting minimum size for the checkbox
+        antiAliasingCheckbox.setMinimumSize(new Dimension(150, 25));
+        antiAliasingCheckbox.setPreferredSize(new Dimension(150, 25));
 
-        // Add components
-        panel.add(containerPanel);
+
+        // Add components directly to the panel
+        panel.add(drawModePanel);
         panel.add(Box.createVerticalStrut(5));
         panel.add(filledCheckBox);
         panel.add(Box.createVerticalStrut(5));
@@ -90,12 +96,18 @@ public class CircleToolSettings extends BaseToolSettings {
         panel.add(Box.createVerticalStrut(5));
         panel.add(antiAliasingCheckbox);
 
+// Add some extra space at the bottom of the panel
+        panel.add(Box.createVerticalGlue());
+
+
         return panel;
     }
 
+    // Anti-aliasing checkbox
+
     @Override
     public void applySettings() {
-        if (canvas.getCurrentTool() == DrawingCanvas.Tool.CIRCLE) {
+        if (canvas.getCurrentTool() == ToolManager.Tool.CIRCLE) {
             if (canvas.getActiveTool() instanceof CircleTool) {
                 CircleTool tool = (CircleTool) canvas.getActiveTool();
                 tool.setFilled(filledCheckBox.isSelected());

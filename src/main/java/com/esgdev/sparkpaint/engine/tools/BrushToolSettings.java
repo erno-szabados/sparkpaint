@@ -19,7 +19,7 @@ public class BrushToolSettings extends BaseToolSettings {
 
     public BrushToolSettings(DrawingCanvas canvas) {
         super(canvas);
-        this.brushTool = (BrushTool) canvas.getTool(DrawingCanvas.Tool.BRUSH);
+        this.brushTool = (BrushTool) canvas.getTool(ToolManager.Tool.BRUSH);
     }
 
     @Override
@@ -38,12 +38,12 @@ public class BrushToolSettings extends BaseToolSettings {
         JLabel sizeLabel = new JLabel("Brush Size:");
         sizeLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        sizeSlider = new JSlider(JSlider.HORIZONTAL, 1, 50, BrushTool.DEFAULT_SPRAY_SIZE);
+            sizeSlider = new JSlider(JSlider.HORIZONTAL, 1, 100, BrushTool.DEFAULT_SPRAY_SIZE);
         sizeSlider.setMaximumSize(new Dimension(150, 25));
         sizeSlider.setAlignmentX(Component.LEFT_ALIGNMENT);
         sizeSlider.setPaintTicks(true);
-        sizeSlider.setMajorTickSpacing(5);
-        sizeSlider.setMinorTickSpacing(1);
+        sizeSlider.setMajorTickSpacing(25);
+        sizeSlider.setMinorTickSpacing(5);
 
         sizeValueLabel = new JLabel(String.valueOf(BrushTool.DEFAULT_SPRAY_SIZE));
         sizeValueLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -61,7 +61,7 @@ public class BrushToolSettings extends BaseToolSettings {
         sprayDensitySlider.setMaximumSize(new Dimension(150, 25));
         sprayDensitySlider.setAlignmentX(Component.LEFT_ALIGNMENT);
         sprayDensitySlider.setPaintTicks(true);
-        sprayDensitySlider.setMajorTickSpacing(20);
+        sprayDensitySlider.setMajorTickSpacing(25);
         sprayDensitySlider.setMinorTickSpacing(5);
 
         sprayDensityValueLabel = new JLabel(String.valueOf(BrushTool.DEFAULT_SPRAY_DENSITY));
@@ -76,19 +76,19 @@ public class BrushToolSettings extends BaseToolSettings {
         JLabel blendStrengthLabel = new JLabel("Blend Strength:");
         blendStrengthLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        blendStrengthSlider = new JSlider(JSlider.HORIZONTAL, 1, 100, 10);  // 1-100 maps to 0.01-1.0
+        blendStrengthSlider = new JSlider(JSlider.HORIZONTAL, 1, 100, BrushTool.DEFAULT_BLEND_STRENGTH);  // 1-100 maps to 0.01-1.0
         blendStrengthSlider.setMaximumSize(new Dimension(150, 25));
         blendStrengthSlider.setAlignmentX(Component.LEFT_ALIGNMENT);
         blendStrengthSlider.setPaintTicks(true);
-        blendStrengthSlider.setMajorTickSpacing(20);
+        blendStrengthSlider.setMajorTickSpacing(25);
         blendStrengthSlider.setMinorTickSpacing(5);
 
-        blendStrengthValueLabel = new JLabel("0.10");
+        blendStrengthValueLabel = new JLabel(String.valueOf(BrushTool.DEFAULT_BLEND_STRENGTH));
         blendStrengthValueLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         blendStrengthSlider.addChangeListener(e -> {
-            float value = blendStrengthSlider.getValue() / 100f;
-            blendStrengthValueLabel.setText(String.format("%.2f", value));
+            int value = blendStrengthSlider.getValue();
+            blendStrengthValueLabel.setText(String.valueOf(value));
             applySettings();
         });
 
@@ -120,13 +120,14 @@ public class BrushToolSettings extends BaseToolSettings {
         panel.add(blendStrengthValueLabel);
         panel.add(Box.createVerticalStrut(5));
         panel.add(antiAliasingCheckbox);
+        panel.add(Box.createVerticalGlue());
         resetToDefaults();
         return panel;
     }
 
     @Override
     public void applySettings() {
-        if (canvas.getCurrentTool() == DrawingCanvas.Tool.BRUSH) {
+        if (canvas.getCurrentTool() == ToolManager.Tool.BRUSH) {
             brushTool.setSize(sizeSlider.getValue());
             brushTool.setShape((BrushTool.BrushShape) shapeComboBox.getSelectedItem());
             brushTool.setSprayDensity(sprayDensitySlider.getValue());
@@ -143,8 +144,8 @@ public class BrushToolSettings extends BaseToolSettings {
         shapeComboBox.setSelectedItem(BrushTool.BrushShape.SPRAY);
         sprayDensitySlider.setValue(BrushTool.DEFAULT_SPRAY_DENSITY);
         sprayDensityValueLabel.setText(String.valueOf(BrushTool.DEFAULT_SPRAY_DENSITY));
-        blendStrengthSlider.setValue(10);  // 0.10 default
-        blendStrengthValueLabel.setText("0.10");
+        blendStrengthSlider.setValue(BrushTool.DEFAULT_BLEND_STRENGTH);
+        blendStrengthValueLabel.setText(String.valueOf(BrushTool.DEFAULT_BLEND_STRENGTH));
         antiAliasingCheckbox.setSelected(true);
         applySettings();
     }

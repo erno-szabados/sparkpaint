@@ -1,34 +1,271 @@
 package com.esgdev.sparkpaint.engine.selection;
 
 import java.awt.*;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.GeneralPath;
 import java.awt.image.BufferedImage;
 
-public interface Selection {
-    BufferedImage getContent();
 
-    void setContent(BufferedImage content);
+/**
+ * Represents a selection area in a drawing canvas.
+ * The selection can be defined by a path (GeneralPath) and can contain an image.
+ */
+public class Selection {
+    private GeneralPath path;
+    private BufferedImage content;
+    private boolean transparent;
+    private boolean active;
+    private boolean modified;
 
-    boolean isEmpty();
+    /**
+     * Creates a new Selection object with the specified rectangle and content.
+     *
+     * @param rect    The rectangle defining the selection area.
+     * @param content The image content of the selection.
+     */
+    public Selection(Rectangle rect, BufferedImage content) {
+        this.path = new GeneralPath();
+        path.append(rect, false);
+        this.content = content;
+    }
 
-    boolean isTransparent();
+    /**
+     * Creates a new Selection object with the specified path and content.
+     *
+     * @param path    The GeneralPath defining the selection area.
+     * @param content The image content of the selection.
+     */
+    public Selection(GeneralPath path, BufferedImage content) {
+        this.path = path;
+        this.content = content;
+    }
 
-    void setTransparent(boolean transparent);
+    public GeneralPath getPath() {
+        return path;
+    }
 
-    boolean contains(Point point);
+    public void setPath(GeneralPath path) {
+        this.path = path;
+    }
 
-    void clear();
+    public BufferedImage getContent() {
+        return content;
+    }
 
-    void clearOutline();
+    public void setContent(BufferedImage content) {
+        this.content = content;
+    }
 
-    boolean hasOutline();
+    public void setContent(BufferedImage content, Color canvasBackgroundColor) {
+        if (transparent && content != null) {
+            // Create a new image with transparency
+            BufferedImage transparentImage = new BufferedImage(
+                content.getWidth(), content.getHeight(), BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2dTransparent = transparentImage.createGraphics();
 
-    void rotate(int degrees);
+            // Draw the original content onto the new image
+            g2dTransparent.drawImage(content, 0, 0, null);
 
-    Rectangle getBounds();
+            // Make the background color transparent
+            int backgroundColor = canvasBackgroundColor.getRGB();
+            for (int y = 0; y < transparentImage.getHeight(); y++) {
+                for (int x = 0; x < transparentImage.getWidth(); x++) {
+                    int pixel = transparentImage.getRGB(x, y);
+                    if (pixel == backgroundColor) { // Check if the pixel matches the background color
+                        transparentImage.setRGB(x, y, 0x00FFFFFF); // Set it to fully transparent
+                    }
+                }
+            }
+            g2dTransparent.dispose();
+            this.content = transparentImage;
+        } else {
+            this.content = content;
+        }
+    }
 
-    void delete(Graphics2D g2d, Color canvasBackground);
+    public boolean isTransparent() {
+        return this.transparent;
+    }
 
-    void drawSelectionContent(Graphics2D g2d, double zoomFactor);
+    public void setTransparent(boolean transparent) {
+        this.transparent = transparent;
+    }
 
-    void drawSelectionOutline(Graphics2D g2d, double zoomFactor);
+    public boolean contains(Point point) {
+        return path != null && path.contains(point);
+    }
+
+    public void clear() {
+        path = null;
+        content = null;
+    }
+
+
+    public void clearOutline() {
+        path = null;
+    }
+
+
+    public boolean hasOutline() {
+        return path != null;
+    }
+
+
+    /**
+     * Rotates the selection content and path by the specified degrees.
+     *
+     * @param degrees The angle in degrees to rotate the selection.
+     */
+    public void rotate(int degrees) {
+        if (content == null) return;
+
+        BufferedImage original = content;
+        int width = original.getWidth();
+        int height = original.getHeight();
+
+        // Create new rotated image
+        BufferedImage rotated = new BufferedImage(
+                degrees % 180 == 0 ? width : height,
+                degrees % 180 == 0 ? height : width,
+                BufferedImage.TYPE_INT_ARGB
+        );
+
+        Graphics2D g2d = rotated.createGraphics();
+        g2d.translate((rotated.getWidth() - width) / 2,
+                (rotated.getHeight() - height) / 2);
+        g2d.rotate(Math.toRadians(degrees), width / 2.0, height / 2.0);
+        g2d.drawImage(original, 0, 0, null);
+        g2d.dispose();
+
+        content = rotated;
+
+        // Rotate the path
+        Rectangle bounds = path.getBounds();
+        AffineTransform transform = new AffineTransform();
+        transform.rotate(Math.toRadians(degrees), bounds.getCenterX(), bounds.getCenterY());
+        path.transform(transform);
+    }
+
+
+    public Rectangle getBounds() {
+        return path != null ? path.getBounds() : null;
+    }
+
+    /**
+     * Draws the selection content on the provided Graphics2D object.
+     *
+     * @param g2d The Graphics2D object to draw on.
+     */
+    public void drawSelectionContent(Graphics2D g2d) {
+        if (content != null && path != null) {
+            Rectangle bounds = path.getBounds();
+            g2d.drawImage(content, bounds.x, bounds.y, null);
+        }
+    }
+
+    /**
+     * Draws a dotted outline around the selection path.
+     *
+     * @param g2d        The Graphics2D object to draw on.
+     * @param zoomFactor  The zoom factor for scaling the outline.
+     */
+    public void drawSelectionOutline(Graphics2D g2d, double zoomFactor) {
+        if (path == null) {
+            return;
+        }
+
+        float[] dashPattern = {5, 5}; // Dash pattern: 5px dash, 5px gap
+
+        BasicStroke dottedStroke1 = new BasicStroke(
+                1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER,
+                10.0f, dashPattern, 0);
+
+        BasicStroke dottedStroke2 = new BasicStroke(
+                1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER,
+                10.0f, dashPattern, 5);
+
+        // Scale the path to match the zoom factor
+        GeneralPath scaledPath = new GeneralPath(path);
+        scaledPath.transform(AffineTransform.getScaleInstance(zoomFactor, zoomFactor));
+
+        // Draw the selection outline with the first dash pattern
+        g2d.setColor(Color.BLACK);
+        g2d.setStroke(dottedStroke1);
+        g2d.draw(scaledPath);
+
+        // Draw the selection outline with the second dash pattern
+        g2d.setColor(Color.WHITE);
+        g2d.setStroke(dottedStroke2);
+        g2d.draw(scaledPath);
+    }
+
+    /**
+     * Mirrors the selection content horizontally.
+     */
+    public void flipHorizontal() {
+        if (getContent() == null) return;
+
+        BufferedImage content = getContent();
+        int width = content.getWidth();
+        int height = content.getHeight();
+
+        BufferedImage mirrored = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = mirrored.createGraphics();
+
+        // Draw the original image flipped horizontally
+        g2d.scale(-1, 1);
+        g2d.translate(-width, 0);
+        g2d.drawImage(content, 0, 0, null);
+        g2d.dispose();
+
+        setContent(mirrored);
+    }
+
+    /**
+     * Mirrors the selection content vertically.
+     */
+    public void flipVertical() {
+        if (getContent() == null) return;
+
+        BufferedImage content = getContent();
+        int width = content.getWidth();
+        int height = content.getHeight();
+
+        BufferedImage mirrored = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = mirrored.createGraphics();
+
+        // Draw the original image flipped vertically
+        g2d.scale(1, -1);
+        g2d.translate(0, -height);
+        g2d.drawImage(content, 0, 0, null);
+        g2d.dispose();
+
+        setContent(mirrored);
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    /**
+     * Only active selections can be moved.
+     * Active status is set when the selection is copied or cut.
+     * @param active true if the selection is active, false otherwise.
+     */
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    public boolean isModified() {
+        return modified;
+    }
+
+    /**
+     * Modified selections must be copied to the permanent canvas.
+     * Modified status is set when the selection is painted into (tools set this).
+     * @param modified true if the selection is modified, false otherwise.
+     */
+    public void setModified(boolean modified) {
+        this.modified = modified;
+    }
 }
