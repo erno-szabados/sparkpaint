@@ -217,7 +217,6 @@ public class LineTool implements DrawingTool {
         this.useAntiAliasing = useAntiAliasing;
     }
 
-    // Draw polyline preview with temporary segment to mouse position
     private void drawPolylinePreview(Point currentPoint) {
         if (polylinePoints.isEmpty()) return;
 
@@ -230,7 +229,8 @@ public class LineTool implements DrawingTool {
         g2d.setComposite(AlphaComposite.SrcOver);
 
         // Apply settings
-        g2d.setStroke(new BasicStroke(canvas.getLineThickness()));
+        float lineThickness = canvas.getLineThickness();
+        g2d.setStroke(new BasicStroke(lineThickness));
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                 useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
         g2d.setColor(canvas.getDrawingColor());
@@ -242,20 +242,36 @@ public class LineTool implements DrawingTool {
             g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
         }
 
-        // Draw preview segment from last point to current mouse position
+        // Draw preview segment from last point to current mouse position with dash pattern scaled to line thickness
         Point lastPoint = polylinePoints.get(polylinePoints.size() - 1);
-        g2d.setStroke(new BasicStroke(canvas.getLineThickness(),
-                BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 0, new float[]{5, 5}, 0));
+
+        // Scale the dash pattern based on line thickness to prevent intermeshing
+        float dashSize = Math.max(5, lineThickness * 2);
+        float[] dashPattern = {dashSize, dashSize};
+
+        g2d.setStroke(new BasicStroke(
+                lineThickness,
+                BasicStroke.CAP_ROUND,
+                BasicStroke.JOIN_ROUND,
+                0,
+                dashPattern,
+                0
+        ));
+
         g2d.drawLine(lastPoint.x, lastPoint.y, currentPoint.x, currentPoint.y);
+
+        // Determine point marker size based on line thickness
+        int markerSize = Math.max(6, Math.round(lineThickness) + 2);
+        int halfMarker = markerSize / 2;
 
         // Add markers for points
         g2d.setColor(Color.WHITE);
         for (Point p : polylinePoints) {
-            g2d.fillOval(p.x - 3, p.y - 3, 6, 6);
+            g2d.fillOval(p.x - halfMarker, p.y - halfMarker, markerSize, markerSize);
         }
         g2d.setColor(Color.BLACK);
         for (Point p : polylinePoints) {
-            g2d.drawOval(p.x - 3, p.y - 3, 6, 6);
+            g2d.drawOval(p.x - halfMarker, p.y - halfMarker, markerSize, markerSize);
         }
 
         g2d.dispose();
