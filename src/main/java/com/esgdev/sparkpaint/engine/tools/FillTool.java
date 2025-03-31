@@ -1,7 +1,6 @@
 package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
-import com.esgdev.sparkpaint.engine.filters.SobelFilter;
 import com.esgdev.sparkpaint.engine.selection.Selection;
 
 import javax.swing.*;
@@ -15,11 +14,9 @@ import java.util.Stack;
 
 public class FillTool implements DrawingTool {
     public static final int DEFAULT_FILL_EPSILON = 30;
-    public static final int DEFAULT_EDGE_THRESHOLD = 50;
     private final DrawingCanvas canvas;
     private final Cursor cursor = Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR);
     private int epsilon;
-    private int edgeThreshold; // Adjustable threshold for edge detection
     private boolean useAntiAliasing = true;
     private Point gradientStartPoint;
     private Point gradientEndPoint;
@@ -50,7 +47,6 @@ public class FillTool implements DrawingTool {
     public FillTool(DrawingCanvas canvas) {
         this.canvas = canvas;
         this.epsilon = DEFAULT_FILL_EPSILON;
-        this.edgeThreshold = DEFAULT_EDGE_THRESHOLD; // Default edge threshold
     }
 
     public void setFillMode(FillMode mode) {
@@ -326,7 +322,6 @@ public class FillTool implements DrawingTool {
         }
     }
 
-
     private void smartFill(BufferedImage image, int x, int y, Color targetColor, Color replacementColor,
                            int epsilon, GeneralPath clipPath) {
         int width = image.getWidth();
@@ -337,9 +332,6 @@ public class FillTool implements DrawingTool {
         if (targetRGB == replacementRGB) {
             return;
         }
-
-        // Generate Sobel edge map
-        BufferedImage edgeMap = SobelFilter.apply(image);
 
         boolean[][] visited = new boolean[width][height];
         Stack<Point> stack = new Stack<>();
@@ -356,34 +348,12 @@ public class FillTool implements DrawingTool {
 
             int currentRGB = image.getRGB(x, y);
 
-            int currentAlpha = (currentRGB >> 24) & 0xFF;
-            int effectiveThreshold = currentAlpha < 128 ?
-                    Math.max(20, edgeThreshold / 2) : edgeThreshold;
-
-            // Check edge status - prioritize this over color distance
-            int edgeValue = (edgeMap.getRGB(x, y) >> 16) & 0xFF;
-            if (edgeValue > effectiveThreshold) {
-                // This is a strong edge - never fill regardless of color tolerance
-                visited[x][y] = true;
-                continue;
-            }
-
-            // Now check color distance
             double distance = colorDistance(currentRGB, targetRGB);
             if (distance > epsilon || (clipPath != null && !clipPath.contains(x, y))) {
                 continue;
             }
 
-            // Pixel passes both edge detection and color distance tests - fill it
-            if (useAntiAliasing && edgeValue > edgeThreshold / 2) {
-                // For pixels near edges, apply blended color
-                float blendFactor = Math.max(0.2f, 1.0f - (edgeValue / 255.0f));
-                Color blended = blendColors(new Color(currentRGB, true),
-                        new Color(replacementRGB, true), blendFactor);
-                image.setRGB(x, y, blended.getRGB());
-            } else {
-                image.setRGB(x, y, replacementRGB);
-            }
+            image.setRGB(x, y, replacementRGB);
 
             visited[x][y] = true;
 
@@ -407,42 +377,18 @@ public class FillTool implements DrawingTool {
         int g2 = (rgb2 >> 8) & 0xFF;
         int b2 = rgb2 & 0xFF;
 
-        // Fully transparent pixels
-        if (a1 == 0 && a2 == 0) {
-            return 0; // Both fully transparent
-        }
+        // Normalize alpha values
+        double alpha1 = a1 / 255.0;
+        double alpha2 = a2 / 255.0;
 
-        // Calculate weighted distance with higher alpha weight
-        double alphaWeight = 2.0;  // Increased for better transparency boundary detection
-        double colorWeight = 0.8;  // Slightly reduced to prioritize alpha
+        // Calculate weighted color differences
+        double deltaR = (r1 - r2) * alpha1 * alpha2;
+        double deltaG = (g1 - g2) * alpha1 * alpha2;
+        double deltaB = (b1 - b2) * alpha1 * alpha2;
+        double deltaA = (a1 - a2);
 
-        double deltaA = Math.abs(a1 - a2) * alphaWeight;
-        double deltaR = Math.abs(r1 - r2) * colorWeight;
-        double deltaG = Math.abs(g1 - g2) * colorWeight;
-        double deltaB = Math.abs(b1 - b2) * colorWeight;
-
+        // Return the combined distance
         return Math.sqrt(deltaR * deltaR + deltaG * deltaG + deltaB * deltaB + deltaA * deltaA);
-    }
-
-    // Helper method to blend colors for antialiasing
-    private Color blendColors(Color c1, Color c2, float blendFactor) {
-        float invBlendFactor = 1.0f - blendFactor;
-
-        int r = Math.round(c1.getRed() * invBlendFactor + c2.getRed() * blendFactor);
-        int g = Math.round(c1.getGreen() * invBlendFactor + c2.getGreen() * blendFactor);
-        int b = Math.round(c1.getBlue() * invBlendFactor + c2.getBlue() * blendFactor);
-        int a = Math.round(c1.getAlpha() * invBlendFactor + c2.getAlpha() * blendFactor);
-
-        return new Color(
-                Math.min(255, Math.max(0, r)),
-                Math.min(255, Math.max(0, g)),
-                Math.min(255, Math.max(0, b)),
-                Math.min(255, Math.max(0, a))
-        );
-    }
-
-    public void setEdgeThreshold(int threshold) {
-        this.edgeThreshold = threshold;
     }
 
     private void previewGradient(Graphics2D g2d, Point start, Point end) {
@@ -606,16 +552,13 @@ public class FillTool implements DrawingTool {
                 endMarkerSize, endMarkerSize);
     }
 
-    // Add this method to generate mask for preview
+
     private void generateSmartFillMask(BufferedImage mask, BufferedImage source,
                                        int x, int y, Color targetColor,
                                        int epsilon, GeneralPath clipPath) {
         int width = source.getWidth();
         int height = source.getHeight();
         int targetRGB = targetColor.getRGB();
-
-        // Generate Sobel edge map
-        BufferedImage edgeMap = SobelFilter.apply(source);
 
         // Clear the mask
         Graphics2D maskG2d = mask.createGraphics();
@@ -638,17 +581,6 @@ public class FillTool implements DrawingTool {
             }
 
             int currentRGB = source.getRGB(x, y);
-
-            // Check edge status
-            int currentAlpha = (currentRGB >> 24) & 0xFF;
-            int effectiveThreshold = currentAlpha < 128 ?
-                    Math.max(20, edgeThreshold / 2) : edgeThreshold;
-
-            int edgeValue = (edgeMap.getRGB(x, y) >> 16) & 0xFF;
-            if (edgeValue > effectiveThreshold) {
-                visited[x][y] = true;
-                continue;
-            }
 
             // Check color distance
             double distance = colorDistance(currentRGB, targetRGB);
@@ -700,9 +632,6 @@ public class FillTool implements DrawingTool {
         int height = image.getHeight();
         int targetRGB = targetColor.getRGB();
 
-        // Generate Sobel edge map
-        BufferedImage edgeMap = SobelFilter.apply(image);
-
         // Create a mask image to store which pixels should be filled
         BufferedImage mask = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D maskG2d = mask.createGraphics();
@@ -726,19 +655,6 @@ public class FillTool implements DrawingTool {
 
             int currentRGB = image.getRGB(x, y);
 
-            int currentAlpha = (currentRGB >> 24) & 0xFF;
-            int effectiveThreshold = currentAlpha < 128 ?
-                    Math.max(20, edgeThreshold / 2) : edgeThreshold;
-
-            // Check edge status - prioritize this over color distance
-            int edgeValue = (edgeMap.getRGB(x, y) >> 16) & 0xFF;
-            if (edgeValue > effectiveThreshold) {
-                // This is a strong edge - never fill regardless of color tolerance
-                visited[x][y] = true;
-                continue;
-            }
-
-            // Check color distance
             double distance = colorDistance(currentRGB, targetRGB);
             if (distance > epsilon || (clipPath != null && !clipPath.contains(x, y))) {
                 continue;
