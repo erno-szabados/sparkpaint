@@ -7,6 +7,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
+import java.awt.geom.Path2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +25,8 @@ public class LineTool implements DrawingTool {
         SINGLE_LINE("Single Line"),
         POLYLINE("Polyline"),
         CURVE("Smooth Curve"),
-        CLOSED_CURVE("Closed Curve");
+        CLOSED_CURVE("Closed Curve"),
+        FILLED_CURVE("Filled Curve");
 
         private final String displayName;
 
@@ -62,9 +64,11 @@ public class LineTool implements DrawingTool {
 
     @Override
     public void mouseMoved(MouseEvent e) {
-        if ((mode == LineMode.POLYLINE || mode == LineMode.CURVE || mode == LineMode.CLOSED_CURVE) && !polylinePoints.isEmpty()) {
+        if ((mode == LineMode.POLYLINE || mode == LineMode.CURVE ||
+                mode == LineMode.CLOSED_CURVE || mode == LineMode.FILLED_CURVE) &&
+                !polylinePoints.isEmpty()) {
             Point point = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
-            boolean closePath = mode == LineMode.CLOSED_CURVE;
+            boolean closePath = mode == LineMode.CLOSED_CURVE || mode == LineMode.FILLED_CURVE;
             drawLinePreview(point, closePath);
         }
     }
@@ -86,12 +90,18 @@ public class LineTool implements DrawingTool {
             // Single line mode - save start point
             startPoint = point;
             canvas.saveToUndoStack();
-        } else if (mode == LineMode.POLYLINE || mode == LineMode.CURVE || mode == LineMode.CLOSED_CURVE) {
-            // Check if right-click to complete polyline/curve
+        } else if (mode == LineMode.POLYLINE ||
+                mode == LineMode.CURVE ||
+                mode == LineMode.CLOSED_CURVE ||
+                mode == LineMode.FILLED_CURVE) {
+            // Check if right-click
             if (SwingUtilities.isRightMouseButton(e)) {
-                if (polylinePoints.size() >= 2) {
-                    // Complete the line
+                // If we have enough points, finalize the line
+                if (polylinePoints.size() >= minRequiredPoints()) {
                     finalizeLine();
+                } else {
+                    // Not enough points, just reset/cancel
+                    resetPoints();
                 }
                 return;
             }
@@ -105,9 +115,14 @@ public class LineTool implements DrawingTool {
             polylinePoints.add(point);
 
             // Update preview
-            boolean closePath = mode == LineMode.CLOSED_CURVE;
+            boolean closePath = mode == LineMode.CLOSED_CURVE || mode == LineMode.FILLED_CURVE;
             drawLinePreview(point, closePath);
         }
+    }
+
+    // Helper method to determine minimum required points based on mode
+    private int minRequiredPoints() {
+        return (mode == LineMode.CLOSED_CURVE || mode == LineMode.FILLED_CURVE) ? 3 : 2;
     }
 
     @Override
@@ -335,7 +350,6 @@ public class LineTool implements DrawingTool {
         g2d.setStroke(new BasicStroke(lineThickness));
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                 useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
-        g2d.setColor(canvas.getDrawingColor());
 
         // Create temporary list including current point
         List<Point> tempPoints = new ArrayList<>(polylinePoints);
@@ -346,9 +360,34 @@ public class LineTool implements DrawingTool {
             tempPoints.add(tempPoints.get(0));
         }
 
-        // Draw the actual lines based on mode
-        if (mode == LineMode.POLYLINE) {
+        if (mode == LineMode.FILLED_CURVE) {
+            // Calculate curve points
+            List<Point> curvePoints = calculateCurvePoints(tempPoints);
+
+            if (curvePoints.size() > 1) {
+                // Create a path for the filled shape
+                Path2D path = new Path2D.Float();
+                path.moveTo(curvePoints.get(0).x, curvePoints.get(0).y);
+
+                for (int i = 1; i < curvePoints.size(); i++) {
+                    path.lineTo(curvePoints.get(i).x, curvePoints.get(i).y);
+                }
+
+                path.closePath();
+
+                // Fill with semi-transparent fill color for preview
+                Color fillColor = canvas.getFillColor();
+                g2d.setColor(new Color(fillColor.getRed(), fillColor.getGreen(),
+                        fillColor.getBlue(), 128));
+                g2d.fill(path);
+
+                // Draw outline
+                g2d.setColor(canvas.getDrawingColor());
+                g2d.draw(path);
+            }
+        } else if (mode == LineMode.POLYLINE) {
             // Draw straight line segments
+            g2d.setColor(canvas.getDrawingColor());
             for (int i = 0; i < tempPoints.size() - 1; i++) {
                 Point p1 = tempPoints.get(i);
                 Point p2 = tempPoints.get(i + 1);
@@ -356,6 +395,7 @@ public class LineTool implements DrawingTool {
             }
         } else {
             // Calculate and draw the curve
+            g2d.setColor(canvas.getDrawingColor());
             List<Point> curvePoints = calculateCurvePoints(tempPoints);
             if (curvePoints.size() > 1) {
                 for (int i = 0; i < curvePoints.size() - 1; i++) {
@@ -406,19 +446,17 @@ public class LineTool implements DrawingTool {
     }
 
     private void finalizeLine() {
-        if (polylinePoints.size() < 2) {
+        if (polylinePoints.size() < minRequiredPoints()) {
             resetPoints();
             return;
         }
 
         Selection selection = canvas.getSelection();
-
-        // Get appropriate graphics context
         Graphics2D g2d;
         List<Point> adjustedPoints = new ArrayList<>(polylinePoints);
 
-        // Close the path for closed curve mode
-        boolean isClosed = mode == LineMode.CLOSED_CURVE;
+        // Close the path for closed curve or filled curve mode
+        boolean isClosed = mode == LineMode.CLOSED_CURVE || mode == LineMode.FILLED_CURVE;
         if (isClosed && adjustedPoints.size() > 2) {
             adjustedPoints.add(adjustedPoints.get(0));
         }
@@ -442,18 +480,42 @@ public class LineTool implements DrawingTool {
         g2d.setStroke(new BasicStroke(canvas.getLineThickness()));
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                 useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
-        g2d.setColor(canvas.getDrawingColor());
 
-        // Draw based on mode
-        if (mode == LineMode.POLYLINE) {
-            // Draw all straight line segments
+        if (mode == LineMode.FILLED_CURVE) {
+            // Create a path for the filled shape
+            Path2D path = new Path2D.Float();
+
+            // Use curve points for smoother outline
+            List<Point> curvePoints = calculateCurvePoints(adjustedPoints);
+
+            if (curvePoints.size() > 1) {
+                path.moveTo(curvePoints.get(0).x, curvePoints.get(0).y);
+
+                for (int i = 1; i < curvePoints.size(); i++) {
+                    path.lineTo(curvePoints.get(i).x, curvePoints.get(i).y);
+                }
+
+                path.closePath();
+
+                // Fill with fill color
+                g2d.setColor(canvas.getFillColor());
+                g2d.fill(path);
+
+                // Draw outline with drawing color
+                g2d.setColor(canvas.getDrawingColor());
+                g2d.draw(path);
+            }
+        } else if (mode == LineMode.POLYLINE) {
+            // Original polyline drawing code
+            g2d.setColor(canvas.getDrawingColor());
             for (int i = 0; i < adjustedPoints.size() - 1; i++) {
                 Point p1 = adjustedPoints.get(i);
                 Point p2 = adjustedPoints.get(i + 1);
                 g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
             }
         } else {
-            // Calculate and draw the final curve
+            // Original curve drawing code
+            g2d.setColor(canvas.getDrawingColor());
             List<Point> curvePoints = calculateCurvePoints(adjustedPoints);
             if (curvePoints.size() > 1) {
                 for (int i = 0; i < curvePoints.size() - 1; i++) {

@@ -63,7 +63,9 @@ public class LineToolSettings extends BaseToolSettings {
         });
 
         // Enable/disable tension controls based on mode
-        boolean isCurveMode = currentMode == LineTool.LineMode.CURVE || currentMode == LineTool.LineMode.CLOSED_CURVE;
+        boolean isCurveMode = currentMode == LineTool.LineMode.CURVE ||
+                currentMode == LineTool.LineMode.CLOSED_CURVE ||
+                currentMode == LineTool.LineMode.FILLED_CURVE;
         tensionLabel.setEnabled(isCurveMode);
         tensionSlider.setEnabled(isCurveMode);
         tensionValueLabel.setEnabled(isCurveMode);
@@ -75,7 +77,9 @@ public class LineToolSettings extends BaseToolSettings {
                 ((LineTool) canvas.getTool(ToolManager.Tool.LINE)).setMode(mode);
 
                 // Enable/disable tension controls
-                boolean enableTension = mode == LineTool.LineMode.CURVE || mode == LineTool.LineMode.CLOSED_CURVE;
+                boolean enableTension = mode == LineTool.LineMode.CURVE ||
+                        mode == LineTool.LineMode.CLOSED_CURVE ||
+                        mode == LineTool.LineMode.FILLED_CURVE;
                 tensionLabel.setEnabled(enableTension);
                 tensionSlider.setEnabled(enableTension);
                 tensionValueLabel.setEnabled(enableTension);
