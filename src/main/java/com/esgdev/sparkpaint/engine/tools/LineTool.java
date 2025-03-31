@@ -64,11 +64,8 @@ public class LineTool implements DrawingTool {
     public void mouseMoved(MouseEvent e) {
         if ((mode == LineMode.POLYLINE || mode == LineMode.CURVE || mode == LineMode.CLOSED_CURVE) && !polylinePoints.isEmpty()) {
             Point point = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
-            if (mode == LineMode.POLYLINE) {
-                drawPolylinePreview(point);
-            } else {
-                drawCurvePreview(point);
-            }
+            boolean closePath = mode == LineMode.CLOSED_CURVE;
+            drawLinePreview(point, closePath);
         }
     }
 
@@ -93,12 +90,8 @@ public class LineTool implements DrawingTool {
             // Check if right-click to complete polyline/curve
             if (SwingUtilities.isRightMouseButton(e)) {
                 if (polylinePoints.size() >= 2) {
-                    // Complete the polyline/curve
-                    if (mode == LineMode.POLYLINE) {
-                        finalizePolyline();
-                    } else {
-                        finalizeCurve();
-                    }
+                    // Complete the line
+                    finalizeLine();
                 }
                 return;
             }
@@ -112,11 +105,8 @@ public class LineTool implements DrawingTool {
             polylinePoints.add(point);
 
             // Update preview
-            if (mode == LineMode.POLYLINE) {
-                drawPolylinePreview(point);
-            } else {
-                drawCurvePreview(point);
-            }
+            boolean closePath = mode == LineMode.CLOSED_CURVE;
+            drawLinePreview(point, closePath);
         }
     }
 
@@ -251,31 +241,25 @@ public class LineTool implements DrawingTool {
         List<Point> points = new ArrayList<>();
 
         // Add first control point as phantom start point
-        if (controlPoints.size() >= 2) {
+        {
             Point p0 = controlPoints.get(0);
             Point p1 = controlPoints.get(1);
             // Reflect p1 around p0
             int dx = p0.x - p1.x;
             int dy = p0.y - p1.y;
             points.add(new Point(p0.x + dx, p0.y + dy));
-        } else {
-            points.add(controlPoints.get(0));
         }
 
         // Add all control points
         points.addAll(controlPoints);
 
         // Add last control point as phantom end point
-        if (controlPoints.size() >= 2) {
-            Point pn = controlPoints.get(controlPoints.size() - 1);
-            Point pn_1 = controlPoints.get(controlPoints.size() - 2);
-            // Reflect pn_1 around pn
-            int dx = pn.x - pn_1.x;
-            int dy = pn.y - pn_1.y;
-            points.add(new Point(pn.x + dx, pn.y + dy));
-        } else {
-            points.add(controlPoints.get(controlPoints.size() - 1));
-        }
+        Point pn = controlPoints.get(controlPoints.size() - 1);
+        Point pn_1 = controlPoints.get(controlPoints.size() - 2);
+        // Reflect pn_1 around pn
+        int dx = pn.x - pn_1.x;
+        int dy = pn.y - pn_1.y;
+        points.add(new Point(pn.x + dx, pn.y + dy));
 
         // Sample curve segments
         int segments = 20; // Number of line segments to draw between control points
@@ -335,8 +319,7 @@ public class LineTool implements DrawingTool {
         return new Point(x, y);
     }
 
-    // Method to draw curve preview
-    private void drawCurvePreview(Point currentPoint) {
+    private void drawLinePreview(Point currentPoint, boolean closePath) {
         if (polylinePoints.isEmpty()) return;
 
         BufferedImage tempCanvas = canvas.getToolCanvas();
@@ -358,21 +341,39 @@ public class LineTool implements DrawingTool {
         List<Point> tempPoints = new ArrayList<>(polylinePoints);
         tempPoints.add(currentPoint);
 
-        // For closed curve mode, add the first point to the end to close the shape
-        if (mode == LineMode.CLOSED_CURVE && tempPoints.size() > 2) {
+        // Close path if needed
+        if (closePath && tempPoints.size() > 2) {
             tempPoints.add(tempPoints.get(0));
         }
 
-        // Calculate and draw the curve
-        List<Point> curvePoints = calculateCurvePoints(tempPoints);
-        if (curvePoints.size() > 1) {
-            for (int i = 0; i < curvePoints.size() - 1; i++) {
-                Point p1 = curvePoints.get(i);
-                Point p2 = curvePoints.get(i + 1);
+        // Draw the actual lines based on mode
+        if (mode == LineMode.POLYLINE) {
+            // Draw straight line segments
+            for (int i = 0; i < tempPoints.size() - 1; i++) {
+                Point p1 = tempPoints.get(i);
+                Point p2 = tempPoints.get(i + 1);
                 g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
+            }
+        } else {
+            // Calculate and draw the curve
+            List<Point> curvePoints = calculateCurvePoints(tempPoints);
+            if (curvePoints.size() > 1) {
+                for (int i = 0; i < curvePoints.size() - 1; i++) {
+                    Point p1 = curvePoints.get(i);
+                    Point p2 = curvePoints.get(i + 1);
+                    g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
+                }
             }
         }
 
+        // Draw control points and connection lines
+        drawControlPoints(g2d, tempPoints, lineThickness);
+
+        g2d.dispose();
+        canvas.repaint();
+    }
+
+    private void drawControlPoints(Graphics2D g2d, List<Point> points, float lineThickness) {
         // Determine point marker size based on line thickness
         int markerSize = Math.max(6, Math.round(lineThickness) + 2);
         int halfMarker = markerSize / 2;
@@ -387,26 +388,24 @@ public class LineTool implements DrawingTool {
             g2d.drawOval(p.x - halfMarker, p.y - halfMarker, markerSize, markerSize);
         }
 
-        // Draw dotted line connecting control points
-        g2d.setStroke(new BasicStroke(1.0f,
-                BasicStroke.CAP_BUTT,
-                BasicStroke.JOIN_MITER,
-                10.0f, new float[]{3.0f}, 0.0f));
-        g2d.setColor(new Color(100, 100, 100, 150)); // Semi-transparent gray
+        // Draw dotted line connecting control points (only for curve mode)
+        if (mode == LineMode.CURVE || mode == LineMode.CLOSED_CURVE) {
+            g2d.setStroke(new BasicStroke(1.0f,
+                    BasicStroke.CAP_BUTT,
+                    BasicStroke.JOIN_MITER,
+                    10.0f, new float[]{3.0f}, 0.0f));
+            g2d.setColor(new Color(100, 100, 100, 150)); // Semi-transparent gray
 
-        // Draw control polygon
-        for (int i = 0; i < tempPoints.size() - 1; i++) {
-            Point p1 = tempPoints.get(i);
-            Point p2 = tempPoints.get(i + 1);
-            g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
+            // Draw control polygon
+            for (int i = 0; i < points.size() - 1; i++) {
+                Point p1 = points.get(i);
+                Point p2 = points.get(i + 1);
+                g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
+            }
         }
-
-        g2d.dispose();
-        canvas.repaint();
     }
 
-    // Method to finalize curve drawing
-    private void finalizeCurve() {
+    private void finalizeLine() {
         if (polylinePoints.size() < 2) {
             resetPoints();
             return;
@@ -418,8 +417,9 @@ public class LineTool implements DrawingTool {
         Graphics2D g2d;
         List<Point> adjustedPoints = new ArrayList<>(polylinePoints);
 
-        // For closed curve mode, add the first point to the end to close the shape
-        if (mode == LineMode.CLOSED_CURVE && adjustedPoints.size() > 2) {
+        // Close the path for closed curve mode
+        boolean isClosed = mode == LineMode.CLOSED_CURVE;
+        if (isClosed && adjustedPoints.size() > 2) {
             adjustedPoints.add(adjustedPoints.get(0));
         }
 
@@ -444,119 +444,24 @@ public class LineTool implements DrawingTool {
                 useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
         g2d.setColor(canvas.getDrawingColor());
 
-        // Calculate and draw the final curve
-        List<Point> curvePoints = calculateCurvePoints(adjustedPoints);
-        if (curvePoints.size() > 1) {
-            for (int i = 0; i < curvePoints.size() - 1; i++) {
-                Point p1 = curvePoints.get(i);
-                Point p2 = curvePoints.get(i + 1);
+        // Draw based on mode
+        if (mode == LineMode.POLYLINE) {
+            // Draw all straight line segments
+            for (int i = 0; i < adjustedPoints.size() - 1; i++) {
+                Point p1 = adjustedPoints.get(i);
+                Point p2 = adjustedPoints.get(i + 1);
                 g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
             }
-        }
-
-        g2d.dispose();
-
-        // Reset and clean up
-        resetPoints();
-        canvas.setToolCanvas(null);
-        canvas.repaint();
-    }
-
-    private void drawPolylinePreview(Point currentPoint) {
-        if (polylinePoints.isEmpty()) return;
-
-        BufferedImage tempCanvas = canvas.getToolCanvas();
-        Graphics2D g2d = tempCanvas.createGraphics();
-
-        // Clear canvas
-        g2d.setComposite(AlphaComposite.Clear);
-        g2d.fillRect(0, 0, tempCanvas.getWidth(), tempCanvas.getHeight());
-        g2d.setComposite(AlphaComposite.SrcOver);
-
-        // Apply settings
-        float lineThickness = canvas.getLineThickness();
-        g2d.setStroke(new BasicStroke(lineThickness));
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
-        g2d.setColor(canvas.getDrawingColor());
-
-        // Draw all completed segments
-        for (int i = 0; i < polylinePoints.size() - 1; i++) {
-            Point p1 = polylinePoints.get(i);
-            Point p2 = polylinePoints.get(i + 1);
-            g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
-        }
-
-        // Draw preview segment from last point to current mouse position with dash pattern scaled to line thickness
-        Point lastPoint = polylinePoints.get(polylinePoints.size() - 1);
-
-        // Scale the dash pattern based on line thickness to prevent intermeshing
-        float dashSize = Math.max(5, lineThickness * 2);
-        float[] dashPattern = {dashSize, dashSize};
-
-        g2d.setStroke(new BasicStroke(
-                lineThickness,
-                BasicStroke.CAP_ROUND,
-                BasicStroke.JOIN_ROUND,
-                0,
-                dashPattern,
-                0
-        ));
-
-        g2d.drawLine(lastPoint.x, lastPoint.y, currentPoint.x, currentPoint.y);
-
-        // Determine point marker size based on line thickness
-        int markerSize = Math.max(6, Math.round(lineThickness) + 2);
-        int halfMarker = markerSize / 2;
-
-        // Add markers for points
-        g2d.setColor(Color.WHITE);
-        for (Point p : polylinePoints) {
-            g2d.fillOval(p.x - halfMarker, p.y - halfMarker, markerSize, markerSize);
-        }
-        g2d.setColor(Color.BLACK);
-        for (Point p : polylinePoints) {
-            g2d.drawOval(p.x - halfMarker, p.y - halfMarker, markerSize, markerSize);
-        }
-
-        g2d.dispose();
-        canvas.repaint();
-    }
-
-    // Finalize and draw the polyline to the actual canvas
-    private void finalizePolyline() {
-        Selection selection = canvas.getSelection();
-
-        // Get appropriate graphics context
-        Graphics2D g2d;
-        List<Point> adjustedPoints = new ArrayList<>(polylinePoints);
-
-        if (selection != null && selection.hasOutline()) {
-            g2d = canvas.getDrawingGraphics();
-            selection.setModified(true);
-
-            // Adjust points relative to selection
-            Rectangle bounds = selection.getBounds();
-            for (int i = 0; i < adjustedPoints.size(); i++) {
-                Point p = adjustedPoints.get(i);
-                adjustedPoints.set(i, new Point(p.x - bounds.x, p.y - bounds.y));
-            }
         } else {
-            BufferedImage currentLayerImage = canvas.getCurrentLayerImage();
-            g2d = (Graphics2D) currentLayerImage.getGraphics();
-        }
-
-        // Apply settings
-        g2d.setStroke(new BasicStroke(canvas.getLineThickness()));
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
-        g2d.setColor(canvas.getDrawingColor());
-
-        // Draw all line segments
-        for (int i = 0; i < adjustedPoints.size() - 1; i++) {
-            Point p1 = adjustedPoints.get(i);
-            Point p2 = adjustedPoints.get(i + 1);
-            g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
+            // Calculate and draw the final curve
+            List<Point> curvePoints = calculateCurvePoints(adjustedPoints);
+            if (curvePoints.size() > 1) {
+                for (int i = 0; i < curvePoints.size() - 1; i++) {
+                    Point p1 = curvePoints.get(i);
+                    Point p2 = curvePoints.get(i + 1);
+                    g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
+                }
+            }
         }
 
         g2d.dispose();
