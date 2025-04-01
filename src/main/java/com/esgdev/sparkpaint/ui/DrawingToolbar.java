@@ -169,24 +169,28 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, 
         // Set the icon to the button
         Color color = canvas.getDrawingColor();
         button.setIcon(getColorIcon(color));
-        button.setToolTipText(String.format("Draw color - #%02X%02X%02X",
-                color.getRed(), color.getGreen(), color.getBlue()));
+        if (color.getAlpha() == 0) {
+            button.setToolTipText("Draw color - Transparent");
+        } else {
+            button.setToolTipText(String.format("Draw color - #%02X%02X%02X",
+                    color.getRed(), color.getGreen(), color.getBlue()));
+        }
         button.addActionListener(e -> {
             // Use the shared colorChooser instance
             JDialog dialog = JColorChooser.createDialog(
-                this,
-                "Choose Drawing Color",
-                true,
-                colorChooser,
-                action -> {
-                    Color newColor = colorChooser.getColor();
-                    button.setIcon(getColorIcon(newColor));
-                    button.setToolTipText(String.format("Draw color - #%02X%02X%02X",
-                            newColor.getRed(), newColor.getGreen(), newColor.getBlue()));
-                    canvas.setDrawingColor(newColor);
-                },
-                null);
-            
+                    this,
+                    "Choose Drawing Color",
+                    true,
+                    colorChooser,
+                    action -> {
+                        Color newColor = colorChooser.getColor();
+                        button.setIcon(getColorIcon(newColor));
+                        button.setToolTipText(String.format("Draw color - #%02X%02X%02X",
+                                newColor.getRed(), newColor.getGreen(), newColor.getBlue()));
+                        canvas.setDrawingColor(newColor);
+                    },
+                    null);
+
             colorChooser.setColor(canvas.getDrawingColor());
             dialog.setVisible(true);
         });
@@ -197,26 +201,30 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, 
         JButton button = new JButton();
         Color color = canvas.getFillColor();
         button.setIcon(getColorIcon(color));
-        button.setToolTipText(String.format("Fill color - #%02X%02X%02X",
-                color.getRed(), color.getGreen(), color.getBlue()));
+        if (color.getAlpha() == 0) {
+            button.setToolTipText("Fill color - Transparent");
+        } else {
+            button.setToolTipText(String.format("Fill color - #%02X%02X%02X",
+                    color.getRed(), color.getGreen(), color.getBlue()));
+        }
 
 
         button.addActionListener(e -> {
             // Use the shared colorChooser instance
             JDialog dialog = JColorChooser.createDialog(
-                this,
-                "Choose Fill Color",
-                true,
-                colorChooser,
-                action -> {
-                    Color newColor = colorChooser.getColor();
-                    button.setIcon(getColorIcon(newColor));
-                    button.setToolTipText(String.format("Fill color - #%02X%02X%02X",
-                            newColor.getRed(), newColor.getGreen(), newColor.getBlue()));
-                    canvas.setFillColor(newColor);
-                },
-                null);
-            
+                    this,
+                    "Choose Fill Color",
+                    true,
+                    colorChooser,
+                    action -> {
+                        Color newColor = colorChooser.getColor();
+                        button.setIcon(getColorIcon(newColor));
+                        button.setToolTipText(String.format("Fill color - #%02X%02X%02X",
+                                newColor.getRed(), newColor.getGreen(), newColor.getBlue()));
+                        canvas.setFillColor(newColor);
+                    },
+                    null);
+
             colorChooser.setColor(canvas.getFillColor());
             dialog.setVisible(true);
         });
@@ -231,7 +239,8 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, 
         button.setToolTipText("Rectangle Selection Tool");
         button.addActionListener(e -> {
             canvas.setCurrentTool(ToolManager.Tool.RECTANGLE_SELECTION);
-            statusMessageHandler.setStatusMessage("Rectangle selection tool selected.");});
+            statusMessageHandler.setStatusMessage("Rectangle selection tool selected.");
+        });
         toolGroup.add(button);
         return button;
     }
@@ -244,7 +253,8 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, 
         button.setToolTipText("Freehand Selection Tool");
         button.addActionListener(e -> {
             canvas.setCurrentTool(ToolManager.Tool.FREEHAND_SELECTION);
-            statusMessageHandler.setStatusMessage("Freehand Selection tool selected.");});
+            statusMessageHandler.setStatusMessage("Freehand Selection tool selected.");
+        });
         toolGroup.add(button);
         return button;
     }
@@ -256,7 +266,8 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, 
         button.setToolTipText("Eyedropper Tool");
         button.addActionListener(e -> {
             canvas.setCurrentTool(ToolManager.Tool.EYEDROPPER);
-            statusMessageHandler.setStatusMessage("Eyedropper tool selected.");});
+            statusMessageHandler.setStatusMessage("Eyedropper tool selected.");
+        });
         toolGroup.add(button);
         return button;
     }
@@ -268,7 +279,8 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, 
         button.setToolTipText("Rectangle Tool");
         button.addActionListener(e -> {
             canvas.setCurrentTool(ToolManager.Tool.RECTANGLE);
-            statusMessageHandler.setStatusMessage("Rectangle tool selected.");});
+            statusMessageHandler.setStatusMessage("Rectangle tool selected.");
+        });
         toolGroup.add(button);
         return button;
     }
@@ -280,7 +292,8 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, 
         button.setToolTipText("Circle Tool");
         button.addActionListener(e -> {
             canvas.setCurrentTool(ToolManager.Tool.CIRCLE);
-            statusMessageHandler.setStatusMessage("Circle tool selected.");});
+            statusMessageHandler.setStatusMessage("Circle tool selected.");
+        });
         toolGroup.add(button);
         return button;
     }
@@ -300,12 +313,33 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, 
 
 
     private Icon getColorIcon(Color color) {
-        // Assuming canvas provides the current color
         return new Icon() {
+            private static final int CHECKER_SIZE = 5; // Size of each checker square
+
             @Override
             public void paintIcon(Component c, Graphics g, int x, int y) {
-                g.setColor(color); // Assuming canvas provides the current color
-                g.fillRect(x, y, IconWidth, IconHeight);
+                // Check if color is transparent (alpha is 0)
+                if (color.getAlpha() == 0) {
+                    Graphics2D g2d = (Graphics2D) g;
+                    // Draw checker pattern for transparency
+                    for (int i = x; i < x + IconWidth; i += CHECKER_SIZE) {
+                        for (int j = y; j < y + IconHeight; j += CHECKER_SIZE) {
+                            if ((i / CHECKER_SIZE + j / CHECKER_SIZE) % 2 == 0) {
+                                g2d.setColor(Color.WHITE);
+                            } else {
+                                g2d.setColor(Color.LIGHT_GRAY);
+                            }
+                            g2d.fillRect(i, j, CHECKER_SIZE, CHECKER_SIZE);
+                        }
+                    }
+                    g2d.setColor(Color.DARK_GRAY);
+                    g2d.drawRect(x, y, IconWidth - 1, IconHeight - 1);
+                } else {
+                    g.setColor(color);
+                    g.fillRect(x, y, IconWidth, IconHeight);
+                    g.setColor(Color.DARK_GRAY);
+                    g.drawRect(x, y, IconWidth - 1, IconHeight - 1);
+                }
             }
 
             @Override
@@ -322,15 +356,23 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, 
 
     private void updateDrawingColorButton(Color color) {
         colorButton.setIcon(getColorIcon(color));
-        colorButton.setToolTipText(String.format("#%02X%02X%02X",
-                color.getRed(), color.getGreen(), color.getBlue()));
+        if (color.getAlpha() == 0) {
+            colorButton.setToolTipText("Draw color - Transparent");
+        } else {
+            colorButton.setToolTipText(String.format("Draw color - #%02X%02X%02X",
+                    color.getRed(), color.getGreen(), color.getBlue()));
+        }
         colorButton.repaint();
     }
 
     private void updateFillColorButton(Color color) {
         fillColorButton.setIcon(getColorIcon(color));
-        fillColorButton.setToolTipText(String.format("#%02X%02X%02X",
-                color.getRed(), color.getGreen(), color.getBlue()));
+        if (color.getAlpha() == 0) {
+            fillColorButton.setToolTipText("Fill color - Transparent");
+        } else {
+            fillColorButton.setToolTipText(String.format("Fill color - #%02X%02X%02X",
+                    color.getRed(), color.getGreen(), color.getBlue()));
+        }
         fillColorButton.repaint();
     }
 
