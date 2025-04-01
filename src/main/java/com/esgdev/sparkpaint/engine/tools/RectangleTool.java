@@ -209,12 +209,9 @@ public class RectangleTool implements DrawingTool {
         canvas.repaint();
     }
 
-    /**
-     * Draws a transparent rectangle
-     */
     private void drawTransparentRectangle(BufferedImage image, Graphics2D g2d, int x, int y, int width, int height,
                                           boolean transparentFill, boolean transparentOutline) {
-        // Create a mask image for transparency
+        // Create a mask image for transparency - use the target image dimensions
         BufferedImage maskImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
         Graphics2D maskG2d = maskImage.createGraphics();
 
@@ -248,7 +245,7 @@ public class RectangleTool implements DrawingTool {
 
         maskG2d.dispose();
 
-        // Apply transparency where mask is white
+        // Apply transparency where mask is white - pass the dimensions of the target image
         applyTransparencyMask(image, maskImage, g2d.getClip());
     }
 
@@ -256,17 +253,13 @@ public class RectangleTool implements DrawingTool {
      * Applies transparency to pixels in the image where the mask is non-zero
      */
     private void applyTransparencyMask(BufferedImage image, BufferedImage maskImage, Shape clip) {
-        // Calculate bounds for efficiency
-        Rectangle bounds = maskImage.getRaster().getBounds();
-        int lineWidth = (int) Math.ceil(canvas.getLineThickness());
-        int minX = Math.max(0, bounds.x - lineWidth);
-        int minY = Math.max(0, bounds.y - lineWidth);
-        int maxX = Math.min(image.getWidth(), bounds.x + bounds.width + lineWidth);
-        int maxY = Math.min(image.getHeight(), bounds.y + bounds.height + lineWidth);
-
         // Apply transparency to pixels where the mask is non-zero
-        for (int y = minY; y < maxY; y++) {
-            for (int x = minX; x < maxX; x++) {
+        // Use the actual dimensions of the target image
+        int width = image.getWidth();
+        int height = image.getHeight();
+
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
                 // Check if this pixel is within clip region
                 if (clip == null || clip.contains(x, y)) {
                     int maskRGB = maskImage.getRGB(x, y);
