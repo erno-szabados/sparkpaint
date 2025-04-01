@@ -175,6 +175,7 @@ public class LineTool implements DrawingTool {
             canvas.repaint();
         }
     }
+
     @Override
     public void mouseReleased(MouseEvent e) {
         if (mode == LineMode.SINGLE_LINE) {
@@ -185,11 +186,18 @@ public class LineTool implements DrawingTool {
             // Get current point in appropriate coordinate system
             Point point = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
 
-            // Get appropriate graphics context for drawing
+            // Determine target image and graphics context
+            BufferedImage targetImage;
             Graphics2D g2d;
+
             if (selection != null && selection.hasOutline()) {
                 // Get drawing graphics from the selection manager
                 g2d = canvas.getDrawingGraphics();
+                if (g2d == null) return; // Safety check
+
+                targetImage = selection.getContent();
+                if (targetImage == null) return; // Safety check
+
                 selection.setModified(true);
 
                 // Get selection bounds to adjust coordinates
@@ -204,8 +212,11 @@ public class LineTool implements DrawingTool {
                 point = selectionEndPoint;
             } else {
                 // Draw on current layer
-                BufferedImage currentLayerImage = canvas.getCurrentLayerImage();
-                g2d = (Graphics2D) currentLayerImage.getGraphics();
+                targetImage = canvas.getCurrentLayerImage();
+                if (targetImage == null) return; // Safety check
+
+                g2d = (Graphics2D) targetImage.getGraphics();
+                if (g2d == null) return; // Safety check
             }
 
             // Apply rendering settings
@@ -222,8 +233,7 @@ public class LineTool implements DrawingTool {
 
             // Draw the final line
             if (g2d.getColor().getAlpha() == 0) {
-                drawTransparentLine(selection != null ? selection.getContent() : canvas.getCurrentLayerImage(),
-                        g2d, startPoint, point, canvas.getLineThickness());
+                drawTransparentLine(targetImage, g2d, startPoint, point, canvas.getLineThickness());
             } else {
                 // Original drawing code
                 g2d.drawLine(startPoint.x, startPoint.y, point.x, point.y);
@@ -517,9 +527,19 @@ public class LineTool implements DrawingTool {
         }
 
         Selection selection = canvas.getSelection();
+        BufferedImage targetImage = selection != null && selection.hasOutline()
+                ? selection.getContent()
+                : canvas.getCurrentLayerImage();
+
+        // Early exit if we can't get a valid target image
+        if (targetImage == null) {
+            System.err.println("Target image is null in finalizeLine");
+            resetPoints();
+            return;
+        }
+
         Graphics2D g2d;
         List<Point> adjustedPoints = new ArrayList<>(polylinePoints);
-        BufferedImage targetImage = selection != null ? selection.getContent() : canvas.getCurrentLayerImage();
 
         // Close the path for closed curve or filled curve mode
         boolean isClosed = mode == LineMode.CLOSED_CURVE || mode == LineMode.FILLED_CURVE;
@@ -529,6 +549,12 @@ public class LineTool implements DrawingTool {
 
         if (selection != null && selection.hasOutline()) {
             g2d = canvas.getDrawingGraphics();
+            if (g2d == null) {
+                System.err.println("Graphics context is null in finalizeLine");
+                resetPoints();
+                return;
+            }
+
             selection.setModified(true);
 
             // Adjust points relative to selection
@@ -539,6 +565,11 @@ public class LineTool implements DrawingTool {
             }
         } else {
             g2d = (Graphics2D) targetImage.getGraphics();
+            if (g2d == null) {
+                System.err.println("Graphics context is null in finalizeLine");
+                resetPoints();
+                return;
+            }
         }
 
         // Apply settings
@@ -644,41 +675,66 @@ public class LineTool implements DrawingTool {
      * Special handling for transparent drawing - clears pixels along the line path
      */
     private void drawTransparentLine(BufferedImage image, Graphics2D g2d, Point p1, Point p2, float lineThickness) {
-        // Create a temporary mask image for the line
-        BufferedImage maskImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
-        Graphics2D maskG2d = maskImage.createGraphics();
+        // Check for null parameters
+        if (image == null || g2d == null || p1 == null || p2 == null) {
+            System.err.println("Null parameter in drawTransparentLine: " +
+                    (image == null ? "image " : "") +
+                    (g2d == null ? "g2d " : "") +
+                    (p1 == null ? "p1 " : "") +
+                    (p2 == null ? "p2" : ""));
+            return;
+        }
 
-        // Set up the mask with the same stroke settings
-        maskG2d.setStroke(new BasicStroke(lineThickness));
-        maskG2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+        // Check bounds
+        if (p1.x < 0 || p1.y < 0 || p2.x < 0 || p2.y < 0 ||
+                p1.x >= image.getWidth() || p1.y >= image.getHeight() ||
+                p2.x >= image.getWidth() || p2.y >= image.getHeight()) {
+            // Points are out of bounds, but we could still proceed with clipping
+            // Just log a warning
+            System.err.println("Warning: Points out of bounds in drawTransparentLine");
+        }
 
-        // Draw white line on mask
-        maskG2d.setColor(Color.WHITE);
-        maskG2d.drawLine(p1.x, p1.y, p2.x, p2.y);
-        maskG2d.dispose();
+        try {
+            // Create a temporary mask image for the line
+            BufferedImage maskImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
+            Graphics2D maskG2d = maskImage.createGraphics();
 
-        // Calculate bounds of affected area for efficiency
-        int lineWidth = (int) Math.ceil(lineThickness);
-        int minX = Math.max(0, Math.min(p1.x, p2.x) - lineWidth);
-        int minY = Math.max(0, Math.min(p1.y, p2.y) - lineWidth);
-        int maxX = Math.min(image.getWidth(), Math.max(p1.x, p2.x) + lineWidth);
-        int maxY = Math.min(image.getHeight(), Math.max(p1.y, p2.y) + lineWidth);
+            // Set up the mask with the same stroke settings
+            maskG2d.setStroke(new BasicStroke(lineThickness));
+            maskG2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
 
-        // Apply transparency to pixels where the mask is non-zero
-        for (int y = minY; y < maxY; y++) {
-            for (int x = minX; x < maxX; x++) {
-                // Check if this pixel is within clip region
-                if (g2d.getClip() == null || g2d.getClip().contains(x, y)) {
-                    int maskRGB = maskImage.getRGB(x, y);
-                    // Only process pixels where the mask is non-zero
-                    if ((maskRGB & 0xFF000000) != 0) {
-                        // Set full transparency (alpha = 0)
-                        int newRGB = image.getRGB(x, y) & 0x00FFFFFF;
-                        image.setRGB(x, y, newRGB);
+            // Draw white line on mask
+            maskG2d.setColor(Color.WHITE);
+            maskG2d.drawLine(p1.x, p1.y, p2.x, p2.y);
+            maskG2d.dispose();
+
+            // Calculate bounds of affected area for efficiency
+            int lineWidth = (int) Math.ceil(lineThickness);
+            int minX = Math.max(0, Math.min(p1.x, p2.x) - lineWidth);
+            int minY = Math.max(0, Math.min(p1.y, p2.y) - lineWidth);
+            int maxX = Math.min(image.getWidth(), Math.max(p1.x, p2.x) + lineWidth);
+            int maxY = Math.min(image.getHeight(), Math.max(p1.y, p2.y) + lineWidth);
+
+            // Apply transparency to pixels where the mask is non-zero
+            for (int y = minY; y < maxY; y++) {
+                for (int x = minX; x < maxX; x++) {
+                    // Check if this pixel is within clip region
+                    Shape clip = g2d.getClip();
+                    if (clip == null || clip.contains(x, y)) {
+                        int maskRGB = maskImage.getRGB(x, y);
+                        // Only process pixels where the mask is non-zero
+                        if ((maskRGB & 0xFF000000) != 0) {
+                            // Set full transparency (alpha = 0)
+                            int newRGB = image.getRGB(x, y) & 0x00FFFFFF;
+                            image.setRGB(x, y, newRGB);
+                        }
                     }
                 }
             }
+        } catch (Exception e) {
+            System.err.println("Exception in drawTransparentLine: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -686,42 +742,56 @@ public class LineTool implements DrawingTool {
      * Special handling for transparent path outlines - clears pixels along the path outline
      */
     private void drawTransparentPath(BufferedImage image, Graphics2D g2d, Path2D path, float lineThickness) {
-        // Create a temporary mask image for the path outline
-        BufferedImage maskImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
-        Graphics2D maskG2d = maskImage.createGraphics();
+        // Check for null parameters
+        if (image == null || g2d == null || path == null) {
+            System.err.println("Null parameter in drawTransparentPath: " +
+                    (image == null ? "image " : "") +
+                    (g2d == null ? "g2d " : "") +
+                    (path == null ? "path" : ""));
+            return;
+        }
 
-        // Set up the mask with the same stroke settings
-        maskG2d.setStroke(new BasicStroke(lineThickness));
-        maskG2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+        try {
+            // Create a temporary mask image for the path outline
+            BufferedImage maskImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
+            Graphics2D maskG2d = maskImage.createGraphics();
 
-        // Draw white path outline on mask
-        maskG2d.setColor(Color.WHITE);
-        maskG2d.draw(path);
-        maskG2d.dispose();
+            // Set up the mask with the same stroke settings
+            maskG2d.setStroke(new BasicStroke(lineThickness));
+            maskG2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
 
-        // Get path bounds
-        Rectangle bounds = path.getBounds();
-        int padding = (int) Math.ceil(lineThickness);
-        int minX = Math.max(0, bounds.x - padding);
-        int minY = Math.max(0, bounds.y - padding);
-        int maxX = Math.min(image.getWidth(), bounds.x + bounds.width + padding);
-        int maxY = Math.min(image.getHeight(), bounds.y + bounds.height + padding);
+            // Draw white path outline on mask
+            maskG2d.setColor(Color.WHITE);
+            maskG2d.draw(path);
+            maskG2d.dispose();
 
-        // Apply transparency to pixels where the mask is non-zero
-        for (int y = minY; y < maxY; y++) {
-            for (int x = minX; x < maxX; x++) {
-                // Check if this pixel is within clip region
-                if (g2d.getClip() == null || g2d.getClip().contains(x, y)) {
-                    int maskRGB = maskImage.getRGB(x, y);
-                    // Only process pixels where the mask is non-zero
-                    if ((maskRGB & 0xFF000000) != 0) {
-                        // Set full transparency (alpha = 0)
-                        int newRGB = image.getRGB(x, y) & 0x00FFFFFF;
-                        image.setRGB(x, y, newRGB);
+            // Get path bounds
+            Rectangle bounds = path.getBounds();
+            int padding = (int) Math.ceil(lineThickness);
+            int minX = Math.max(0, bounds.x - padding);
+            int minY = Math.max(0, bounds.y - padding);
+            int maxX = Math.min(image.getWidth(), bounds.x + bounds.width + padding);
+            int maxY = Math.min(image.getHeight(), bounds.y + bounds.height + padding);
+
+            // Apply transparency to pixels where the mask is non-zero
+            for (int y = minY; y < maxY; y++) {
+                for (int x = minX; x < maxX; x++) {
+                    // Check if this pixel is within clip region
+                    if (g2d.getClip() == null || g2d.getClip().contains(x, y)) {
+                        int maskRGB = maskImage.getRGB(x, y);
+                        // Only process pixels where the mask is non-zero
+                        if ((maskRGB & 0xFF000000) != 0) {
+                            // Set full transparency (alpha = 0)
+                            int newRGB = image.getRGB(x, y) & 0x00FFFFFF;
+                            image.setRGB(x, y, newRGB);
+                        }
                     }
                 }
             }
+        } catch (Exception e) {
+            System.err.println("Exception in drawTransparentPath: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -729,40 +799,54 @@ public class LineTool implements DrawingTool {
      * Special handling for transparent fill - clears pixels inside the path
      */
     private void fillTransparentPath(BufferedImage image, Graphics2D g2d, Path2D path) {
-        // Create a temporary mask image for the path
-        BufferedImage maskImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
-        Graphics2D maskG2d = maskImage.createGraphics();
+        // Check for null parameters
+        if (image == null || g2d == null || path == null) {
+            System.err.println("Null parameter in fillTransparentPath: " +
+                    (image == null ? "image " : "") +
+                    (g2d == null ? "g2d " : "") +
+                    (path == null ? "path" : ""));
+            return;
+        }
 
-        // Set up the mask with same settings
-        maskG2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+        try {
+            // Create a temporary mask image for the path
+            BufferedImage maskImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
+            Graphics2D maskG2d = maskImage.createGraphics();
 
-        // Fill the path with white on the mask
-        maskG2d.setColor(Color.WHITE);
-        maskG2d.fill(path);
-        maskG2d.dispose();
+            // Set up the mask with same settings
+            maskG2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
 
-        // Get path bounds
-        Rectangle bounds = path.getBounds();
-        int minX = Math.max(0, bounds.x);
-        int minY = Math.max(0, bounds.y);
-        int maxX = Math.min(image.getWidth(), bounds.x + bounds.width);
-        int maxY = Math.min(image.getHeight(), bounds.y + bounds.height);
+            // Fill the path with white on the mask
+            maskG2d.setColor(Color.WHITE);
+            maskG2d.fill(path);
+            maskG2d.dispose();
 
-        // Apply transparency to pixels where the mask is non-zero
-        for (int y = minY; y < maxY; y++) {
-            for (int x = minX; x < maxX; x++) {
-                // Check if this pixel is within clip region
-                if (g2d.getClip() == null || g2d.getClip().contains(x, y)) {
-                    int maskRGB = maskImage.getRGB(x, y);
-                    // Only process pixels where the mask is non-zero
-                    if ((maskRGB & 0xFF000000) != 0) {
-                        // Set full transparency (alpha = 0)
-                        int newRGB = image.getRGB(x, y) & 0x00FFFFFF;
-                        image.setRGB(x, y, newRGB);
+            // Get path bounds
+            Rectangle bounds = path.getBounds();
+            int minX = Math.max(0, bounds.x);
+            int minY = Math.max(0, bounds.y);
+            int maxX = Math.min(image.getWidth(), bounds.x + bounds.width);
+            int maxY = Math.min(image.getHeight(), bounds.y + bounds.height);
+
+            // Apply transparency to pixels where the mask is non-zero
+            for (int y = minY; y < maxY; y++) {
+                for (int x = minX; x < maxX; x++) {
+                    // Check if this pixel is within clip region
+                    if (g2d.getClip() == null || g2d.getClip().contains(x, y)) {
+                        int maskRGB = maskImage.getRGB(x, y);
+                        // Only process pixels where the mask is non-zero
+                        if ((maskRGB & 0xFF000000) != 0) {
+                            // Set full transparency (alpha = 0)
+                            int newRGB = image.getRGB(x, y) & 0x00FFFFFF;
+                            image.setRGB(x, y, newRGB);
+                        }
                     }
                 }
             }
+        } catch (Exception e) {
+            System.err.println("Exception in fillTransparentPath: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }
