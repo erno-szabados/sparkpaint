@@ -28,7 +28,7 @@ public class LayerPropertiesDialog extends JDialog {
     /**
      * Constructor for LayerPropertiesDialog.
      *
-     * @param owner The parent frame
+     * @param owner  The parent frame
      * @param canvas The drawing canvas containing the layer
      */
     public LayerPropertiesDialog(Frame owner, DrawingCanvas canvas) {
@@ -92,6 +92,7 @@ public class LayerPropertiesDialog extends JDialog {
 
     private JPanel createAdjustmentsPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBorder(BorderFactory.createEmptyBorder(20,0,0,0));
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
@@ -133,12 +134,23 @@ public class LayerPropertiesDialog extends JDialog {
 
         // Label configuration
         JLabel label = new JLabel(labelText);
+        label.setPreferredSize(new Dimension(80, 20));
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.anchor = GridBagConstraints.WEST;
         gbc.insets = new Insets(0, 0, 0, 5);  // Right padding
         gbc.weightx = 0.0;
         panel.add(label, gbc);
+
+        // Value label configuration with fixed width
+        JLabel valueLabel = new JLabel();
+        valueLabel.setPreferredSize(new Dimension(60, 20));
+        // Format the value with consistent width based on slider range
+        updateValueLabel(valueLabel, slider.getValue(), slider.getMinimum(), slider.getMaximum());
+
+        // Synchronize value label with slider
+        slider.addChangeListener(e ->
+                updateValueLabel(valueLabel, slider.getValue(), slider.getMinimum(), slider.getMaximum()));
 
         // Slider configuration
         gbc.gridx = 1;
@@ -147,32 +159,23 @@ public class LayerPropertiesDialog extends JDialog {
         gbc.insets = new Insets(0, 0, 0, 5);  // Right padding
         panel.add(slider, gbc);
 
-        // Value field configuration
-        JTextField valueField = new JTextField(4);
-        valueField.setText(String.valueOf(slider.getValue()));
-        valueField.setHorizontalAlignment(SwingConstants.RIGHT);
-
-        // Synchronize text field with slider
-        slider.addChangeListener(e -> valueField.setText(String.valueOf(slider.getValue())));
-
-        // Allow text field to control slider
-        valueField.addActionListener(e -> {
-            try {
-                int value = Integer.parseInt(valueField.getText());
-                value = Math.max(slider.getMinimum(), Math.min(slider.getMaximum(), value));
-                slider.setValue(value);
-            } catch (NumberFormatException ex) {
-                valueField.setText(String.valueOf(slider.getValue()));
-            }
-        });
-
+        // Add value label
         gbc.gridx = 2;
         gbc.fill = GridBagConstraints.NONE;
         gbc.weightx = 0.0;
-        gbc.insets = new Insets(0, 0, 0, 0);  // No padding on the right
-        panel.add(valueField, gbc);
+        gbc.insets = new Insets(0, 0, 0, 0);
+        panel.add(valueLabel, gbc);
 
         return panel;
+    }
+
+    /**
+     * Updates the value label with proper padding to maintain consistent width.
+     */
+    private void updateValueLabel(JLabel label, int value, int min, int max) {
+        // Format the value with leading spaces to maintain fixed width
+        String formattedValue = String.format("%4d", value);
+        label.setText(formattedValue);
     }
 
     /**
@@ -306,7 +309,7 @@ public class LayerPropertiesDialog extends JDialog {
     /**
      * Adjusts the brightness of the image.
      *
-     * @param image The image to adjust
+     * @param image      The image to adjust
      * @param brightness The brightness value (-100 to 100)
      */
     private void adjustBrightness(BufferedImage image, int brightness) {
@@ -322,7 +325,7 @@ public class LayerPropertiesDialog extends JDialog {
     /**
      * Adjusts the contrast of the image.
      *
-     * @param image The image to adjust
+     * @param image    The image to adjust
      * @param contrast The contrast value (-100 to 100)
      */
     private void adjustContrast(BufferedImage image, int contrast) {
@@ -338,7 +341,7 @@ public class LayerPropertiesDialog extends JDialog {
     /**
      * Adjusts the saturation of the image.
      *
-     * @param image The image to adjust
+     * @param image      The image to adjust
      * @param saturation The saturation value (-100 to 100)
      */
     private void adjustSaturation(BufferedImage image, int saturation) {
@@ -354,7 +357,7 @@ public class LayerPropertiesDialog extends JDialog {
     /**
      * Adjusts the opacity of the image.
      *
-     * @param image The image to adjust
+     * @param image   The image to adjust
      * @param opacity The opacity value (0 to 100)
      */
     private void adjustOpacity(BufferedImage image, int opacity) {
@@ -371,7 +374,7 @@ public class LayerPropertiesDialog extends JDialog {
     /**
      * Applies a filter to each pixel of the image.
      *
-     * @param image The image to filter
+     * @param image  The image to filter
      * @param filter The filter to apply
      */
     private void applyRGBFilter(BufferedImage image, PixelFilter filter) {
