@@ -606,6 +606,16 @@ public class DrawingCanvas extends JPanel implements
         fileManager.setCurrentFilePath(path);
     }
 
+    @Override
+    public int exportLayersAsPNG(File directory, String fileNamePrefix, List<Layer> layers) throws IOException {
+        return fileManager.exportLayersAsPNG(directory, fileNamePrefix, layers);
+    }
+
+    @Override
+    public String generateFileNamePrefix() {
+        return fileManager.generateFileNamePrefix();
+    }
+
     ///  HistoryManagement interface
 
     @Override
