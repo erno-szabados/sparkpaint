@@ -313,6 +313,9 @@ public class LayerPropertiesDialog extends JDialog {
     private void adjustOpacity(BufferedImage image, int opacity) {
         float factor = opacity / 100.0f;
         applyRGBFilter(image, (r, g, b, a) -> {
+            // If pixel was already completely transparent, keep it that way
+            if (a == 0) return 0;
+
             int newA = (int) (a * factor);
             return (newA << 24) | (r << 16) | (g << 8) | b;
         });
@@ -326,13 +329,17 @@ public class LayerPropertiesDialog extends JDialog {
             for (int x = 0; x < width; x++) {
                 int rgb = image.getRGB(x, y);
                 int a = (rgb >> 24) & 0xFF;
-                int r = (rgb >> 16) & 0xFF;
-                int g = (rgb >> 8) & 0xFF;
-                int b = rgb & 0xFF;
 
-                if (a > 0) { // Only process non-transparent pixels
+                // Apply the filter to all pixels, even transparent ones
+                // This allows partially transparent pixels to be processed correctly
+                if (a > 0) { // Only process pixels with some visibility
+                    int r = (rgb >> 16) & 0xFF;
+                    int g = (rgb >> 8) & 0xFF;
+                    int b = rgb & 0xFF;
+
                     image.setRGB(x, y, filter.apply(r, g, b, a));
                 }
+                // Completely transparent pixels (a = 0) remain unchanged
             }
         }
     }
