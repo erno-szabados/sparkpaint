@@ -146,15 +146,13 @@ public class FillTool implements DrawingTool {
         int targetRGB = targetImage.getRGB(fillPoint.x, fillPoint.y);
         Color targetColor = new Color(targetRGB, true); // Include alpha
 
+        // In the mousePressed method where it handles normal fill operations:
         Color replacementColor = SwingUtilities.isLeftMouseButton(e) ?
                 canvas.getDrawingColor() : canvas.getFillColor();
 
-
-        // Perform the appropriate fill operation based on the mode
+// Perform the appropriate fill operation based on the mode
         switch (fillMode) {
             case SMART_FILL:
-
-                // Perform the fill operation on the appropriate target
                 smartFill(targetImage, fillPoint.x, fillPoint.y, targetColor, replacementColor, epsilon, clipPath);
                 break;
             case CANVAS_FILL:
@@ -303,20 +301,40 @@ public class FillTool implements DrawingTool {
         int width = image.getWidth();
         int height = image.getHeight();
         int replacementRGB = replacementColor.getRGB();
+        boolean isTransparentFill = replacementColor.getAlpha() == 0;
 
         // Use clipPath if available, otherwise fill entire image
         if (clipPath != null) {
             // Fill only within the clip path
             Graphics2D g2d = image.createGraphics();
-            g2d.setColor(replacementColor);
             g2d.setClip(clipPath);
-            g2d.fillRect(0, 0, width, height);
+
+            if (isTransparentFill) {
+                // Clear to transparency
+                g2d.setComposite(AlphaComposite.Clear);
+                g2d.fillRect(0, 0, width, height);
+            } else {
+                // Normal fill
+                g2d.setColor(replacementColor);
+                g2d.fillRect(0, 0, width, height);
+            }
             g2d.dispose();
         } else {
             // Fill the entire image
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    image.setRGB(x, y, replacementRGB);
+            if (isTransparentFill) {
+                // Clear each pixel to transparency
+                for (int y = 0; y < height; y++) {
+                    for (int x = 0; x < width; x++) {
+                        // Keep RGB values but set alpha to 0
+                        image.setRGB(x, y, image.getRGB(x, y) & 0x00FFFFFF);
+                    }
+                }
+            } else {
+                // Normal fill
+                for (int y = 0; y < height; y++) {
+                    for (int x = 0; x < width; x++) {
+                        image.setRGB(x, y, replacementRGB);
+                    }
                 }
             }
         }
@@ -328,6 +346,9 @@ public class FillTool implements DrawingTool {
         int height = image.getHeight();
         int targetRGB = targetColor.getRGB();
         int replacementRGB = replacementColor.getRGB();
+
+        // Check if the fill is actually setting transparency
+        boolean isTransparentFill = replacementColor.getAlpha() == 0;
 
         if (targetRGB == replacementRGB) {
             return;
@@ -353,7 +374,13 @@ public class FillTool implements DrawingTool {
                 continue;
             }
 
-            image.setRGB(x, y, replacementRGB);
+            // Handle transparency specially
+            if (isTransparentFill) {
+                // Set full transparency (alpha = 0), preserving RGB
+                image.setRGB(x, y, currentRGB & 0x00FFFFFF);
+            } else {
+                image.setRGB(x, y, replacementRGB);
+            }
 
             visited[x][y] = true;
 
