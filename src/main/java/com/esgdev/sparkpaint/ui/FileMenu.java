@@ -2,6 +2,7 @@ package com.esgdev.sparkpaint.ui;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.history.LayerState;
+import com.esgdev.sparkpaint.engine.layer.Layer;
 import com.esgdev.sparkpaint.io.SparkPaintFileFormat;
 
 import javax.swing.*;
@@ -9,6 +10,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 public class FileMenu extends JMenu {
     public static final String SPARKPAINT_FILE_EXTENSION = "spp";
@@ -41,6 +43,11 @@ public class FileMenu extends JMenu {
         saveAs.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S,
                 KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK));
 
+        JMenuItem exportLayers = new JMenuItem("Export Layers as PNG...", KeyEvent.VK_E);
+        exportLayers.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E,
+                KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK));
+
+
         JMenuItem exit = new JMenuItem("Exit", KeyEvent.VK_X);
         exit.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Q, KeyEvent.CTRL_DOWN_MASK));
 
@@ -50,6 +57,7 @@ public class FileMenu extends JMenu {
         addSeparator();
         add(save);
         add(saveAs);
+        add(exportLayers);
         addSeparator();
         add(exit);
 
@@ -58,6 +66,7 @@ public class FileMenu extends JMenu {
         open.addActionListener(e -> handleOpen());
         save.addActionListener(e -> handleSave());
         saveAs.addActionListener(e -> handleSaveAs());
+        exportLayers.addActionListener(e -> handleExportLayers());
         exit.addActionListener(e -> handleExit());
     }
 
@@ -246,6 +255,72 @@ public class FileMenu extends JMenu {
                 fileName.endsWith(".jpeg") ||
                 fileName.endsWith(".bmp") ||
                 fileName.endsWith("." + SPARKPAINT_FILE_EXTENSION);
+    }
+
+
+    /**
+     * Handles the export layers action.
+     * Prompts the user to select a directory and exports visible layers as PNG files.
+     */
+    private void handleExportLayers() {
+        DrawingCanvas canvas = mainFrame.getCanvas();
+        List<Layer> layers = canvas.getLayers();
+
+        // Count visible layers
+        long visibleLayerCount = layers.stream()
+                .filter(Layer::isVisible)
+                .count();
+
+        if (visibleLayerCount == 0) {
+            JOptionPane.showMessageDialog(mainFrame,
+                    "There are no visible layers to export.",
+                    "Export Layers",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Choose directory for export
+        JFileChooser dirChooser = new JFileChooser();
+        dirChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        dirChooser.setDialogTitle("Choose Export Directory");
+
+        if (dirChooser.showDialog(mainFrame, "Export") != JFileChooser.APPROVE_OPTION) {
+            mainFrame.setStatusMessage("Export cancelled");
+            return;
+        }
+
+        File exportDir = dirChooser.getSelectedFile();
+
+        // Determine filename prefix
+        String fileNamePrefix;
+        String currentPath = canvas.getCurrentFilePath();
+
+        if (currentPath != null && !currentPath.isEmpty()) {
+            // Use the base name of the current file as prefix
+            File currentFile = new File(currentPath);
+            fileNamePrefix = currentFile.getName();
+
+            // Remove extension if present
+            int lastDotIndex = fileNamePrefix.lastIndexOf('.');
+            if (lastDotIndex > 0) {
+                fileNamePrefix = fileNamePrefix.substring(0, lastDotIndex);
+            }
+        } else {
+            // Generate a default prefix
+            fileNamePrefix = mainFrame.getCanvas().generateFileNamePrefix();
+        }
+
+        try {
+            int exportedCount = mainFrame.getCanvas().exportLayersAsPNG(exportDir, fileNamePrefix, layers);
+
+            mainFrame.setStatusMessage("Exported " + exportedCount + " layers to " + exportDir.getAbsolutePath());
+        } catch (IOException ex) {
+            mainFrame.setStatusMessage("Error exporting layers!");
+            JOptionPane.showMessageDialog(mainFrame,
+                    "Error exporting layers: " + ex.getMessage(),
+                    "Export Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
     }
 
 
