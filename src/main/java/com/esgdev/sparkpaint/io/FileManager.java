@@ -105,6 +105,14 @@ public class FileManager implements FileManagement {
         return new LayerState(layers, 0);
     }
 
+    // In FileManager.java, add this method
+    @Override
+    public LayerState loadFromLayeredFile(File file) throws IOException, ClassNotFoundException {
+        LayerState layerState = SparkPaintFileFormat.loadFromFile(file);
+        currentFilePath = file.getAbsolutePath();
+        return layerState;
+    }
+
     /**
      * Converts a BufferedImage to RGB format.
      *

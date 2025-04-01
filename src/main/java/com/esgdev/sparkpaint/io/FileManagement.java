@@ -31,6 +31,16 @@ public interface FileManagement {
      */
     LayerState loadFromFile(File file) throws IOException;
 
+    // Add this to the FileManagement interface
+    /**
+     * Loads a layered file format.
+     *
+     * @param file The file to load
+     * @return The LayerState containing layers and current layer index
+     * @throws IOException If an I/O error occurs
+     * @throws ClassNotFoundException If the class of a serialized object cannot be found
+     */
+    LayerState loadFromLayeredFile(File file) throws IOException, ClassNotFoundException;
     /**
      * Gets the path of the currently loaded or saved file.
      *
