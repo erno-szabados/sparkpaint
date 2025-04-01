@@ -80,40 +80,160 @@ public class PencilTool implements DrawingTool {
     }
 
     private void drawPoint(MouseEvent e, Point point) {
-        Graphics2D g2d = getGraphicsForDrawing();
-        if (g2d == null) return;
+        Color drawColor = getDrawingColor(e);
 
-        configureGraphics(e, g2d);
+        // Check if using transparency
+        if (drawColor.getAlpha() == 0) {
+            drawTransparentPoint(e, point);
+        } else {
+            Graphics2D g2d = getGraphicsForDrawing();
+            if (g2d == null) return;
 
-        // Convert point if drawing in selection
-        Point drawPoint = adjustPointForSelection(point);
+            configureGraphics(g2d, drawColor);
 
-        // Draw a single point (as a 1-pixel line)
-        g2d.drawLine(drawPoint.x, drawPoint.y, drawPoint.x, drawPoint.y);
-        g2d.dispose();
-        // Set the modified flag if we drew into a selection
-        Selection selection = canvas.getSelection();
-        if (selection != null && selection.hasOutline()) {
-            selection.setModified(true);
+            // Convert point if drawing in selection
+            Point drawPoint = adjustPointForSelection(point);
+
+            // Draw a single point (as a 1-pixel line)
+            g2d.drawLine(drawPoint.x, drawPoint.y, drawPoint.x, drawPoint.y);
+            g2d.dispose();
+
+            // Set the modified flag if we drew into a selection
+            Selection selection = canvas.getSelection();
+            if (selection != null && selection.hasOutline()) {
+                selection.setModified(true);
+            }
         }
     }
 
-    private void drawLine(MouseEvent e, Point from, Point to) {
-        Graphics2D g2d = getGraphicsForDrawing();
-        if (g2d == null) return;
-
-        configureGraphics(e, g2d);
-
-        // Convert points if drawing in selection
-        Point fromPoint = adjustPointForSelection(from);
-        Point toPoint = adjustPointForSelection(to);
-
-        g2d.drawLine(fromPoint.x, fromPoint.y, toPoint.x, toPoint.y);
-        g2d.dispose();
-        // Set the modified flag if we drew into a selection
+    private void drawTransparentPoint(MouseEvent e, Point point) {
         Selection selection = canvas.getSelection();
+        BufferedImage targetImage;
+        Point drawPoint;
+
         if (selection != null && selection.hasOutline()) {
+            targetImage = selection.getContent();
+            Rectangle bounds = selection.getBounds();
+            drawPoint = new Point(point.x - bounds.x, point.y - bounds.y);
             selection.setModified(true);
+        } else {
+            targetImage = canvas.getCurrentLayerImage();
+            drawPoint = point;
+        }
+
+        // Get drawing bounds
+        int x = drawPoint.x;
+        int y = drawPoint.y;
+
+        // Check bounds
+        if (x < 0 || y < 0 || x >= targetImage.getWidth() || y >= targetImage.getHeight()) {
+            return;
+        }
+
+        // Set full transparency (alpha = 0)
+        int newRGB = targetImage.getRGB(x, y) & 0x00FFFFFF;
+        targetImage.setRGB(x, y, newRGB);
+    }
+
+    private void drawLine(MouseEvent e, Point from, Point to) {
+        Color drawColor = getDrawingColor(e);
+
+        // Check if using transparency
+        if (drawColor.getAlpha() == 0) {
+            drawTransparentLine(e, from, to);
+        } else {
+            Graphics2D g2d = getGraphicsForDrawing();
+            if (g2d == null) return;
+
+            configureGraphics(g2d, drawColor);
+
+            // Convert points if drawing in selection
+            Point fromPoint = adjustPointForSelection(from);
+            Point toPoint = adjustPointForSelection(to);
+
+            g2d.drawLine(fromPoint.x, fromPoint.y, toPoint.x, toPoint.y);
+            g2d.dispose();
+
+            // Set the modified flag if we drew into a selection
+            Selection selection = canvas.getSelection();
+            if (selection != null && selection.hasOutline()) {
+                selection.setModified(true);
+            }
+        }
+    }
+
+    private void drawTransparentLine(MouseEvent e, Point p1, Point p2) {
+        Selection selection = canvas.getSelection();
+        BufferedImage targetImage;
+        Graphics2D g2d;
+        Point fromPoint, toPoint;
+
+        if (selection != null && selection.hasOutline()) {
+            targetImage = selection.getContent();
+            g2d = canvas.getDrawingGraphics();
+            Rectangle bounds = selection.getBounds();
+            fromPoint = new Point(p1.x - bounds.x, p1.y - bounds.y);
+            toPoint = new Point(p2.x - bounds.x, p2.y - bounds.y);
+            selection.setModified(true);
+        } else {
+            targetImage = canvas.getCurrentLayerImage();
+            g2d = (Graphics2D) targetImage.getGraphics();
+            fromPoint = p1;
+            toPoint = p2;
+        }
+
+        // Check bounds - skip if completely out of bounds
+        if ((fromPoint.x < 0 && toPoint.x < 0) ||
+                (fromPoint.y < 0 && toPoint.y < 0) ||
+                (fromPoint.x >= targetImage.getWidth() && toPoint.x >= targetImage.getWidth()) ||
+                (fromPoint.y >= targetImage.getHeight() && toPoint.y >= targetImage.getHeight())) {
+            g2d.dispose();
+            return;
+        }
+
+        try {
+            // Create a temporary mask image for the line
+            BufferedImage maskImage = new BufferedImage(targetImage.getWidth(), targetImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
+            Graphics2D maskG2d = maskImage.createGraphics();
+
+            // Set up the mask with the same stroke settings
+            maskG2d.setStroke(new BasicStroke(canvas.getLineThickness()));
+            maskG2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+
+            // Draw white line on mask
+            maskG2d.setColor(Color.WHITE);
+            maskG2d.drawLine(fromPoint.x, fromPoint.y, toPoint.x, toPoint.y);
+            maskG2d.dispose();
+
+            // Calculate bounds of affected area for efficiency
+            int lineWidth = (int) Math.ceil(canvas.getLineThickness());
+            int minX = Math.max(0, Math.min(fromPoint.x, toPoint.x) - lineWidth);
+            int minY = Math.max(0, Math.min(fromPoint.y, toPoint.y) - lineWidth);
+            int maxX = Math.min(targetImage.getWidth(), Math.max(fromPoint.x, toPoint.x) + lineWidth);
+            int maxY = Math.min(targetImage.getHeight(), Math.max(fromPoint.y, toPoint.y) + lineWidth);
+
+            // Apply transparency to pixels where the mask is non-zero
+            for (int y = minY; y < maxY; y++) {
+                for (int x = minX; x < maxX; x++) {
+                    // Check if this pixel is within clip region
+                    Shape clip = g2d.getClip();
+                    if (clip == null || clip.contains(x, y)) {
+                        int maskRGB = maskImage.getRGB(x, y);
+                        // Only process pixels where the mask is non-zero
+                        if ((maskRGB & 0xFF000000) != 0) {
+                            // Set full transparency (alpha = 0)
+                            int newRGB = targetImage.getRGB(x, y) & 0x00FFFFFF;
+                            targetImage.setRGB(x, y, newRGB);
+                        }
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            System.err.println("Exception in drawTransparentLine: " + ex.getMessage());
+            ex.printStackTrace();
+        } finally {
+            g2d.dispose();
         }
     }
 
@@ -139,16 +259,21 @@ public class PencilTool implements DrawingTool {
         return point;
     }
 
-    private void configureGraphics(MouseEvent e, Graphics2D g2d) {
+    private Color getDrawingColor(MouseEvent e) {
+        if (SwingUtilities.isLeftMouseButton(e)) {
+            return canvas.getDrawingColor();
+        } else if (SwingUtilities.isRightMouseButton(e)) {
+            return canvas.getFillColor();
+        }
+        // Default to drawing color
+        return canvas.getDrawingColor();
+    }
+
+    private void configureGraphics(Graphics2D g2d, Color color) {
         g2d.setStroke(new BasicStroke(canvas.getLineThickness()));
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                 useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
-
-        if (SwingUtilities.isLeftMouseButton(e)) {
-            g2d.setColor(canvas.getDrawingColor());
-        } else if (SwingUtilities.isRightMouseButton(e)) {
-            g2d.setColor(canvas.getFillColor());
-        }
+        g2d.setColor(color);
     }
 
     @Override
