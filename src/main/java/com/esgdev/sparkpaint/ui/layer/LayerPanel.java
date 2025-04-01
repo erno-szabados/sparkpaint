@@ -18,14 +18,12 @@ import java.awt.event.MouseEvent;
 import java.util.function.Consumer;
 
 public class LayerPanel extends JPanel implements LayerChangeListener {
-    //private final LayerManager layerManager;
     private final JList<Layer> layerList;
     private final StatusMessageHandler statusMessageHandler;
     private final DefaultListModel<Layer> listModel;
     private final DrawingCanvas canvas;
 
     public LayerPanel(DrawingCanvas canvas, StatusMessageHandler statusMessageHandler) {
-        //this.layerManager = canvas.getLayerManager();
         this.statusMessageHandler = statusMessageHandler;
         this.canvas = canvas;
 

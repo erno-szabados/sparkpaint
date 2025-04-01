@@ -3,9 +3,11 @@ package com.esgdev.sparkpaint.ui;
 import com.esgdev.sparkpaint.io.ClipboardChangeListener;
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.history.UndoRedoChangeListener;
+import com.esgdev.sparkpaint.ui.layer.LayerPropertiesDialog;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
@@ -99,6 +101,19 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener, Clipboard
         // Add a separator between Undo/Redo and Cut/Copy/Paste
         addSeparator();
 
+        JMenuItem adjustLayerItem = new JMenuItem("Adjust Current Layer...");
+        adjustLayerItem.setMnemonic('L');
+        adjustLayerItem.addActionListener(e -> {
+            LayerPropertiesDialog dialog = new LayerPropertiesDialog(
+                    (Frame) SwingUtilities.getWindowAncestor(mainFrame),
+                    canvas);
+            dialog.setVisible(true);
+        });
+        adjustLayerItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_L,
+                InputEvent.CTRL_MASK | InputEvent.SHIFT_MASK)); // Ctrl+Shift+L
+        add(adjustLayerItem);
+
+
         // Create and add Undo item
         undoItem = new JMenuItem("Undo");
         undoItem.setMnemonic('U'); // Shortcut for accessibility
@@ -148,7 +163,7 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener, Clipboard
     /**
      * Updates the enabled state of the Cut, Copy, and Paste menu items based on the clipboard state.
      *
-     * @param canCopy Indicates if a copy operation is possible.
+     * @param canCopy  Indicates if a copy operation is possible.
      * @param canPaste Indicates if a paste operation is possible.
      */
     // Implement ClipboardChangeListener

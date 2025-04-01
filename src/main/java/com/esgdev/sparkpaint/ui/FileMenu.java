@@ -102,17 +102,15 @@ public class FileMenu extends JMenu {
             File file = fileChooser.getSelectedFile();
 
             try {
+                DrawingCanvas canvas = mainFrame.getCanvas();
+
                 if (file.getName().toLowerCase().endsWith("." + SPARKPAINT_FILE_EXTENSION)) {
-                    // Load from SparkPaint format
-                    LayerState layerState = SparkPaintFileFormat.loadFromFile(file);
-                    mainFrame.getCanvas().setLayers(layerState.getLayers());
-                    mainFrame.getCanvas().setCurrentLayerIndex(layerState.getCurrentLayerIndex());
-                    mainFrame.getCanvas().setCurrentFilePath(file.getAbsolutePath());
-                    mainFrame.getCanvas().repaint();
+                    // Load from SparkPaint format using the new method
+                    canvas.loadFromLayeredFile(file);
                     mainFrame.setStatusMessage("Opened project with layers: " + file.getAbsolutePath());
                 } else {
                     // Regular image opening
-                    mainFrame.getCanvas().loadFromFile(file);
+                    canvas.loadFromFile(file);
                     mainFrame.setStatusMessage("Opened: " + file.getAbsolutePath());
                 }
                 mainFrame.pack(); // Adjust frame size to the loaded image

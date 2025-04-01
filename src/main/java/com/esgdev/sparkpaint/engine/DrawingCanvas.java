@@ -576,6 +576,29 @@ public class DrawingCanvas extends JPanel implements
         // Load layers and active layer index from file
         LayerState layerState = fileManager.loadFromFile(file);
 
+        // Apply common post-loading setup
+        return applyLoadedLayerState(layerState);
+    }
+
+    @Override
+    public LayerState loadFromLayeredFile(File file) throws IOException, ClassNotFoundException {
+        zoomFactor = 1.0f;
+        Layer.resetCounter();
+
+        // Load layers and active layer index from layered file
+        LayerState layerState = fileManager.loadFromLayeredFile(file);
+
+        // Apply common post-loading setup
+        return applyLoadedLayerState(layerState);
+    }
+
+    /**
+     * Applies the loaded layer state to the canvas and updates the UI.
+     *
+     * @param layerState The layer state to apply
+     * @return The same layer state that was passed in
+     */
+    private LayerState applyLoadedLayerState(LayerState layerState) {
         // Apply the loaded layers to the layer manager
         layerManager.setLayers(layerState.getLayers());
         layerManager.setCurrentLayerIndex(layerState.getCurrentLayerIndex());
@@ -588,6 +611,7 @@ public class DrawingCanvas extends JPanel implements
         revalidate();
         repaint();
         clearHistory();
+
         return layerState;
     }
 
