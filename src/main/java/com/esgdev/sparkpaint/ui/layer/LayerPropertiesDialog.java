@@ -8,6 +8,10 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.List;
 
+/**
+ * LayerPropertiesDialog allows users to adjust properties of a selected layer.
+ * It provides sliders for opacity, brightness, contrast, and saturation adjustments.
+ */
 public class LayerPropertiesDialog extends JDialog {
     private final DrawingCanvas canvas;
     private final Layer layer;
@@ -21,6 +25,12 @@ public class LayerPropertiesDialog extends JDialog {
     private final BufferedImage originalImage;
     private final BufferedImage previewImage;
 
+    /**
+     * Constructor for LayerPropertiesDialog.
+     *
+     * @param owner The parent frame
+     * @param canvas The drawing canvas containing the layer
+     */
     public LayerPropertiesDialog(Frame owner, DrawingCanvas canvas) {
         super(owner, "Adjust Layer: " + canvas.getLayers().get(canvas.getCurrentLayerIndex()).getName(), true);
         this.canvas = canvas;
@@ -165,6 +175,10 @@ public class LayerPropertiesDialog extends JDialog {
         return panel;
     }
 
+    /**
+     * Updates the preview image based on the current slider values.
+     * Uses the toolCanvas to show the preview.
+     */
     private void updatePreview() {
         // Get or create toolCanvas
         BufferedImage toolCanvas = canvas.getToolCanvas();
@@ -245,6 +259,9 @@ public class LayerPropertiesDialog extends JDialog {
         canvas.repaint();
     }
 
+    /**
+     * Resets all adjustments to their default values.
+     */
     private void resetAdjustments() {
         opacitySlider.setValue(100);
         brightnessSlider.setValue(0);
@@ -253,6 +270,10 @@ public class LayerPropertiesDialog extends JDialog {
         updatePreview();
     }
 
+    /**
+     * Applies the changes made in the dialog to the layer.
+     * Saves the current state to the undo stack before applying.
+     */
     private void applyChanges() {
         // Save current state to undo stack
         canvas.saveToUndoStack();
@@ -273,13 +294,21 @@ public class LayerPropertiesDialog extends JDialog {
         dispose();
     }
 
+    /**
+     * Cancels the changes made in the dialog and restores the original image.
+     */
     private void cancelChanges() {
         // Clear toolCanvas
         canvas.setToolCanvas(null);
         canvas.repaint();
     }
 
-    // Helper methods for adjusting the image
+    /**
+     * Adjusts the brightness of the image.
+     *
+     * @param image The image to adjust
+     * @param brightness The brightness value (-100 to 100)
+     */
     private void adjustBrightness(BufferedImage image, int brightness) {
         float factor = 1.0f + (brightness / 100.0f);
         applyRGBFilter(image, (r, g, b, a) -> {
@@ -290,6 +319,12 @@ public class LayerPropertiesDialog extends JDialog {
         });
     }
 
+    /**
+     * Adjusts the contrast of the image.
+     *
+     * @param image The image to adjust
+     * @param contrast The contrast value (-100 to 100)
+     */
     private void adjustContrast(BufferedImage image, int contrast) {
         float factor = (259f * (contrast + 255)) / (255f * (259 - contrast));
         applyRGBFilter(image, (r, g, b, a) -> {
@@ -300,6 +335,12 @@ public class LayerPropertiesDialog extends JDialog {
         });
     }
 
+    /**
+     * Adjusts the saturation of the image.
+     *
+     * @param image The image to adjust
+     * @param saturation The saturation value (-100 to 100)
+     */
     private void adjustSaturation(BufferedImage image, int saturation) {
         float factor = 1.0f + (saturation / 100.0f);
         applyRGBFilter(image, (r, g, b, a) -> {
@@ -310,6 +351,12 @@ public class LayerPropertiesDialog extends JDialog {
         });
     }
 
+    /**
+     * Adjusts the opacity of the image.
+     *
+     * @param image The image to adjust
+     * @param opacity The opacity value (0 to 100)
+     */
     private void adjustOpacity(BufferedImage image, int opacity) {
         float factor = opacity / 100.0f;
         applyRGBFilter(image, (r, g, b, a) -> {
@@ -321,6 +368,12 @@ public class LayerPropertiesDialog extends JDialog {
         });
     }
 
+    /**
+     * Applies a filter to each pixel of the image.
+     *
+     * @param image The image to filter
+     * @param filter The filter to apply
+     */
     private void applyRGBFilter(BufferedImage image, PixelFilter filter) {
         int width = image.getWidth();
         int height = image.getHeight();
@@ -356,6 +409,12 @@ public class LayerPropertiesDialog extends JDialog {
         return Math.max(min, Math.min(max, value));
     }
 
+    /**
+     * Creates a deep copy of the given image.
+     *
+     * @param source The source image to copy
+     * @return A new BufferedImage that is a deep copy of the source
+     */
     private BufferedImage deepCopyImage(BufferedImage source) {
         BufferedImage copy = new BufferedImage(
                 source.getWidth(), source.getHeight(),
