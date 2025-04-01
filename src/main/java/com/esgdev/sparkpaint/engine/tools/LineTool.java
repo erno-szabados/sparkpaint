@@ -145,27 +145,36 @@ public class LineTool implements DrawingTool {
             g2d.setComposite(AlphaComposite.SrcOver);
 
             // Apply rendering settings
-            g2d.setStroke(new BasicStroke(canvas.getLineThickness()));
             g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                     useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
 
-            // Set color based on mouse button
-            if (SwingUtilities.isLeftMouseButton(e)) {
-                g2d.setColor(canvas.getDrawingColor());
-            } else if (SwingUtilities.isRightMouseButton(e)) {
-                g2d.setColor(canvas.getFillColor());
-            }
-
             applySelectionClip(g2d, selection);
 
-            // Draw the preview line
+            // Define dash pattern for the preview
+            float[] dashPattern = {8.0f, 8.0f};
+            float lineThickness = canvas.getLineThickness();
+
+            // Draw white line first (wider)
+            g2d.setColor(Color.WHITE);
+            g2d.setStroke(new BasicStroke(lineThickness + 2,
+                    BasicStroke.CAP_BUTT,
+                    BasicStroke.JOIN_MITER,
+                    10.0f, dashPattern, 0.0f));
             g2d.drawLine(startPoint.x, startPoint.y, point.x, point.y);
+
+            // Draw black line on top (narrower, offset dash pattern)
+            g2d.setColor(Color.BLACK);
+            g2d.setStroke(new BasicStroke(lineThickness,
+                    BasicStroke.CAP_BUTT,
+                    BasicStroke.JOIN_MITER,
+                    10.0f, dashPattern, dashPattern[0]));
+            g2d.drawLine(startPoint.x, startPoint.y, point.x, point.y);
+
             g2d.dispose();
 
             canvas.repaint();
         }
     }
-
     @Override
     public void mouseReleased(MouseEvent e) {
         if (mode == LineMode.SINGLE_LINE) {
@@ -212,7 +221,13 @@ public class LineTool implements DrawingTool {
             }
 
             // Draw the final line
-            g2d.drawLine(startPoint.x, startPoint.y, point.x, point.y);
+            if (g2d.getColor().getAlpha() == 0) {
+                drawTransparentLine(selection != null ? selection.getContent() : canvas.getCurrentLayerImage(),
+                        g2d, startPoint, point, canvas.getLineThickness());
+            } else {
+                // Original drawing code
+                g2d.drawLine(startPoint.x, startPoint.y, point.x, point.y);
+            }
             g2d.dispose();
 
             // Reset state
@@ -347,7 +362,6 @@ public class LineTool implements DrawingTool {
 
         // Apply settings
         float lineThickness = canvas.getLineThickness();
-        g2d.setStroke(new BasicStroke(lineThickness));
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                 useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
 
@@ -359,6 +373,13 @@ public class LineTool implements DrawingTool {
         if (closePath && tempPoints.size() > 2) {
             tempPoints.add(tempPoints.get(0));
         }
+
+        // Get drawing and fill colors
+        Color drawingColor = canvas.getDrawingColor();
+        Color fillColor = canvas.getFillColor();
+
+        // Define dash pattern
+        float[] dashPattern = {8.0f, 8.0f};
 
         if (mode == LineMode.FILLED_CURVE) {
             // Calculate curve points
@@ -376,31 +397,75 @@ public class LineTool implements DrawingTool {
                 path.closePath();
 
                 // Fill with semi-transparent fill color for preview
-                Color fillColor = canvas.getFillColor();
-                g2d.setColor(new Color(fillColor.getRed(), fillColor.getGreen(),
-                        fillColor.getBlue(), 128));
+                if (fillColor.getAlpha() == 0) {
+                    g2d.setColor(new Color(255, 0, 0, 32));
+                } else {
+                    g2d.setColor(new Color(fillColor.getRed(), fillColor.getGreen(),
+                            fillColor.getBlue(), 128));
+                }
                 g2d.fill(path);
 
-                // Draw outline
-                g2d.setColor(canvas.getDrawingColor());
+                // Draw two-color dashed outline
+                // First pass: White dashes
+                g2d.setColor(Color.WHITE);
+                g2d.setStroke(new BasicStroke(lineThickness + 2,
+                        BasicStroke.CAP_BUTT,
+                        BasicStroke.JOIN_MITER,
+                        10.0f, dashPattern, 0.0f));
+                g2d.draw(path);
+
+                // Second pass: Black dashes with offset
+                g2d.setColor(Color.BLACK);
+                g2d.setStroke(new BasicStroke(lineThickness,
+                        BasicStroke.CAP_BUTT,
+                        BasicStroke.JOIN_MITER,
+                        10.0f, dashPattern, dashPattern[0]));
                 g2d.draw(path);
             }
         } else if (mode == LineMode.POLYLINE) {
-            // Draw straight line segments
-            g2d.setColor(canvas.getDrawingColor());
+            // Draw straight line segments with two-color dashed lines
             for (int i = 0; i < tempPoints.size() - 1; i++) {
                 Point p1 = tempPoints.get(i);
                 Point p2 = tempPoints.get(i + 1);
+
+                // First pass: White dashes
+                g2d.setColor(Color.WHITE);
+                g2d.setStroke(new BasicStroke(lineThickness + 2,
+                        BasicStroke.CAP_BUTT,
+                        BasicStroke.JOIN_MITER,
+                        10.0f, dashPattern, 0.0f));
+                g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
+
+                // Second pass: Black dashes with offset
+                g2d.setColor(Color.BLACK);
+                g2d.setStroke(new BasicStroke(lineThickness,
+                        BasicStroke.CAP_BUTT,
+                        BasicStroke.JOIN_MITER,
+                        10.0f, dashPattern, dashPattern[0]));
                 g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
             }
         } else {
             // Calculate and draw the curve
-            g2d.setColor(canvas.getDrawingColor());
             List<Point> curvePoints = calculateCurvePoints(tempPoints);
             if (curvePoints.size() > 1) {
                 for (int i = 0; i < curvePoints.size() - 1; i++) {
                     Point p1 = curvePoints.get(i);
                     Point p2 = curvePoints.get(i + 1);
+
+                    // First pass: White dashes
+                    g2d.setColor(Color.WHITE);
+                    g2d.setStroke(new BasicStroke(lineThickness + 2,
+                            BasicStroke.CAP_BUTT,
+                            BasicStroke.JOIN_MITER,
+                            10.0f, dashPattern, 0.0f));
+                    g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
+
+                    // Second pass: Black dashes with offset
+                    g2d.setColor(Color.BLACK);
+                    g2d.setStroke(new BasicStroke(lineThickness,
+                            BasicStroke.CAP_BUTT,
+                            BasicStroke.JOIN_MITER,
+                            10.0f, dashPattern, dashPattern[0]));
                     g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
                 }
             }
@@ -454,6 +519,7 @@ public class LineTool implements DrawingTool {
         Selection selection = canvas.getSelection();
         Graphics2D g2d;
         List<Point> adjustedPoints = new ArrayList<>(polylinePoints);
+        BufferedImage targetImage = selection != null ? selection.getContent() : canvas.getCurrentLayerImage();
 
         // Close the path for closed curve or filled curve mode
         boolean isClosed = mode == LineMode.CLOSED_CURVE || mode == LineMode.FILLED_CURVE;
@@ -472,8 +538,7 @@ public class LineTool implements DrawingTool {
                 adjustedPoints.set(i, new Point(p.x - bounds.x, p.y - bounds.y));
             }
         } else {
-            BufferedImage currentLayerImage = canvas.getCurrentLayerImage();
-            g2d = (Graphics2D) currentLayerImage.getGraphics();
+            g2d = (Graphics2D) targetImage.getGraphics();
         }
 
         // Apply settings
@@ -498,30 +563,64 @@ public class LineTool implements DrawingTool {
                 path.closePath();
 
                 // Fill with fill color
-                g2d.setColor(canvas.getFillColor());
-                g2d.fill(path);
+                if (canvas.getFillColor().getAlpha() == 0) {
+                    fillTransparentPath(targetImage, g2d, path);
+                } else {
+                    // Original fill code
+                    g2d.setColor(canvas.getFillColor());
+                    g2d.fill(path);
+                }
 
                 // Draw outline with drawing color
-                g2d.setColor(canvas.getDrawingColor());
-                g2d.draw(path);
+                Color drawingColor = canvas.getDrawingColor();
+                if (drawingColor.getAlpha() == 0) {
+                    // Handle transparent outline
+                    drawTransparentPath(targetImage, g2d, path, canvas.getLineThickness());
+                } else {
+                    // Original outline code
+                    g2d.setColor(drawingColor);
+                    g2d.draw(path);
+                }
             }
         } else if (mode == LineMode.POLYLINE) {
-            // Original polyline drawing code
-            g2d.setColor(canvas.getDrawingColor());
-            for (int i = 0; i < adjustedPoints.size() - 1; i++) {
-                Point p1 = adjustedPoints.get(i);
-                Point p2 = adjustedPoints.get(i + 1);
-                g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
+            // Check if using transparent color
+            if (canvas.getDrawingColor().getAlpha() == 0) {
+                // Draw transparent lines for each segment
+                for (int i = 0; i < adjustedPoints.size() - 1; i++) {
+                    Point p1 = adjustedPoints.get(i);
+                    Point p2 = adjustedPoints.get(i + 1);
+                    drawTransparentLine(targetImage, g2d, p1, p2, canvas.getLineThickness());
+                }
+            } else {
+                // Original polyline drawing code
+                g2d.setColor(canvas.getDrawingColor());
+                for (int i = 0; i < adjustedPoints.size() - 1; i++) {
+                    Point p1 = adjustedPoints.get(i);
+                    Point p2 = adjustedPoints.get(i + 1);
+                    g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
+                }
             }
         } else {
-            // Original curve drawing code
-            g2d.setColor(canvas.getDrawingColor());
+            // Curve or closed curve mode
             List<Point> curvePoints = calculateCurvePoints(adjustedPoints);
+
             if (curvePoints.size() > 1) {
-                for (int i = 0; i < curvePoints.size() - 1; i++) {
-                    Point p1 = curvePoints.get(i);
-                    Point p2 = curvePoints.get(i + 1);
-                    g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
+                // Check if using transparent color
+                if (canvas.getDrawingColor().getAlpha() == 0) {
+                    // Draw transparent lines for each curve segment
+                    for (int i = 0; i < curvePoints.size() - 1; i++) {
+                        Point p1 = curvePoints.get(i);
+                        Point p2 = curvePoints.get(i + 1);
+                        drawTransparentLine(targetImage, g2d, p1, p2, canvas.getLineThickness());
+                    }
+                } else {
+                    // Original curve drawing code
+                    g2d.setColor(canvas.getDrawingColor());
+                    for (int i = 0; i < curvePoints.size() - 1; i++) {
+                        Point p1 = curvePoints.get(i);
+                        Point p2 = curvePoints.get(i + 1);
+                        g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
+                    }
                 }
             }
         }
@@ -539,5 +638,131 @@ public class LineTool implements DrawingTool {
         polylinePoints.clear();
         canvas.setToolCanvas(null);
         canvas.repaint();
+    }
+
+    /**
+     * Special handling for transparent drawing - clears pixels along the line path
+     */
+    private void drawTransparentLine(BufferedImage image, Graphics2D g2d, Point p1, Point p2, float lineThickness) {
+        // Create a temporary mask image for the line
+        BufferedImage maskImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D maskG2d = maskImage.createGraphics();
+
+        // Set up the mask with the same stroke settings
+        maskG2d.setStroke(new BasicStroke(lineThickness));
+        maskG2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+
+        // Draw white line on mask
+        maskG2d.setColor(Color.WHITE);
+        maskG2d.drawLine(p1.x, p1.y, p2.x, p2.y);
+        maskG2d.dispose();
+
+        // Calculate bounds of affected area for efficiency
+        int lineWidth = (int) Math.ceil(lineThickness);
+        int minX = Math.max(0, Math.min(p1.x, p2.x) - lineWidth);
+        int minY = Math.max(0, Math.min(p1.y, p2.y) - lineWidth);
+        int maxX = Math.min(image.getWidth(), Math.max(p1.x, p2.x) + lineWidth);
+        int maxY = Math.min(image.getHeight(), Math.max(p1.y, p2.y) + lineWidth);
+
+        // Apply transparency to pixels where the mask is non-zero
+        for (int y = minY; y < maxY; y++) {
+            for (int x = minX; x < maxX; x++) {
+                // Check if this pixel is within clip region
+                if (g2d.getClip() == null || g2d.getClip().contains(x, y)) {
+                    int maskRGB = maskImage.getRGB(x, y);
+                    // Only process pixels where the mask is non-zero
+                    if ((maskRGB & 0xFF000000) != 0) {
+                        // Set full transparency (alpha = 0)
+                        int newRGB = image.getRGB(x, y) & 0x00FFFFFF;
+                        image.setRGB(x, y, newRGB);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Special handling for transparent path outlines - clears pixels along the path outline
+     */
+    private void drawTransparentPath(BufferedImage image, Graphics2D g2d, Path2D path, float lineThickness) {
+        // Create a temporary mask image for the path outline
+        BufferedImage maskImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D maskG2d = maskImage.createGraphics();
+
+        // Set up the mask with the same stroke settings
+        maskG2d.setStroke(new BasicStroke(lineThickness));
+        maskG2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+
+        // Draw white path outline on mask
+        maskG2d.setColor(Color.WHITE);
+        maskG2d.draw(path);
+        maskG2d.dispose();
+
+        // Get path bounds
+        Rectangle bounds = path.getBounds();
+        int padding = (int) Math.ceil(lineThickness);
+        int minX = Math.max(0, bounds.x - padding);
+        int minY = Math.max(0, bounds.y - padding);
+        int maxX = Math.min(image.getWidth(), bounds.x + bounds.width + padding);
+        int maxY = Math.min(image.getHeight(), bounds.y + bounds.height + padding);
+
+        // Apply transparency to pixels where the mask is non-zero
+        for (int y = minY; y < maxY; y++) {
+            for (int x = minX; x < maxX; x++) {
+                // Check if this pixel is within clip region
+                if (g2d.getClip() == null || g2d.getClip().contains(x, y)) {
+                    int maskRGB = maskImage.getRGB(x, y);
+                    // Only process pixels where the mask is non-zero
+                    if ((maskRGB & 0xFF000000) != 0) {
+                        // Set full transparency (alpha = 0)
+                        int newRGB = image.getRGB(x, y) & 0x00FFFFFF;
+                        image.setRGB(x, y, newRGB);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Special handling for transparent fill - clears pixels inside the path
+     */
+    private void fillTransparentPath(BufferedImage image, Graphics2D g2d, Path2D path) {
+        // Create a temporary mask image for the path
+        BufferedImage maskImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D maskG2d = maskImage.createGraphics();
+
+        // Set up the mask with same settings
+        maskG2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+
+        // Fill the path with white on the mask
+        maskG2d.setColor(Color.WHITE);
+        maskG2d.fill(path);
+        maskG2d.dispose();
+
+        // Get path bounds
+        Rectangle bounds = path.getBounds();
+        int minX = Math.max(0, bounds.x);
+        int minY = Math.max(0, bounds.y);
+        int maxX = Math.min(image.getWidth(), bounds.x + bounds.width);
+        int maxY = Math.min(image.getHeight(), bounds.y + bounds.height);
+
+        // Apply transparency to pixels where the mask is non-zero
+        for (int y = minY; y < maxY; y++) {
+            for (int x = minX; x < maxX; x++) {
+                // Check if this pixel is within clip region
+                if (g2d.getClip() == null || g2d.getClip().contains(x, y)) {
+                    int maskRGB = maskImage.getRGB(x, y);
+                    // Only process pixels where the mask is non-zero
+                    if ((maskRGB & 0xFF000000) != 0) {
+                        // Set full transparency (alpha = 0)
+                        int newRGB = image.getRGB(x, y) & 0x00FFFFFF;
+                        image.setRGB(x, y, newRGB);
+                    }
+                }
+            }
+        }
     }
 }
