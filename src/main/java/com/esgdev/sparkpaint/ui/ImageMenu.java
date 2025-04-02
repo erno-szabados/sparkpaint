@@ -20,6 +20,7 @@ import java.util.List;
 public class ImageMenu extends JMenu {
     private final DrawingCanvas canvas;
     private final MainFrame mainFrame;
+    private PreviewDialog previewDialog;
 
     /**
      * Constructor for ImageMenu.
@@ -69,6 +70,16 @@ public class ImageMenu extends JMenu {
         paletteFromImageItem.setMnemonic('P');
         paletteFromImageItem.addActionListener(this::handlePaletteFromImage);
         add(paletteFromImageItem);
+
+        // Inside ImageMenu class, after other menu items
+        addSeparator();
+
+        // Preview menu item
+        JMenuItem previewItem = new JMenuItem("Preview Window");
+        previewItem.setMnemonic('P');
+        previewItem.addActionListener(this::handlePreview);
+        previewItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_P, InputEvent.CTRL_MASK));
+        add(previewItem);
     }
 
     private void handlePaletteFromImage(ActionEvent e) {
@@ -348,5 +359,14 @@ public class ImageMenu extends JMenu {
         int newWidth = originalWidth * widthScale / 100;
         int newHeight = originalHeight * heightScale / 100;
         label.setText(String.format("New: %dx%d", newWidth, newHeight));
+    }
+
+    private void handlePreview(ActionEvent e) {
+        if (previewDialog == null) {
+            previewDialog = new PreviewDialog(mainFrame, canvas, mainFrame.getCanvasScrollPane());
+        }
+
+        previewDialog.setVisible(true);
+        previewDialog.updatePreview();
     }
 }
