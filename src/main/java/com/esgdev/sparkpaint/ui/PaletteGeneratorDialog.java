@@ -63,7 +63,6 @@ public class PaletteGeneratorDialog extends JDialog implements PaletteGenerator.
         palettePreviewPanel = new JPanel();
         palettePreviewPanel.setBorder(BorderFactory.createTitledBorder("Generated Palette"));
         palettePreviewPanel.setLayout(new GridBagLayout());
-        palettePreviewPanel.setPreferredSize(new Dimension(0, 160));
 
         // Button panel
         JPanel buttonPanel = new JPanel();
@@ -86,7 +85,9 @@ public class PaletteGeneratorDialog extends JDialog implements PaletteGenerator.
         topPanel.add(progressBar, BorderLayout.SOUTH);
 
         add(topPanel, BorderLayout.NORTH);
-        add(new JScrollPane(palettePreviewPanel), BorderLayout.CENTER);
+        JScrollPane scrollPane = new JScrollPane(palettePreviewPanel);
+        scrollPane.setPreferredSize(new Dimension(0, 160));
+        add(scrollPane, BorderLayout.CENTER);
         add(buttonPanel, BorderLayout.SOUTH);
 
         pack();
