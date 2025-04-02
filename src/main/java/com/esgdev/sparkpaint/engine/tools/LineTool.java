@@ -17,7 +17,7 @@ public class LineTool implements DrawingTool {
     private final Cursor cursor = Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR);
     private Point startPoint;
     private boolean useAntiAliasing = true;
-    private List<Point> polylinePoints;
+    private final List<Point> polylinePoints;
     private float curveTension = 0.5f; // Default tension (0.5 is standard Catmull-Rom)
     private LineMode mode = LineMode.SINGLE_LINE;
 
@@ -150,28 +150,38 @@ public class LineTool implements DrawingTool {
 
             applySelectionClip(g2d, selection);
 
-            // Define dash pattern for the preview
-            float[] dashPattern = {8.0f, 8.0f};
+            // Get drawing color and check if it's transparent
+            Color drawingColor = canvas.getDrawingColor();
+            boolean isTransparentLine = drawingColor.getAlpha() == 0;
             float lineThickness = canvas.getLineThickness();
 
-            // Draw white line first (wider)
-            g2d.setColor(Color.WHITE);
-            g2d.setStroke(new BasicStroke(lineThickness + 2,
-                    BasicStroke.CAP_BUTT,
-                    BasicStroke.JOIN_MITER,
-                    10.0f, dashPattern, 0.0f));
-            g2d.drawLine(startPoint.x, startPoint.y, point.x, point.y);
+            if (isTransparentLine) {
+                // Define dash pattern for transparent preview
+                float[] dashPattern = {8.0f, 8.0f};
 
-            // Draw black line on top (narrower, offset dash pattern)
-            g2d.setColor(Color.BLACK);
-            g2d.setStroke(new BasicStroke(lineThickness,
-                    BasicStroke.CAP_BUTT,
-                    BasicStroke.JOIN_MITER,
-                    10.0f, dashPattern, dashPattern[0]));
-            g2d.drawLine(startPoint.x, startPoint.y, point.x, point.y);
+                // Draw white line first (wider)
+                g2d.setColor(Color.WHITE);
+                g2d.setStroke(new BasicStroke(lineThickness + 2,
+                        BasicStroke.CAP_BUTT,
+                        BasicStroke.JOIN_MITER,
+                        10.0f, dashPattern, 0.0f));
+                g2d.drawLine(startPoint.x, startPoint.y, point.x, point.y);
+
+                // Draw black line on top (narrower, offset dash pattern)
+                g2d.setColor(Color.BLACK);
+                g2d.setStroke(new BasicStroke(lineThickness,
+                        BasicStroke.CAP_BUTT,
+                        BasicStroke.JOIN_MITER,
+                        10.0f, dashPattern, dashPattern[0]));
+                g2d.drawLine(startPoint.x, startPoint.y, point.x, point.y);
+            } else {
+                // Non-transparent color - draw solid line with actual drawing color
+                g2d.setColor(drawingColor);
+                g2d.setStroke(new BasicStroke(lineThickness));
+                g2d.drawLine(startPoint.x, startPoint.y, point.x, point.y);
+            }
 
             g2d.dispose();
-
             canvas.repaint();
         }
     }
@@ -386,11 +396,17 @@ public class LineTool implements DrawingTool {
 
         // Get drawing and fill colors
         Color drawingColor = canvas.getDrawingColor();
+        boolean isTransparentLine = drawingColor.getAlpha() == 0;
         Color fillColor = canvas.getFillColor();
+        boolean isTransparentFill = fillColor.getAlpha() == 0;
 
-        // Define dash pattern
+        // Define dash pattern for transparent lines
         float[] dashPattern = {8.0f, 8.0f};
 
+        BasicStroke basicStroke = new BasicStroke(lineThickness + 2,
+                BasicStroke.CAP_BUTT,
+                BasicStroke.JOIN_MITER,
+                10.0f, dashPattern, 0.0f);
         if (mode == LineMode.FILLED_CURVE) {
             // Calculate curve points
             List<Point> curvePoints = calculateCurvePoints(tempPoints);
@@ -407,67 +423,47 @@ public class LineTool implements DrawingTool {
                 path.closePath();
 
                 // Fill with semi-transparent fill color for preview
-                if (fillColor.getAlpha() == 0) {
-                    g2d.setColor(new Color(255, 0, 0, 32));
+                if (isTransparentFill) {
+                    g2d.setColor(new Color(255, 0, 0, 32)); // Visual indicator for transparent fill
                 } else {
                     g2d.setColor(new Color(fillColor.getRed(), fillColor.getGreen(),
-                            fillColor.getBlue(), 128));
+                            fillColor.getBlue(), 128)); // Semi-transparent preview
                 }
                 g2d.fill(path);
 
-                // Draw two-color dashed outline
-                // First pass: White dashes
-                g2d.setColor(Color.WHITE);
-                g2d.setStroke(new BasicStroke(lineThickness + 2,
-                        BasicStroke.CAP_BUTT,
-                        BasicStroke.JOIN_MITER,
-                        10.0f, dashPattern, 0.0f));
-                g2d.draw(path);
+                // Draw outline
+                if (isTransparentLine) {
+                    // Two-color dashed outline for transparent color
+                    // First pass: White dashes
+                    g2d.setColor(Color.WHITE);
+                    g2d.setStroke(basicStroke);
+                    g2d.draw(path);
 
-                // Second pass: Black dashes with offset
-                g2d.setColor(Color.BLACK);
-                g2d.setStroke(new BasicStroke(lineThickness,
-                        BasicStroke.CAP_BUTT,
-                        BasicStroke.JOIN_MITER,
-                        10.0f, dashPattern, dashPattern[0]));
-                g2d.draw(path);
+                    // Second pass: Black dashes with offset
+                    g2d.setColor(Color.BLACK);
+                    g2d.setStroke(new BasicStroke(lineThickness,
+                            BasicStroke.CAP_BUTT,
+                            BasicStroke.JOIN_MITER,
+                            10.0f, dashPattern, dashPattern[0]));
+                    g2d.draw(path);
+                } else {
+                    // Solid outline with actual drawing color for non-transparent
+                    g2d.setColor(drawingColor);
+                    g2d.setStroke(new BasicStroke(lineThickness));
+                    g2d.draw(path);
+                }
             }
         } else if (mode == LineMode.POLYLINE) {
-            // Draw straight line segments with two-color dashed lines
+            // Draw straight line segments
             for (int i = 0; i < tempPoints.size() - 1; i++) {
                 Point p1 = tempPoints.get(i);
                 Point p2 = tempPoints.get(i + 1);
 
-                // First pass: White dashes
-                g2d.setColor(Color.WHITE);
-                g2d.setStroke(new BasicStroke(lineThickness + 2,
-                        BasicStroke.CAP_BUTT,
-                        BasicStroke.JOIN_MITER,
-                        10.0f, dashPattern, 0.0f));
-                g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
-
-                // Second pass: Black dashes with offset
-                g2d.setColor(Color.BLACK);
-                g2d.setStroke(new BasicStroke(lineThickness,
-                        BasicStroke.CAP_BUTT,
-                        BasicStroke.JOIN_MITER,
-                        10.0f, dashPattern, dashPattern[0]));
-                g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
-            }
-        } else {
-            // Calculate and draw the curve
-            List<Point> curvePoints = calculateCurvePoints(tempPoints);
-            if (curvePoints.size() > 1) {
-                for (int i = 0; i < curvePoints.size() - 1; i++) {
-                    Point p1 = curvePoints.get(i);
-                    Point p2 = curvePoints.get(i + 1);
-
+                if (isTransparentLine) {
+                    // Two-color dashed lines for transparent
                     // First pass: White dashes
                     g2d.setColor(Color.WHITE);
-                    g2d.setStroke(new BasicStroke(lineThickness + 2,
-                            BasicStroke.CAP_BUTT,
-                            BasicStroke.JOIN_MITER,
-                            10.0f, dashPattern, 0.0f));
+                    g2d.setStroke(basicStroke);
                     g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
 
                     // Second pass: Black dashes with offset
@@ -477,6 +473,46 @@ public class LineTool implements DrawingTool {
                             BasicStroke.JOIN_MITER,
                             10.0f, dashPattern, dashPattern[0]));
                     g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
+                } else {
+                    // Solid line with actual drawing color
+                    g2d.setColor(drawingColor);
+                    g2d.setStroke(new BasicStroke(lineThickness));
+                    g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
+                }
+            }
+        } else {
+            // Calculate and draw the curve
+            List<Point> curvePoints = calculateCurvePoints(tempPoints);
+            if (curvePoints.size() > 1) {
+                if (isTransparentLine) {
+                    // Two-color dashed lines for transparent
+                    for (int i = 0; i < curvePoints.size() - 1; i++) {
+                        Point p1 = curvePoints.get(i);
+                        Point p2 = curvePoints.get(i + 1);
+
+                        // First pass: White dashes
+                        g2d.setColor(Color.WHITE);
+                        g2d.setStroke(basicStroke);
+                        g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
+
+                        // Second pass: Black dashes with offset
+                        g2d.setColor(Color.BLACK);
+                        g2d.setStroke(new BasicStroke(lineThickness,
+                                BasicStroke.CAP_BUTT,
+                                BasicStroke.JOIN_MITER,
+                                10.0f, dashPattern, dashPattern[0]));
+                        g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
+                    }
+                } else {
+                    // Solid line with actual drawing color
+                    g2d.setColor(drawingColor);
+                    g2d.setStroke(new BasicStroke(lineThickness));
+
+                    for (int i = 0; i < curvePoints.size() - 1; i++) {
+                        Point p1 = curvePoints.get(i);
+                        Point p2 = curvePoints.get(i + 1);
+                        g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
+                    }
                 }
             }
         }
