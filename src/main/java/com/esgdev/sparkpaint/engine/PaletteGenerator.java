@@ -8,25 +8,28 @@ import java.util.*;
 import java.util.List;
 
 /**
- * Generates color palettes from images using k-means clustering.
+ * Generates color palettes from images using k-means clustering and color scaling.
  * This class analyzes the colors in an image and creates a palette of
  * representative colors that characterize the image.
  */
 public class PaletteGenerator {
     private static final int MAX_PIXELS_TO_SAMPLE = 10000;
     private static final int MAX_ITERATIONS = 20;
+    private static final int BASE_CENTROIDS = 8; // Fixed number of base centroids
     private static final double CONVERGENCE_THRESHOLD = 0.01;
     private PaletteGenerationProgressListener progressListener;
 
-    public enum ColorSortMethod {
-        NONE,       // No sorting, use cluster order
-        HUE,        // Sort by hue (rainbow order)
-        LUMINANCE,  // Sort by brightness/luminance
-        SATURATION  // Sort by color saturation
+    /**
+     * Style options for palette generation
+     */
+    public enum PaletteStyle {
+        BALANCED,  // Default with varied saturation and brightness
+        VIVID,     // Higher brightness and saturation
+        PASTEL,    // Higher brightness, lower saturation
+        MUTED,     // Lower brightness, lower saturation
+        DEEP,      // Lower brightness, higher saturation
+        PLAYFUL    // Wide range of variations
     }
-
-    private ColorSortMethod sortMethod = ColorSortMethod.HUE; // Default sort method
-
 
     public interface PaletteGenerationProgressListener {
         void onProgressUpdate(int progress, int max);
@@ -37,33 +40,20 @@ public class PaletteGenerator {
     }
 
     /**
-     * Sets the color sorting method for generated palettes
-     *
-     * @param method The sorting method to use
-     */
-    public void setSortMethod(ColorSortMethod method) {
-        this.sortMethod = method;
-    }
-
-    /**
-     * Gets the current color sorting method
-     *
-     * @return The current sorting method
-     */
-    public ColorSortMethod getSortMethod() {
-        return sortMethod;
-    }
-
-    /**
      * Creates a color palette from all visible layers in the canvas.
      *
      * @param canvas The drawing canvas containing the layers
-     * @param k The number of colors to generate in the palette
+     * @param k      The number of colors to generate in the palette
      * @return A list of representative colors
      */
-    public List<Color> generatePaletteFromCanvas(DrawingCanvas canvas, int k) {
+    public List<Color> generatePaletteFromCanvas(DrawingCanvas canvas, int k, PaletteStyle style) {
         BufferedImage flattenedImage = createFlattenedImage(canvas);
-        return generatePalette(flattenedImage, k);
+        return generatePalette(flattenedImage, k, style);
+    }
+
+    // Add an overload with default style
+    public List<Color> generatePaletteFromCanvas(DrawingCanvas canvas, int k) {
+        return generatePaletteFromCanvas(canvas, k, PaletteStyle.BALANCED);
     }
 
     /**
@@ -105,13 +95,14 @@ public class PaletteGenerator {
     }
 
     /**
-     * Generates a palette of representative colors from an image using k-means clustering.
+     * Generates a palette of representative colors from an image using k-means clustering
+     * followed by color scaling.
      *
      * @param image The image to analyze
-     * @param k The number of colors to generate
-     * @return A list of representative colors, sorted according to the current sort method
+     * @param k     The number of colors to generate
+     * @return A list of representative colors, sorted by hue
      */
-    public List<Color> generatePalette(BufferedImage image, int k) {
+    public List<Color> generatePalette(BufferedImage image, int k, PaletteStyle style) {
         if (image == null) {
             return Collections.emptyList();
         }
@@ -122,43 +113,261 @@ public class PaletteGenerator {
             return Collections.emptyList();
         }
 
-        // Perform k-means clustering to find representative colors
-        List<Color> centroids = kMeansClustering(imageColors, k);
+        // Step 1: Find base centroids (always 8)
+        List<Color> baseCentroids = kMeansClustering(imageColors, BASE_CENTROIDS);
 
-        // Sort the colors if a sort method is specified
-        if (sortMethod != ColorSortMethod.NONE) {
-            return sortColors(centroids, sortMethod);
-        }
-
-        return centroids;
+        // Step 2: Generate scaled variations to reach the desired palette size
+        return generateScaledVariations(baseCentroids, k, style);
     }
 
     /**
-     * Sorts a list of colors according to the specified sort method
+     * Generates variations of base colors by scaling saturation and brightness.
      *
-     * @param colors The colors to sort
-     * @param method The sorting method to use
-     * @return A new list containing the sorted colors
+     * @param baseColors The base colors extracted from clustering
+     * @param targetSize The desired palette size
+     * @return An expanded palette with variations
      */
-    private List<Color> sortColors(List<Color> colors, ColorSortMethod method) {
-        List<Color> sorted = new ArrayList<>(colors);
+    private List<Color> generateScaledVariations(List<Color> baseColors, int targetSize, PaletteStyle style) {
+        // Sort base colors by hue before equalizing
+        List<Color> sortedBaseColors = sortColorsByHue(baseColors);
+        List<Color> equalizedBaseColors = equalizeColorAttributes(sortedBaseColors);
+        List<Color> filteredBaseColors = filterSimilarColors(equalizedBaseColors);
+        List<Color> expandedPalette = new ArrayList<>();
 
-        switch (method) {
-            case HUE:
-                sorted.sort(Comparator.comparingDouble(this::getHue));
+        // Calculate variations needed per base color
+        int variationsPerBase = (int) Math.ceil((double) targetSize / filteredBaseColors.size());
+
+        // Select variation factors based on palette style
+        List<float[]> variationFactors = getVariationFactorsByStyle(style);
+
+        // Generate variations for each base color
+        for (Color baseColor : filteredBaseColors) {
+            if (expandedPalette.size() >= targetSize) break;
+
+            // Generate variations for this base color
+            List<Color> colorVariations = new ArrayList<>();
+            for (float[] factors : variationFactors) {
+                Color variation = adjustColorSaturationBrightness(baseColor, factors[0], factors[1]);
+                colorVariations.add(variation);
+            }
+
+            // Sort variations by brightness
+            colorVariations.sort(Comparator.comparingDouble(this::getBrightness));
+
+            // Add variations to palette
+            int variationsToAdd = Math.min(variationsPerBase, targetSize - expandedPalette.size());
+            int step = Math.max(1, colorVariations.size() / variationsToAdd);
+            for (int i = 0; i < variationsToAdd && i * step < colorVariations.size(); i++) {
+                expandedPalette.add(colorVariations.get(i * step));
+            }
+        }
+
+        // Add extreme variations if needed
+        if (expandedPalette.size() < targetSize) {
+            float[] extremeFactors = getExtremeFactorsByStyle(style);
+            for (Color baseColor : filteredBaseColors) {
+                if (expandedPalette.size() >= targetSize) break;
+                expandedPalette.add(adjustColorSaturationBrightness(baseColor, extremeFactors[0], extremeFactors[1]));
+            }
+        }
+
+        return expandedPalette.subList(0, Math.min(targetSize, expandedPalette.size()));
+    }
+
+    /**
+     * Gets variation factors appropriate for the selected palette style
+     */
+    private List<float[]> getVariationFactorsByStyle(PaletteStyle style) {
+        List<float[]> factors = new ArrayList<>();
+
+        switch (style) {
+            case VIVID:
+                // Higher brightness and saturation
+                factors.add(new float[]{1.2f, 1.0f});   // More saturated
+                factors.add(new float[]{1.3f, 1.1f});   // More saturated, brighter
+                factors.add(new float[]{1.0f, 1.2f});   // Original saturation, brighter
+                factors.add(new float[]{1.4f, 1.0f});   // Even more saturated
                 break;
-            case LUMINANCE:
-                sorted.sort(Comparator.comparingDouble(this::getLuminance));
+
+            case PASTEL:
+                // Higher brightness, lower saturation
+                factors.add(new float[]{0.6f, 1.2f});   // Desaturated, brighter
+                factors.add(new float[]{0.5f, 1.3f});   // More desaturated, brighter
+                factors.add(new float[]{0.7f, 1.1f});   // Slightly desaturated, slightly brighter
+                factors.add(new float[]{0.4f, 1.2f});   // Very desaturated, brighter
                 break;
-            case SATURATION:
-                sorted.sort(Comparator.comparingDouble(this::getSaturation));
+
+            case MUTED:
+                // Lower brightness and saturation
+                factors.add(new float[]{0.7f, 0.9f});   // Desaturated, slightly darker
+                factors.add(new float[]{0.6f, 0.8f});   // More desaturated, darker
+                factors.add(new float[]{0.8f, 0.85f});  // Slightly desaturated, darker
+                factors.add(new float[]{0.5f, 0.75f});  // Very desaturated, very dark
                 break;
-            case NONE:
+
+            case DEEP:
+                // Lower brightness, higher saturation
+                factors.add(new float[]{1.2f, 0.8f});   // More saturated, darker
+                factors.add(new float[]{1.3f, 0.7f});   // Even more saturated, darker
+                factors.add(new float[]{1.1f, 0.9f});   // Slightly more saturated, slightly darker
+                factors.add(new float[]{1.4f, 0.75f});  // Very saturated, darker
+                break;
+
+            case PLAYFUL:
+                // Wide range of variations
+                factors.add(new float[]{0.5f, 1.3f});   // Desaturated, brighter
+                factors.add(new float[]{1.3f, 0.7f});   // More saturated, darker
+                factors.add(new float[]{0.7f, 1.1f});   // Slightly desaturated, slightly brighter
+                factors.add(new float[]{1.2f, 1.2f});   // More saturated, brighter
+                factors.add(new float[]{0.6f, 0.8f});   // More desaturated, darker
+                factors.add(new float[]{1.4f, 1.0f});   // Very saturated, original brightness
+                break;
+
+            case BALANCED:
             default:
-                // No sorting
+                // Default balance of variations
+                factors.add(new float[]{1.0f, 0.8f});   // Original saturation, darker
+                factors.add(new float[]{0.7f, 0.9f});   // Desaturated, slightly darker
+                factors.add(new float[]{1.3f, 0.9f});   // More saturated, slightly darker
+                factors.add(new float[]{0.7f, 1.2f});   // Desaturated, brighter
+                factors.add(new float[]{1.0f, 1.2f});   // Original saturation, brighter
+                factors.add(new float[]{1.3f, 1.1f});   // More saturated, slightly brighter
                 break;
         }
 
+        return factors;
+    }
+
+    /**
+     * Gets extreme variation factors for when additional colors are needed
+     */
+    private float[] getExtremeFactorsByStyle(PaletteStyle style) {
+        switch (style) {
+            case VIVID:
+                return new float[]{1.5f, 1.3f};  // Very saturated, very bright
+            case PASTEL:
+                return new float[]{0.3f, 1.4f};  // Very desaturated, very bright
+            case MUTED:
+                return new float[]{0.4f, 0.6f};  // Very desaturated, very dark
+            case DEEP:
+                return new float[]{1.5f, 0.6f};  // Very saturated, very dark
+            case PLAYFUL:
+                return new float[]{1.6f, 1.4f};  // Extremely saturated and bright
+            case BALANCED:
+            default:
+                return new float[]{0.5f, 1.5f};  // Default extreme variation
+        }
+    }
+
+    /**
+     * Gets the brightness value of a color (0-1)
+     */
+    private double getBrightness(Color color) {
+        float[] hsb = new float[3];
+        Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), hsb);
+        return hsb[2];
+    }
+
+    /**
+     * Equalizes color attributes across the base colors for more uniform scaling.
+     *
+     * @param colors Colors to equalize
+     * @return A new list with equalized colors
+     */
+    private List<Color> equalizeColorAttributes(List<Color> colors) {
+        if (colors.isEmpty()) return new ArrayList<>();
+
+        // Calculate average saturation and brightness
+        float avgSaturation = 0;
+        float avgBrightness = 0;
+
+        for (Color color : colors) {
+            float[] hsb = Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), null);
+            avgSaturation += hsb[1];
+            avgBrightness += hsb[2];
+        }
+
+        avgSaturation /= colors.size();
+        avgBrightness /= colors.size();
+
+        // Target saturation and brightness (slightly enhanced)
+        float targetSaturation = Math.min(1.0f, avgSaturation * 1.1f);
+        float targetBrightness = Math.min(1.0f, avgBrightness * 1.05f);
+
+        // Create equalized colors
+        List<Color> equalizedColors = new ArrayList<>();
+        for (Color color : colors) {
+            float[] hsb = Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), null);
+
+            // Partially equalize saturation and brightness (keep some of the original characteristics)
+            float newSat = hsb[1] * 0.7f + targetSaturation * 0.3f;
+            float newBri = hsb[2] * 0.7f + targetBrightness * 0.3f;
+
+            equalizedColors.add(Color.getHSBColor(hsb[0], newSat, newBri));
+        }
+
+        return equalizedColors;
+    }
+
+    /**
+     * Filters base colors to remove very similar ones and ensure greater diversity.
+     *
+     * @param colors The colors to filter
+     * @return A filtered list with similar colors removed
+     */
+    private List<Color> filterSimilarColors(List<Color> colors) {
+        if (colors.size() <= 1) return new ArrayList<>(colors);
+
+        List<Color> filtered = new ArrayList<>();
+        filtered.add(colors.get(0)); // Always include the first color
+
+        // Similarity threshold - adjust as needed
+        double similarityThreshold = 15.0;
+
+        // Check each color against already filtered colors
+        for (int i = 1; i < colors.size(); i++) {
+            Color candidate = colors.get(i);
+            boolean isSimilar = false;
+
+            for (Color existingColor : filtered) {
+                if (colorDistance(candidate, existingColor) < similarityThreshold) {
+                    isSimilar = true;
+                    break;
+                }
+            }
+
+            if (!isSimilar) {
+                filtered.add(candidate);
+            }
+        }
+
+        return filtered;
+    }
+
+    /**
+     * Adjusts the saturation and brightness of a color.
+     *
+     * @param color            The original color
+     * @param saturationFactor Factor to adjust saturation (>1 increases, <1 decreases)
+     * @param brightnessFactor Factor to adjust brightness (>1 increases, <1 decreases)
+     * @return The adjusted color
+     */
+    private Color adjustColorSaturationBrightness(Color color, float saturationFactor, float brightnessFactor) {
+        float[] hsb = Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), null);
+        hsb[1] = Math.min(1.0f, hsb[1] * saturationFactor); // Scale saturation
+        hsb[2] = Math.min(1.0f, hsb[2] * brightnessFactor); // Scale brightness
+        return Color.getHSBColor(hsb[0], hsb[1], hsb[2]);
+    }
+
+    /**
+     * Sorts colors by hue (rainbow order)
+     *
+     * @param colors The colors to sort
+     * @return A new list containing the sorted colors
+     */
+    private List<Color> sortColorsByHue(List<Color> colors) {
+        List<Color> sorted = new ArrayList<>(colors);
+        sorted.sort(Comparator.comparingDouble(this::getHue));
         return sorted;
     }
 
@@ -169,23 +378,6 @@ public class PaletteGenerator {
         float[] hsb = new float[3];
         Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), hsb);
         return hsb[0] * 360;
-    }
-
-    /**
-     * Gets the luminance value of a color (0-1)
-     * Using the perceptual luminance formula: 0.299*R + 0.587*G + 0.114*B
-     */
-    private double getLuminance(Color color) {
-        return (0.299 * color.getRed() + 0.587 * color.getGreen() + 0.114 * color.getBlue()) / 255.0;
-    }
-
-    /**
-     * Gets the saturation value of a color (0-1)
-     */
-    private float getSaturation(Color color) {
-        float[] hsb = new float[3];
-        Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), hsb);
-        return hsb[1];
     }
 
     /**
@@ -221,7 +413,7 @@ public class PaletteGenerator {
      * Performs k-means clustering on a list of colors to find representative colors.
      *
      * @param colors The colors to cluster
-     * @param k The number of clusters (palette size)
+     * @param k      The number of clusters (palette size)
      * @return A list of representative colors (centroids)
      */
     private List<Color> kMeansClustering(List<Color> colors, int k) {
@@ -231,6 +423,9 @@ public class PaletteGenerator {
 
         // Initialize centroids randomly from input colors
         List<Color> centroids = initializeCentroids(colors, k);
+
+        // Create a map to store cluster sizes (for weighting)
+        Map<Color, Integer> clusterSizes = new HashMap<>();
 
         for (int iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
             // Report progress
@@ -258,11 +453,13 @@ public class PaletteGenerator {
                 if (clusterColors.isEmpty()) {
                     // Keep the old centroid if the cluster is empty
                     newCentroids.add(oldCentroid);
+                    clusterSizes.put(oldCentroid, 0);
                     continue;
                 }
 
                 Color newCentroid = calculateCentroid(clusterColors);
                 newCentroids.add(newCentroid);
+                clusterSizes.put(newCentroid, clusterColors.size());
 
                 // Check for convergence
                 double distance = colorDistance(oldCentroid, newCentroid);
@@ -289,41 +486,72 @@ public class PaletteGenerator {
         return centroids;
     }
 
+    /**
+     * Initializes centroids using the k-means++ algorithm.
+     * This provides better initial centroids than random selection.
+     *
+     * @param colors The set of colors to choose centroids from
+     * @param k      The number of centroids to initialize
+     * @return A list of initialized centroids
+     */
     private List<Color> initializeCentroids(List<Color> colors, int k) {
         List<Color> centroids = new ArrayList<>();
         Random random = new Random();
 
-        // Pick first centroid randomly
+        // Select first centroid randomly
         if (!colors.isEmpty()) {
             centroids.add(colors.get(random.nextInt(colors.size())));
         }
 
-        // Pick remaining centroids using maximin approach (maximizing minimum distance)
+        // Select remaining centroids using k-means++ approach
         while (centroids.size() < k && centroids.size() < colors.size()) {
-            Color farthestColor = null;
-            double maxMinDistance = -1;
+            // Array to hold the squared distances
+            double[] distances = new double[colors.size()];
+            double totalDistance = 0;
 
-            for (Color color : colors) {
-                if (centroids.contains(color)) continue;
-
-                // Find minimum distance to any existing centroid
-                double minDistance = Double.MAX_VALUE;
-                for (Color centroid : centroids) {
-                    double distance = colorDistance(color, centroid);
-                    minDistance = Math.min(minDistance, distance);
+            // Calculate squared distance from each point to nearest centroid
+            for (int i = 0; i < colors.size(); i++) {
+                Color color = colors.get(i);
+                // Skip if already a centroid
+                if (centroids.contains(color)) {
+                    distances[i] = 0;
+                    continue;
                 }
 
-                // Keep track of color with maximum minimum distance
-                if (minDistance > maxMinDistance) {
-                    maxMinDistance = minDistance;
-                    farthestColor = color;
+                // Find minimum squared distance to any existing centroid
+                double minDist = Double.MAX_VALUE;
+                for (Color centroid : centroids) {
+                    double dist = colorDistance(color, centroid);
+                    minDist = Math.min(minDist, dist * dist);
+                }
+
+                distances[i] = minDist;
+                totalDistance += minDist;
+            }
+
+            // If all distances are zero, break
+            if (totalDistance <= 0.0001) {
+                break;
+            }
+
+            // Select next centroid with probability proportional to squared distance
+            double threshold = random.nextDouble() * totalDistance;
+            double cumulativeDistance = 0;
+            int selectedIndex = -1;
+
+            for (int i = 0; i < distances.length; i++) {
+                cumulativeDistance += distances[i];
+                if (cumulativeDistance >= threshold) {
+                    selectedIndex = i;
+                    break;
                 }
             }
 
-            if (farthestColor != null) {
-                centroids.add(farthestColor);
+            if (selectedIndex >= 0) {
+                centroids.add(colors.get(selectedIndex));
             } else {
-                break; // No more colors to add
+                // Fallback - add random color
+                centroids.add(colors.get(random.nextInt(colors.size())));
             }
         }
 
@@ -338,7 +566,7 @@ public class PaletteGenerator {
     /**
      * Finds the closest centroid to a given color.
      *
-     * @param color The color to find the closest centroid for
+     * @param color     The color to find the closest centroid for
      * @param centroids The list of centroids to compare against
      * @return The closest centroid color
      */
@@ -376,9 +604,9 @@ public class PaletteGenerator {
 
         int count = colors.size();
         return new Color(
-            (int)(redSum / count),
-            (int)(greenSum / count),
-            (int)(blueSum / count)
+                (int) (redSum / count),
+                (int) (greenSum / count),
+                (int) (blueSum / count)
         );
     }
 
