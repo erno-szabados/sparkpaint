@@ -78,6 +78,7 @@ public class ColorPalette extends JPanel implements PaletteManager.PaletteChange
         setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
         initializePalette();
         paletteManager.addPaletteChangeListener(this);
+        paletteManager.setActivePalette(colors);
     }
 
     public void loadPalette(File file) throws IOException {
