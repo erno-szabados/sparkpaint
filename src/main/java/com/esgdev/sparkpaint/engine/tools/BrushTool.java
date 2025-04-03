@@ -148,9 +148,9 @@ public class BrushTool implements DrawingTool {
     /**
      * Draws the shape at the specified point using the provided Graphics2D context.
      *
-     * @param e    The mouse event triggering the drawing.
-     * @param p    The point where the shape should be drawn.
-     * @param g2d  The Graphics2D context for drawing.
+     * @param e   The mouse event triggering the drawing.
+     * @param p   The point where the shape should be drawn.
+     * @param g2d The Graphics2D context for drawing.
      */
     private void drawShape(MouseEvent e, Point p, Graphics2D g2d) {
         Color paintColor;
@@ -162,7 +162,13 @@ public class BrushTool implements DrawingTool {
             return;
         }
 
-        // Get the target image for drawing
+        // If using transparent color, use special handling
+        if (paintColor.getAlpha() == 0) {
+            handleTransparentPainting(e, p, g2d);
+            return;
+        }
+
+        // Regular painting code for non-transparent colors
         BufferedImage targetImage;
         Selection selection = canvas.getSelection();
         if (selection != null && selection.hasOutline()) {
@@ -187,10 +193,11 @@ public class BrushTool implements DrawingTool {
         }
     }
 
+
     /**
      * Draws a blended shape (square or circle) on the target image.
      *
-     * @param image       The target image to draw on.
+     * @param image      The target image to draw on.
      * @param g2d        The Graphics2D context for drawing.
      * @param x          The x-coordinate of the shape's top-left corner.
      * @param y          The y-coordinate of the shape's top-left corner.
@@ -235,6 +242,99 @@ public class BrushTool implements DrawingTool {
                         int currentRGB = image.getRGB(i, j);
                         Color blendedColor = getBlendedColor(currentRGB, maxBlendStrength, paintColor);
                         image.setRGB(i, j, blendedColor.getRGB());
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Handles painting with transparency - this erases content by setting pixels to transparent
+     */
+    private void handleTransparentPainting(MouseEvent e, Point p, Graphics2D g2d) {
+        BufferedImage targetImage;
+        Selection selection = canvas.getSelection();
+        if (selection != null && selection.hasOutline()) {
+            targetImage = selection.getContent();
+        } else {
+            targetImage = canvas.getCurrentLayerImage();
+        }
+
+        int x = p.x - size / 2;
+        int y = p.y - size / 2;
+
+        // Create a mask image for the alpha feathering
+        BufferedImage maskImage = new BufferedImage(targetImage.getWidth(), targetImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D maskG2d = maskImage.createGraphics();
+        maskG2d.setColor(Color.WHITE);
+        maskG2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+
+        // Draw the shape to the mask
+        switch (shape) {
+            case SQUARE:
+                maskG2d.fillRect(x, y, size, size);
+                break;
+            case CIRCLE:
+                maskG2d.fillOval(x, y, size, size);
+                break;
+            case SPRAY:
+                // For spray, do individual feathered dots
+                int radius = size / 2;
+                double area = Math.PI * radius * radius;
+                int effectiveDensity = (int) (sprayDensity * (area / (Math.PI * SPRAY_REFERENCE_SIZE * SPRAY_REFERENCE_SIZE)));
+
+                for (int i = 0; i < effectiveDensity; i++) {
+                    double x_offset = (random.nextDouble() * 2 - 1) * radius;
+                    double y_offset = (random.nextDouble() * 2 - 1) * radius;
+
+                    if (x_offset * x_offset + y_offset * y_offset > radius * radius) {
+                        continue;
+                    }
+
+                    int px = p.x + (int) x_offset;
+                    int py = p.y + (int) y_offset;
+
+                    if (px >= 0 && px < targetImage.getWidth() && py >= 0 && py < targetImage.getHeight()) {
+                        // Check if this point is within the clipping region
+                        if (g2d.getClip() == null || g2d.getClip().contains(px, py)) {
+                            // Draw a small dot
+                            maskG2d.fillOval(px - 1, py - 1, 3, 3);
+                        }
+                    }
+                }
+                break;
+        }
+        maskG2d.dispose();
+
+        // Apply alpha feathering based on the mask
+        int startX = Math.max(0, x);
+        int startY = Math.max(0, y);
+        int endX = Math.min(targetImage.getWidth(), x + size + 1);
+        int endY = Math.min(targetImage.getHeight(), y + size + 1);
+
+        // Alpha adjustment strength (using blend strength)
+        float alphaStrength = maxBlendStrength;
+
+        for (int i = startX; i < endX; i++) {
+            for (int j = startY; j < endY; j++) {
+                int maskRGB = maskImage.getRGB(i, j);
+                // Only process visible pixels from the mask
+                if ((maskRGB & 0xFF000000) != 0) {
+                    // Check if this pixel is within the clipping region
+                    if (g2d.getClip() == null || g2d.getClip().contains(i, j)) {
+                        // Get current pixel
+                        int currentRGB = targetImage.getRGB(i, j);
+
+                        // Extract current alpha value
+                        int alpha = (currentRGB >> 24) & 0xFF;
+
+                        // Calculate new alpha based on blend strength
+                        int newAlpha = Math.max(0, (int) (alpha * (1.0f - alphaStrength)));
+
+                        // Apply new alpha, keeping RGB components the same
+                        int newRGB = (currentRGB & 0x00FFFFFF) | (newAlpha << 24);
+                        targetImage.setRGB(i, j, newRGB);
                     }
                 }
             }

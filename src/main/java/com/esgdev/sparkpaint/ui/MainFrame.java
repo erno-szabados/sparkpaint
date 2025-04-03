@@ -16,6 +16,8 @@ public class MainFrame extends JFrame {
     private JLabel statusMessage;
     private JLabel cursorPositionLabel;
     private ColorPalette palette;
+    private JScrollPane canvasScrollPane;
+
 
     public MainFrame() {
         // Set up the JFrame properties
@@ -52,6 +54,7 @@ public class MainFrame extends JFrame {
         menuBar.add(new FileMenu(this));
         menuBar.add(new EditMenu(this));
         menuBar.add(new ImageMenu(this));
+        menuBar.add(new FilterMenu(this));
         menuBar.add(new HelpMenu());
         //menuBar.add(new HelpMenu(this)); // Uncomment after implementing HelpMenu class
         setJMenuBar(menuBar);
@@ -70,9 +73,9 @@ public class MainFrame extends JFrame {
         canvasContainer.add(canvas, gbc);
 
         // Create scroll pane
-        JScrollPane scrollPane = new JScrollPane(canvasContainer);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        canvasScrollPane = new JScrollPane(canvasContainer);
+        canvasScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        canvasScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 
 
         // Add toolbar
@@ -93,7 +96,7 @@ public class MainFrame extends JFrame {
         rightPanel.add(layerPanel, BorderLayout.CENTER);
 
         // Use this combined panel instead of just the toolBox in the split pane
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, scrollPane,                // left component
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, canvasScrollPane,                // left component
                 rightPanel                 // right component (now contains both toolBox and layerPanel)
         );
 
@@ -157,6 +160,11 @@ public class MainFrame extends JFrame {
 
         // Attach a listener to update the cursor position label
         addCursorTracking();
+    }
+
+    // Add a getter method
+    public JScrollPane getCanvasScrollPane() {
+        return canvasScrollPane;
     }
 
     public void setStatusMessage(String message) {

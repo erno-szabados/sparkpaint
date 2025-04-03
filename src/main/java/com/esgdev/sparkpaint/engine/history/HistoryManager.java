@@ -106,7 +106,7 @@ public class HistoryManager implements HistoryManagement {
      * @param currentLayerIndex The index of the current layer.
      * @return The compressed state of the layers.
      */
-    private CompressedLayerState compressLayers(List<Layer> layers, int currentLayerIndex) {
+    public static CompressedLayerState compressLayers(List<Layer> layers, int currentLayerIndex) {
         List<CompressedLayer> compressedLayers = new ArrayList<>();
 
         for (Layer layer : layers) {
@@ -130,7 +130,7 @@ public class HistoryManager implements HistoryManagement {
      * @param compressedState The compressed state of the layers.
      * @return The decompressed state of the layers.
      */
-    private LayerState decompressLayers(CompressedLayerState compressedState) {
+    public static LayerState decompressLayers(CompressedLayerState compressedState) {
         Layer.resetCounter();
         List<Layer> layers = new ArrayList<>();
 

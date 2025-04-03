@@ -3,6 +3,15 @@
 SparkPaint is a lightweight, Java-based image editing application with an intuitive interface and features needed for 
 doodling and pixeling.
 
+### Documentation
+
+- ![Manual in markdown format](documents/Manual.md)
+- ![Manual in PDF](documents/SparkPaint_Manual.pdf)
+
+### Format Specification
+
+- ![File Format Specification](documents/FileFormat.md)
+
 ## Features
 
 ### Drawing Tools

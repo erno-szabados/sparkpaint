@@ -1,5 +1,6 @@
 package com.esgdev.sparkpaint.io;
 
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -8,10 +9,10 @@ import javax.imageio.ImageIO;
 import static org.junit.Assert.*;
 
 import java.awt.Graphics2D;
+import java.awt.GraphicsEnvironment;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.image.BufferedImage;
-import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
@@ -19,9 +20,13 @@ public class ImageSelectionTest {
 
     private BufferedImage testImage;
     private ImageSelection imageSelection;
+    private boolean isHeadless;
 
     @Before
     public void setUp() throws IOException {
+        // Check if environment is headless
+        isHeadless = GraphicsEnvironment.isHeadless();
+
         // Create a simple test image
         testImage = new BufferedImage(100, 100, BufferedImage.TYPE_INT_RGB);
         Graphics2D g2d = testImage.createGraphics();
@@ -33,40 +38,41 @@ public class ImageSelectionTest {
     }
 
     @Test
-public void testGetTransferDataFlavors() {
-    DataFlavor[] flavors = imageSelection.getTransferDataFlavors();
-    assertEquals(1, flavors.length);
-    assertEquals(ImageSelection.PNG_FLAVOR, flavors[0]);
-}
+    public void testGetTransferDataFlavors() {
+        DataFlavor[] flavors = imageSelection.getTransferDataFlavors();
+        assertEquals(1, flavors.length);
+        assertEquals(ImageSelection.PNG_FLAVOR, flavors[0]);
+    }
 
-@Test
-public void testIsDataFlavorSupported() {
-    assertTrue(imageSelection.isDataFlavorSupported(ImageSelection.PNG_FLAVOR));
-    assertFalse(imageSelection.isDataFlavorSupported(DataFlavor.stringFlavor));
-}
+    @Test
+    public void testIsDataFlavorSupported() {
+        assertTrue(imageSelection.isDataFlavorSupported(ImageSelection.PNG_FLAVOR));
+        assertFalse(imageSelection.isDataFlavorSupported(DataFlavor.stringFlavor));
+    }
 
-@Test
-public void testImageCopy() throws IOException, UnsupportedFlavorException {
-    // Ensure the constructor makes a defensive copy
-    BufferedImage original = new BufferedImage(10, 10, BufferedImage.TYPE_INT_RGB);
-    Graphics2D g = original.createGraphics();
-    g.fillRect(0, 0, 10, 10);
-    g.dispose();
+    @Test
+    public void testImageCopy() throws IOException, UnsupportedFlavorException {
+        // Ensure the constructor makes a defensive copy
+        BufferedImage original = new BufferedImage(10, 10, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = original.createGraphics();
+        g.fillRect(0, 0, 10, 10);
+        g.dispose();
 
-    ImageSelection selection = new ImageSelection(original);
+        ImageSelection selection = new ImageSelection(original);
 
-    // Now we need to get PNG data and convert back to image
-    ByteArrayInputStream bais = (ByteArrayInputStream) selection.getTransferData(ImageSelection.PNG_FLAVOR);
-    BufferedImage copied = ImageIO.read(bais);
+        // Now we need to get PNG data and convert back to image
+        ByteArrayInputStream bais = (ByteArrayInputStream) selection.getTransferData(ImageSelection.PNG_FLAVOR);
+        BufferedImage copied = ImageIO.read(bais);
 
-    // Modify the original
-    Graphics2D g2 = original.createGraphics();
-    g2.clearRect(0, 0, 10, 10);
-    g2.dispose();
+        // Modify the original
+        Graphics2D g2 = original.createGraphics();
+        g2.clearRect(0, 0, 10, 10);
+        g2.dispose();
 
-    // Check a pixel to ensure copy is unchanged
-    assertNotEquals(original.getRGB(5, 5), copied.getRGB(5, 5));
-}
+        // Check a pixel to ensure copy is unchanged
+        assertNotEquals(original.getRGB(5, 5), copied.getRGB(5, 5));
+    }
+
     @Test
     public void testGetTransferData() throws IOException, UnsupportedFlavorException {
         // Test with supported flavor
@@ -83,10 +89,10 @@ public void testImageCopy() throws IOException, UnsupportedFlavorException {
         }
     }
 
-   @Test
+    @Test
     public void testCopyAndPasteImage() throws UnsupportedFlavorException, IOException {
-        // Note: This test interacts with system clipboard
-        // It might fail in environments where clipboard access is restricted
+        // Skip this test in headless environments
+        Assume.assumeFalse("Skipping clipboard test in headless environment", isHeadless);
 
         // Copy the image to clipboard
         ImageSelection.copyImage(testImage);

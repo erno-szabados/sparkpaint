@@ -16,6 +16,9 @@ import java.util.List;
 public class ColorPalette extends JPanel implements PaletteManager.PaletteChangeListener {
     private static final int SWATCH_SIZE = 27;
     private static final int COLUMNS = 15;
+    private static final Color TRANSPARENT_COLOR = new Color(0, 0, 0, 0);
+    private static final int CHECKER_SIZE = 5; // Size of each checker square
+
     private static final Color[] DEFAULT_COLORS = {
             // Butter (Yellow)
             new Color(252, 233, 79),  // Light
@@ -69,11 +72,13 @@ public class ColorPalette extends JPanel implements PaletteManager.PaletteChange
         this.canvas = canvas;
         this.paletteManager = canvas.getPaletteManager();
         this.colors = new ArrayList<>(Arrays.asList(DEFAULT_COLORS));
-        int rows = (colors.size() + COLUMNS - 1) / COLUMNS;
+        // +1 for the transparency swatch
+        int rows = (colors.size() + 1 + COLUMNS - 1) / COLUMNS;
         setLayout(new GridLayout(rows, COLUMNS, 1, 1));
         setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
         initializePalette();
         paletteManager.addPaletteChangeListener(this);
+        paletteManager.setActivePalette(colors);
     }
 
     public void loadPalette(File file) throws IOException {
@@ -93,6 +98,10 @@ public class ColorPalette extends JPanel implements PaletteManager.PaletteChange
             JPanel swatch = createColorSwatch(color);
             add(swatch);
         }
+
+        // Add the transparency swatch as the last item
+        JPanel transparencySwatch = createTransparencySwatchPanel();
+        add(transparencySwatch);
     }
 
     public void restoreDefaultPalette() {
@@ -161,7 +170,51 @@ public class ColorPalette extends JPanel implements PaletteManager.PaletteChange
         return swatch;
     }
 
-    // Implement the PaletteChangeListener interface
+    private JPanel createTransparencySwatchPanel() {
+        JPanel swatch = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                // Draw checker pattern for transparency
+                Graphics2D g2d = (Graphics2D) g;
+                int width = getWidth();
+                int height = getHeight();
+
+                // Draw light gray and white checkerboard
+                for (int x = 0; x < width; x += CHECKER_SIZE) {
+                    for (int y = 0; y < height; y += CHECKER_SIZE) {
+                        if ((x / CHECKER_SIZE + y / CHECKER_SIZE) % 2 == 0) {
+                            g2d.setColor(Color.WHITE);
+                        } else {
+                            g2d.setColor(Color.LIGHT_GRAY);
+                        }
+                        g2d.fillRect(x, y, CHECKER_SIZE, CHECKER_SIZE);
+                    }
+                }
+
+                // Draw border
+                g2d.setColor(Color.DARK_GRAY);
+                g2d.drawRect(0, 0, width - 1, height - 1);
+            }
+        };
+
+        swatch.setPreferredSize(new Dimension(SWATCH_SIZE, SWATCH_SIZE));
+        swatch.setToolTipText("Transparent");
+
+        swatch.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if (SwingUtilities.isLeftMouseButton(e)) {
+                    canvas.setDrawingColor(TRANSPARENT_COLOR);
+                } else if (SwingUtilities.isRightMouseButton(e)) {
+                    canvas.setFillColor(TRANSPARENT_COLOR);
+                }
+            }
+        });
+
+        return swatch;
+    }
+
     @Override
     public void onPaletteChanged(List<Color> newPalette) {
         colors = new ArrayList<>(newPalette);

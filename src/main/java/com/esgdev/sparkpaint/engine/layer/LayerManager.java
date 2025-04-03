@@ -7,6 +7,11 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * LayerManager is responsible for managing multiple layers in a drawing application.
+ * It provides methods to add, delete, duplicate, and manipulate layers.
+ * It also handles the current layer index and transparency visualization.
+ */
 public class LayerManager implements LayerManagement {
     private List<Layer> layers = new ArrayList<>();
     private int currentLayerIndex = 0;

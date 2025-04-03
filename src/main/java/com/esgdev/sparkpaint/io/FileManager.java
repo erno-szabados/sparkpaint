@@ -105,6 +105,14 @@ public class FileManager implements FileManagement {
         return new LayerState(layers, 0);
     }
 
+    // In FileManager.java, add this method
+    @Override
+    public LayerState loadFromLayeredFile(File file) throws IOException, ClassNotFoundException {
+        LayerState layerState = SparkPaintFileFormat.loadFromFile(file);
+        currentFilePath = file.getAbsolutePath();
+        return layerState;
+    }
+
     /**
      * Converts a BufferedImage to RGB format.
      *
@@ -143,5 +151,53 @@ public class FileManager implements FileManagement {
      */
     public void setCurrentFilePath(String currentFilePath) {
         this.currentFilePath = currentFilePath;
+    }
+
+    /**
+     * Exports visible layers as separate PNG files.
+     *
+     * @param directory     The directory to save the layers to
+     * @param fileNamePrefix The prefix for each layer file name
+     * @param layers        The layers to export
+     * @return              Number of layers successfully exported
+     * @throws IOException  If an error occurs during exporting
+     */
+    public int exportLayersAsPNG(File directory, String fileNamePrefix, List<Layer> layers) throws IOException {
+        if (!directory.exists() && !directory.mkdirs()) {
+            throw new IOException("Failed to create directory: " + directory.getAbsolutePath());
+        }
+
+        if (!directory.isDirectory()) {
+            throw new IOException("Not a directory: " + directory.getAbsolutePath());
+        }
+
+        int exportedCount = 0;
+
+        for (Layer layer : layers) {
+            if (layer.isVisible()) {
+                // Sanitize layer name for use in filename
+                String sanitizedLayerName = layer.getName()
+                        .replaceAll("[^a-zA-Z0-9\\._\\-]", "_")
+                        .replaceAll("_{2,}", "_");
+
+                File outputFile = new File(directory, fileNamePrefix + "_" + sanitizedLayerName + ".png");
+
+                // Write layer as PNG
+                if (ImageIO.write(layer.getImage(), "png", outputFile)) {
+                    exportedCount++;
+                }
+            }
+        }
+
+        return exportedCount;
+    }
+
+    /**
+     * Generates a unique file name prefix based on current time
+     *
+     * @return A unique file name prefix
+     */
+    public String generateFileNamePrefix() {
+        return "sparkpaint_" + System.currentTimeMillis();
     }
 }

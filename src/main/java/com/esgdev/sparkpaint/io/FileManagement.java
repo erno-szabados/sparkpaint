@@ -31,6 +31,16 @@ public interface FileManagement {
      */
     LayerState loadFromFile(File file) throws IOException;
 
+    // Add this to the FileManagement interface
+    /**
+     * Loads a layered file format.
+     *
+     * @param file The file to load
+     * @return The LayerState containing layers and current layer index
+     * @throws IOException If an I/O error occurs
+     * @throws ClassNotFoundException If the class of a serialized object cannot be found
+     */
+    LayerState loadFromLayeredFile(File file) throws IOException, ClassNotFoundException;
     /**
      * Gets the path of the currently loaded or saved file.
      *
@@ -49,4 +59,22 @@ public interface FileManagement {
      * @param path The new file path
      */
     void setCurrentFilePath(String path);
+
+    /**
+     * Exports visible layers as separate PNG files.
+     *
+     * @param directory      The directory to save the layers to
+     * @param fileNamePrefix The prefix for each layer file name
+     * @param layers         The layers to export
+     * @return Number of layers successfully exported
+     * @throws IOException If an error occurs during exporting
+     */
+    int exportLayersAsPNG(File directory, String fileNamePrefix, List<Layer> layers) throws IOException;
+
+    /**
+     * Generates a unique file name prefix based on current time
+     *
+     * @return A unique file name prefix
+     */
+    String generateFileNamePrefix();
 }

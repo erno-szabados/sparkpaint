@@ -1,17 +1,24 @@
 package com.esgdev.sparkpaint.ui;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
+import com.esgdev.sparkpaint.engine.history.LayerState;
+import com.esgdev.sparkpaint.engine.layer.Layer;
+import com.esgdev.sparkpaint.io.SparkPaintFileFormat;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.event.KeyEvent;
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 public class FileMenu extends JMenu {
+    public static final String SPARKPAINT_FILE_EXTENSION = "spp";
     private static final FileNameExtensionFilter IMAGE_FILTER =
             new FileNameExtensionFilter("Image files (*.png, *.jpg, *.jpeg, *.bmp)",
                     "png", "jpg", "jpeg", "bmp");
+    private static final FileNameExtensionFilter SPARKPAINT_FILTER =
+            new FileNameExtensionFilter("SparkPaint Image with Layers (*." + SPARKPAINT_FILE_EXTENSION + ")", SPARKPAINT_FILE_EXTENSION);
 
     private final MainFrame mainFrame;
 
@@ -36,6 +43,11 @@ public class FileMenu extends JMenu {
         saveAs.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S,
                 KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK));
 
+        JMenuItem exportLayers = new JMenuItem("Export Layers as PNG...", KeyEvent.VK_E);
+        exportLayers.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E,
+                KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK));
+
+
         JMenuItem exit = new JMenuItem("Exit", KeyEvent.VK_X);
         exit.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Q, KeyEvent.CTRL_DOWN_MASK));
 
@@ -45,6 +57,7 @@ public class FileMenu extends JMenu {
         addSeparator();
         add(save);
         add(saveAs);
+        add(exportLayers);
         addSeparator();
         add(exit);
 
@@ -53,6 +66,7 @@ public class FileMenu extends JMenu {
         open.addActionListener(e -> handleOpen());
         save.addActionListener(e -> handleSave());
         saveAs.addActionListener(e -> handleSaveAs());
+        exportLayers.addActionListener(e -> handleExportLayers());
         exit.addActionListener(e -> handleExit());
     }
 
@@ -77,17 +91,30 @@ public class FileMenu extends JMenu {
 
     private void handleOpen() {
         JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setFileFilter(IMAGE_FILTER);
-        fileChooser.setAcceptAllFileFilterUsed(false);
+
+        // Add both filters
+        fileChooser.addChoosableFileFilter(IMAGE_FILTER);
+        fileChooser.addChoosableFileFilter(SPARKPAINT_FILTER);
+        fileChooser.setFileFilter(SPARKPAINT_FILTER); // Prefer layer format in open dialog
+        fileChooser.setAcceptAllFileFilterUsed(true); // Let users open any file type
 
         if (fileChooser.showOpenDialog(mainFrame) == JFileChooser.APPROVE_OPTION) {
             File file = fileChooser.getSelectedFile();
 
             try {
-                mainFrame.getCanvas().loadFromFile(file);
+                DrawingCanvas canvas = mainFrame.getCanvas();
+
+                if (file.getName().toLowerCase().endsWith("." + SPARKPAINT_FILE_EXTENSION)) {
+                    // Load from SparkPaint format using the new method
+                    canvas.loadFromLayeredFile(file);
+                    mainFrame.setStatusMessage("Opened project with layers: " + file.getAbsolutePath());
+                } else {
+                    // Regular image opening
+                    canvas.loadFromFile(file);
+                    mainFrame.setStatusMessage("Opened: " + file.getAbsolutePath());
+                }
                 mainFrame.pack(); // Adjust frame size to the loaded image
-                mainFrame.setStatusMessage("Opened: " + file.getAbsolutePath());
-            } catch (IOException ex) {
+            } catch (IOException | ClassNotFoundException ex) {
                 mainFrame.setStatusMessage("Error opening file!");
                 JOptionPane.showMessageDialog(mainFrame,
                         "Error opening file: " + ex.getMessage(),
@@ -108,8 +135,34 @@ public class FileMenu extends JMenu {
             handleSaveAs();
         } else {
             try {
-                canvas.saveToFile(new File(currentPath));
-                mainFrame.setStatusMessage("Image saved to: " + currentPath);
+                // Check if we're about to flatten layers
+                boolean isSparkPaintFormat = currentPath.toLowerCase().endsWith("." + SPARKPAINT_FILE_EXTENSION);
+                boolean hasMultipleLayers = canvas.getLayerCount() > 1;
+
+                if (!isSparkPaintFormat && hasMultipleLayers) {
+                    int result = JOptionPane.showConfirmDialog(mainFrame,
+                            "This format doesn't support layers. Your layers will be flattened." +
+                                    "\nUse 'Save As...' and select SparkPaint format to preserve layers." +
+                                    "\n\nContinue with flattened save?",
+                            "Layers Will Be Lost",
+                            JOptionPane.YES_NO_OPTION);
+                    if (result != JOptionPane.YES_OPTION) {
+                        handleSaveAs(); // Let user choose SparkPaint format instead
+                        return;
+                    }
+                }
+
+                // Choose appropriate save method
+                if (isSparkPaintFormat) {
+                    SparkPaintFileFormat.saveToFile(
+                            new File(currentPath),
+                            canvas.getLayers(),
+                            canvas.getCurrentLayerIndex()
+                    );
+                } else {
+                    canvas.saveToFile(new File(currentPath));
+                }
+                mainFrame.setStatusMessage("Saved to: " + currentPath);
             } catch (IOException ex) {
                 mainFrame.setStatusMessage("Error saving file!");
                 JOptionPane.showMessageDialog(mainFrame,
@@ -123,19 +176,39 @@ public class FileMenu extends JMenu {
 
     private void handleSaveAs() {
         JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setFileFilter(IMAGE_FILTER);
+
+        // Add both filters with descriptive names
+        fileChooser.addChoosableFileFilter(IMAGE_FILTER);
+        fileChooser.addChoosableFileFilter(SPARKPAINT_FILTER);
+
+        // Set SparkPaint format as default when working with multiple layers
+        if (mainFrame.getCanvas().getLayerCount() > 1) {
+            fileChooser.setFileFilter(SPARKPAINT_FILTER);
+        } else {
+            fileChooser.setFileFilter(IMAGE_FILTER);
+        }
+
         fileChooser.setAcceptAllFileFilterUsed(false);
 
         if (fileChooser.showSaveDialog(mainFrame) == JFileChooser.APPROVE_OPTION) {
             File file = fileChooser.getSelectedFile();
-            String fileName = file.getName().toLowerCase();
+            FileNameExtensionFilter selectedFilter =
+                    (FileNameExtensionFilter) fileChooser.getFileFilter();
 
-            // Add extension if not present
-            if (!hasImageExtension(fileName)) {
-                file = new File(file.getAbsolutePath() + ".png"); // Default to PNG
+            // Determine if saving in SparkPaint format
+            boolean isSparkPaintFormat = selectedFilter == SPARKPAINT_FILTER;
+
+            // Add appropriate extension if missing
+            String fileName = file.getName().toLowerCase();
+            if (!hasFileExtension(fileName)) {
+                if (isSparkPaintFormat) {
+                    file = new File(file.getAbsolutePath() + "." + SPARKPAINT_FILE_EXTENSION);
+                } else {
+                    file = new File(file.getAbsolutePath() + ".png"); // Default to PNG
+                }
             }
 
-            // Check if file exists
+            // Confirm overwrite
             if (file.exists()) {
                 int result = JOptionPane.showConfirmDialog(mainFrame,
                         "File already exists. Do you want to replace it?",
@@ -148,8 +221,20 @@ public class FileMenu extends JMenu {
             }
 
             try {
-                mainFrame.getCanvas().saveToFile(file);
-                mainFrame.setStatusMessage("Image saved as: " + file.getAbsolutePath());
+                if (isSparkPaintFormat) {
+                    // Save with SparkPaintFileFormat
+                    SparkPaintFileFormat.saveToFile(
+                            file,
+                            mainFrame.getCanvas().getLayers(),
+                            mainFrame.getCanvas().getCurrentLayerIndex()
+                    );
+                    mainFrame.getCanvas().setCurrentFilePath(file.getAbsolutePath());
+                    mainFrame.setStatusMessage("Project saved with layers to: " + file.getAbsolutePath());
+                } else {
+                    // Regular save with flattened image
+                    mainFrame.getCanvas().saveToFile(file);
+                    mainFrame.setStatusMessage("Image saved as: " + file.getAbsolutePath());
+                }
             } catch (IOException ex) {
                 mainFrame.setStatusMessage("Error saving file!");
                 JOptionPane.showMessageDialog(mainFrame,
@@ -162,11 +247,78 @@ public class FileMenu extends JMenu {
         }
     }
 
-    private boolean hasImageExtension(String fileName) {
+    private boolean hasFileExtension(String fileName) {
         return fileName.endsWith(".png") ||
                 fileName.endsWith(".jpg") ||
                 fileName.endsWith(".jpeg") ||
-                fileName.endsWith(".bmp");
+                fileName.endsWith(".bmp") ||
+                fileName.endsWith("." + SPARKPAINT_FILE_EXTENSION);
+    }
+
+
+    /**
+     * Handles the export layers action.
+     * Prompts the user to select a directory and exports visible layers as PNG files.
+     */
+    private void handleExportLayers() {
+        DrawingCanvas canvas = mainFrame.getCanvas();
+        List<Layer> layers = canvas.getLayers();
+
+        // Count visible layers
+        long visibleLayerCount = layers.stream()
+                .filter(Layer::isVisible)
+                .count();
+
+        if (visibleLayerCount == 0) {
+            JOptionPane.showMessageDialog(mainFrame,
+                    "There are no visible layers to export.",
+                    "Export Layers",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Choose directory for export
+        JFileChooser dirChooser = new JFileChooser();
+        dirChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        dirChooser.setDialogTitle("Choose Export Directory");
+
+        if (dirChooser.showDialog(mainFrame, "Export") != JFileChooser.APPROVE_OPTION) {
+            mainFrame.setStatusMessage("Export cancelled");
+            return;
+        }
+
+        File exportDir = dirChooser.getSelectedFile();
+
+        // Determine filename prefix
+        String fileNamePrefix;
+        String currentPath = canvas.getCurrentFilePath();
+
+        if (currentPath != null && !currentPath.isEmpty()) {
+            // Use the base name of the current file as prefix
+            File currentFile = new File(currentPath);
+            fileNamePrefix = currentFile.getName();
+
+            // Remove extension if present
+            int lastDotIndex = fileNamePrefix.lastIndexOf('.');
+            if (lastDotIndex > 0) {
+                fileNamePrefix = fileNamePrefix.substring(0, lastDotIndex);
+            }
+        } else {
+            // Generate a default prefix
+            fileNamePrefix = mainFrame.getCanvas().generateFileNamePrefix();
+        }
+
+        try {
+            int exportedCount = mainFrame.getCanvas().exportLayersAsPNG(exportDir, fileNamePrefix, layers);
+
+            mainFrame.setStatusMessage("Exported " + exportedCount + " layers to " + exportDir.getAbsolutePath());
+        } catch (IOException ex) {
+            mainFrame.setStatusMessage("Error exporting layers!");
+            JOptionPane.showMessageDialog(mainFrame,
+                    "Error exporting layers: " + ex.getMessage(),
+                    "Export Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
     }
 
 
