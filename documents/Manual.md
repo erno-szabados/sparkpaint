@@ -263,6 +263,12 @@ The Color Palette in SparkPaint allows users to select and manage colors for the
 
 The Color Palette is a versatile tool that helps you manage and customize colors for your artwork efficiently.
 
+### Painting with Transparency
+
+Sparkpaint supports a simple form of transparency. The color palette includes a swatch for selecting transparent color. When you select this color, it will be used as the transparent color in your artwork.
+Tools support transparency in the following ways: when you work on a layer, you can paint with the transparent color, and the transparent color will be used to erase pixels on the layer. The transparent color is also used when you fill an area with the Fill Tool.
+So you can uncover a layer by painting with the transparent color, or you can fill an area with the transparent color to make it transparent.
+
 ### Palette Generator
 
 ![Palette Generator](images/palettegenerator.jpg)]
@@ -315,6 +321,7 @@ The selection system in SparkPaint allows users to select, modify, and manipulat
 ### Interaction with Selections
 
 - **Dragging**: To be able to move a selection, you have to copy or cut it first.  Click and drag inside the selection to move it.
+- **Painting**: When a selection is active, painting will only affect the selected area. This allows for precise editing without affecting the rest of the artwork.
 
 ### Transformations
 

@@ -3,6 +3,8 @@
 SparkPaint is a lightweight, Java-based image editing application with an intuitive interface and features needed for 
 doodling and pixeling.
 
+![Main Window](documents/images/mainview.jpg)]
+
 ### Documentation
 
 - ![Manual in markdown format](documents/Manual.md)
@@ -31,12 +33,13 @@ doodling and pixeling.
 - **Dual Color System**: Use primary drawing color and secondary fill color
 
 ### Image Manipulation
-- **Transparency Support**: Work with transparent backgrounds (TODO) and selections
+- **Transparency Support**: Work with transparent backgrounds and selections
 - **Undo/Redo**: 16-step history for reversing changes
-- **Zoom**: Multiple zoom levels for detailed work (1x, 2x, 4x, 8x, 12x)
+- **Zoom**: Multiple zoom levels for detailed work (0.5x, 1x, 2x, 4x, 8x, 12x)
 
 ### File Operations
 - **Multiple Formats**: Load and save in PNG, JPG, and BMP formats
+- **SparkPaint Format**: Save and load in SparkPaint's native format for layers and transparency
 - **Clipboard Integration**: Cut, copy, and paste between applications
 
 ## Getting Started
@@ -51,7 +54,7 @@ doodling and pixeling.
 
 - Java Runtime Environment (JRE) 8 or higher
 - 1GB RAM minimum
-- 10MB disk space
+- 50MB disk space (for the JRE)
 
 ## Development
 
