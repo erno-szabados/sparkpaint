@@ -1,5 +1,6 @@
 package com.esgdev.sparkpaint.ui;
 
+import com.esgdev.sparkpaint.engine.CanvasChangeListener;
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 
 import javax.swing.*;
@@ -9,7 +10,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
 import java.awt.image.BufferedImage;
 
-public class PreviewPanel extends JPanel {
+public class PreviewPanel extends JPanel implements CanvasChangeListener {
     private static final int PREVIEW_WIDTH = 200;
     private static final int PREVIEW_HEIGHT = 150;
     private static final Color VIEWPORT_COLOR = new Color(0, 0, 255, 64);
@@ -18,7 +19,7 @@ public class PreviewPanel extends JPanel {
     private final DrawingCanvas canvas;
     private final JScrollPane scrollPane;
     private BufferedImage previewImage;
-    private Rectangle viewportRect = new Rectangle();
+    private final Rectangle viewportRect = new Rectangle();
     private boolean isDragging = false;
 
     public PreviewPanel(DrawingCanvas canvas, JScrollPane scrollPane) {
@@ -48,6 +49,7 @@ public class PreviewPanel extends JPanel {
                 }
             }
         });
+        canvas.addCanvasChangeListener(this);
     }
 
     public void updatePreview() {
@@ -123,8 +125,8 @@ public class PreviewPanel extends JPanel {
         float scaleX = (float) (canvas.getLayers().get(0).getImage().getWidth() * zoomFactor) / previewImage.getWidth();
         float scaleY = (float) (canvas.getLayers().get(0).getImage().getHeight() * zoomFactor) / previewImage.getHeight();
 
-        int scrollX = (int) (centerX * scaleX - scrollPane.getViewport().getWidth() / 2);
-        int scrollY = (int) (centerY * scaleY - scrollPane.getViewport().getHeight() / 2);
+        int scrollX = (int) (centerX * scaleX - (float) scrollPane.getViewport().getWidth() / 2);
+        int scrollY = (int) (centerY * scaleY - (float) scrollPane.getViewport().getHeight() / 2);
 
         // Ensure scroll position is within bounds
         scrollX = Math.max(0, Math.min(scrollX,
@@ -169,5 +171,10 @@ public class PreviewPanel extends JPanel {
             g2d.setColor(VIEWPORT_BORDER_COLOR);
             g2d.draw(adjustedRect);
         }
+    }
+
+    @Override
+    public void onCanvasChanged() {
+        updatePreview();
     }
 }
