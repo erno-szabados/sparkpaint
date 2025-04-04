@@ -10,7 +10,6 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.GeneralPath;
 import java.awt.image.BufferedImage;
-import java.util.Stack;
 
 public class FillTool implements DrawingTool {
     public static final int DEFAULT_FILL_EPSILON = 30;
@@ -22,9 +21,8 @@ public class FillTool implements DrawingTool {
     private boolean isDrawingGradient = false;
     private Point initialClickPoint; // For smart gradient fill
 
-    // Add the GradientPreview and GradientRenderer instances
-    private final GradientPreview gradientPreview;
-    private final GradientRenderer gradientRenderer;
+    private final FillPreview gradientPreview;
+    private final FillRenderer gradientRenderer;
 
     public enum FillMode {
         SMART_FILL("Smart Fill"),
@@ -49,8 +47,8 @@ public class FillTool implements DrawingTool {
     public FillTool(DrawingCanvas canvas) {
         this.canvas = canvas;
         this.epsilon = DEFAULT_FILL_EPSILON;
-        this.gradientPreview = new GradientPreview(canvas);
-        this.gradientRenderer = new GradientRenderer(canvas);
+        this.gradientPreview = new FillPreview(canvas);
+        this.gradientRenderer = new FillRenderer(canvas);
     }
 
     public void setFillMode(FillMode mode) {
@@ -90,7 +88,6 @@ public class FillTool implements DrawingTool {
 
             return; // Skip other fill operations
         }
-
 
         //SelectionManager selectionManager = canvas.getSelectionManager();
         Selection selection = canvas.getSelection();
@@ -152,19 +149,17 @@ public class FillTool implements DrawingTool {
         int targetRGB = targetImage.getRGB(fillPoint.x, fillPoint.y);
         Color targetColor = new Color(targetRGB, true); // Include alpha
 
-        // In the mousePressed method where it handles normal fill operations:
         Color replacementColor = SwingUtilities.isLeftMouseButton(e) ?
                 canvas.getDrawingColor() : canvas.getFillColor();
 
         switch (fillMode) {
             case SMART_FILL:
-                smartFill(targetImage, fillPoint.x, fillPoint.y, targetColor, replacementColor, epsilon, clipPath);
+                gradientRenderer.smartFill(targetImage, fillPoint.x, fillPoint.y, targetColor, replacementColor, epsilon, clipPath);
                 break;
             case CANVAS_FILL:
-                canvasFill(targetImage, replacementColor, clipPath);
+                gradientRenderer.canvasFill(targetImage, replacementColor, clipPath);
                 break;
         }
-
 
         canvas.repaint();
     }
@@ -201,7 +196,8 @@ public class FillTool implements DrawingTool {
 
             switch (fillMode) {
                 case SMART_LINEAR:
-                    CoordinateContext ctx = createCoordinateContext(selection, initialClickPoint, gradientStartPoint, gradientEndPoint);
+                    CoordinateContext ctx = CoordinateContext.create(canvas, selection,
+                            initialClickPoint, gradientStartPoint, gradientEndPoint);
                     gradientPreview.previewSmartLinear(g2d, initialClickPoint, gradientStartPoint, gradientEndPoint,
                             clipPath, ctx, epsilon);
                     break;
@@ -278,7 +274,7 @@ public class FillTool implements DrawingTool {
                     int targetRGB = targetImage.getRGB(adjustedClickPoint.x, adjustedClickPoint.y);
                     Color targetColor = new Color(targetRGB, true);
 
-                    gradientRenderer.smartLinearGradientFill(targetImage, adjustedClickPoint.x, adjustedClickPoint.y,
+                    gradientRenderer.applySmartLinear(targetImage, adjustedClickPoint.x, adjustedClickPoint.y,
                             targetColor, adjustedStart, adjustedEnd, epsilon, clipPath);
                 } catch (Exception ex) {
                     // Log error and recover gracefully
@@ -317,105 +313,13 @@ public class FillTool implements DrawingTool {
     }
 
     public void setAntiAliasing(boolean useAntiAliasing) {
-        gradientPreview.setAntiAliasing(useAntiAliasing);
         gradientRenderer.setAntiAliasing(useAntiAliasing);
     }
 
-    private void canvasFill(BufferedImage image, Color replacementColor, GeneralPath clipPath) {
-        int width = image.getWidth();
-        int height = image.getHeight();
-        int replacementRGB = replacementColor.getRGB();
-        boolean isTransparentFill = replacementColor.getAlpha() == 0;
-
-        // Use clipPath if available, otherwise fill entire image
-        if (clipPath != null) {
-            // Fill only within the clip path
-            Graphics2D g2d = image.createGraphics();
-            g2d.setClip(clipPath);
-
-            if (isTransparentFill) {
-                // Clear to transparency
-                g2d.setComposite(AlphaComposite.Clear);
-                g2d.fillRect(0, 0, width, height);
-            } else {
-                // Normal fill
-                g2d.setColor(replacementColor);
-                g2d.fillRect(0, 0, width, height);
-            }
-            g2d.dispose();
-        } else {
-            // Fill the entire image
-            if (isTransparentFill) {
-                // Clear each pixel to transparency
-                for (int y = 0; y < height; y++) {
-                    for (int x = 0; x < width; x++) {
-                        image.setRGB(x, y, image.getRGB(x, y) & 0x00FFFFFF);
-                    }
-                }
-            } else {
-                // Normal fill
-                for (int y = 0; y < height; y++) {
-                    for (int x = 0; x < width; x++) {
-                        image.setRGB(x, y, replacementRGB);
-                    }
-                }
-            }
-        }
-    }
-
-    private void smartFill(BufferedImage image, int x, int y, Color targetColor, Color replacementColor,
-                           int epsilon, GeneralPath clipPath) {
-        int width = image.getWidth();
-        int height = image.getHeight();
-        int targetRGB = targetColor.getRGB();
-        int replacementRGB = replacementColor.getRGB();
-
-        // Check if the fill is actually setting transparency
-        boolean isTransparentFill = replacementColor.getAlpha() == 0;
-
-        if (targetRGB == replacementRGB) {
-            return;
-        }
-
-        boolean[][] visited = new boolean[width][height];
-        Stack<Point> stack = new Stack<>();
-        stack.push(new Point(x, y));
-
-        while (!stack.isEmpty()) {
-            Point p = stack.pop();
-            x = p.x;
-            y = p.y;
-
-            if (x < 0 || x >= width || y < 0 || y >= height || visited[x][y]) {
-                continue;
-            }
-
-            int currentRGB = image.getRGB(x, y);
-
-            double distance = colorDistance(currentRGB, targetRGB);
-            if (distance > epsilon || (clipPath != null && !clipPath.contains(x, y))) {
-                continue;
-            }
-
-            // Handle transparency specially
-            if (isTransparentFill) {
-                // Set full transparency (alpha = 0), preserving RGB
-                image.setRGB(x, y, currentRGB & 0x00FFFFFF);
-            } else {
-                image.setRGB(x, y, replacementRGB);
-            }
-
-            visited[x][y] = true;
-
-            // Check neighbors
-            if (x > 0) stack.push(new Point(x - 1, y));
-            if (x < width - 1) stack.push(new Point(x + 1, y));
-            if (y > 0) stack.push(new Point(x, y - 1));
-            if (y < height - 1) stack.push(new Point(x, y + 1));
-        }
-    }
-
-    private double colorDistance(int rgb1, int rgb2) {
+    /**
+     * Calculate color distance between two RGB values
+     */
+    public static double colorDistance(int rgb1, int rgb2) {
         // Extract color components including alpha
         int a1 = (rgb1 >> 24) & 0xFF;
         int r1 = (rgb1 >> 16) & 0xFF;
@@ -439,54 +343,5 @@ public class FillTool implements DrawingTool {
 
         // Return the combined distance
         return Math.sqrt(deltaR * deltaR + deltaG * deltaG + deltaB * deltaB + deltaA * deltaA);
-    }
-
-    // Helper method for coordinate adjustment
-    private Point adjustToImageBounds(Point p, int width, int height) {
-        int x = Math.max(0, Math.min(width - 1, p.x));
-        int y = Math.max(0, Math.min(height - 1, p.y));
-        return new Point(x, y);
-    }
-
-    // Extract coordinate transformations for selection handling
-    private CoordinateContext createCoordinateContext(Selection selection, Point clickPoint,
-                                                      Point startPoint, Point endPoint) {
-        CoordinateContext ctx = new CoordinateContext();
-        ctx.currentImage = canvas.getCurrentLayerImage();
-        ctx.adjustedClickPoint = clickPoint;
-        ctx.adjustedStart = startPoint;
-        ctx.adjustedEnd = endPoint;
-
-        if (selection != null && selection.hasOutline()) {
-            ctx.clipPath = selection.getPath();
-            ctx.bounds = selection.getBounds();
-
-            BufferedImage selectionContent = selection.getContent();
-            if (selectionContent != null) {
-                ctx.currentImage = selectionContent;
-
-                // Adjust all coordinates to selection's local coordinate system
-                ctx.adjustedClickPoint = new Point(clickPoint.x - ctx.bounds.x, clickPoint.y - ctx.bounds.y);
-                ctx.adjustedStart = new Point(startPoint.x - ctx.bounds.x, startPoint.y - ctx.bounds.y);
-                ctx.adjustedEnd = new Point(endPoint.x - ctx.bounds.x, endPoint.y - ctx.bounds.y);
-
-                // Transform clip path to selection's coordinate system
-                if (ctx.clipPath != null) {
-                    ctx.clipPath = new GeneralPath(ctx.clipPath);
-                    AffineTransform transform = AffineTransform.getTranslateInstance(-ctx.bounds.x, -ctx.bounds.y);
-                    ctx.clipPath.transform(transform);
-                }
-            }
-        }
-
-        int width = ctx.currentImage.getWidth();
-        int height = ctx.currentImage.getHeight();
-
-        // Apply bounds checking to all adjusted points
-        ctx.adjustedClickPoint = adjustToImageBounds(ctx.adjustedClickPoint, width, height);
-        ctx.adjustedStart = adjustToImageBounds(ctx.adjustedStart, width, height);
-        ctx.adjustedEnd = adjustToImageBounds(ctx.adjustedEnd, width, height);
-
-        return ctx;
     }
 }

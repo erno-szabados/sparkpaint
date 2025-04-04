@@ -8,20 +8,15 @@ import java.awt.image.BufferedImage;
 import java.util.Stack;
 
 /**
- * Utility class to handle gradient preview functionality for the FillTool
+ * Helper class to render fill previews for linear and circular gradients
  */
-public class GradientPreview {
+public class FillPreview {
     private final DrawingCanvas canvas;
     private BufferedImage smartGradientMask;
     private Point lastMaskClickPoint;
-    private boolean useAntiAliasing = true;
 
-    public GradientPreview(DrawingCanvas canvas) {
+    public FillPreview(DrawingCanvas canvas) {
         this.canvas = canvas;
-    }
-
-    public void setAntiAliasing(boolean useAntiAliasing) {
-        this.useAntiAliasing = useAntiAliasing;
     }
 
     /**
@@ -198,7 +193,7 @@ public class GradientPreview {
             int currentRGB = source.getRGB(x, y);
 
             // Check color distance
-            double distance = colorDistance(currentRGB, targetRGB);
+            double distance = FillTool.colorDistance(currentRGB, targetRGB);
             if (distance > epsilon || (clipPath != null && !clipPath.contains(x, y))) {
                 continue;
             }
@@ -271,35 +266,6 @@ public class GradientPreview {
         g2d.setColor(canvas.getFillColor());
         g2d.fillOval(end.x - endMarkerSize / 2, end.y - endMarkerSize / 2,
                 endMarkerSize, endMarkerSize);
-    }
-
-    /**
-     * Calculate color distance between two RGB values
-     */
-    private double colorDistance(int rgb1, int rgb2) {
-        // Extract color components including alpha
-        int a1 = (rgb1 >> 24) & 0xFF;
-        int r1 = (rgb1 >> 16) & 0xFF;
-        int g1 = (rgb1 >> 8) & 0xFF;
-        int b1 = rgb1 & 0xFF;
-
-        int a2 = (rgb2 >> 24) & 0xFF;
-        int r2 = (rgb2 >> 16) & 0xFF;
-        int g2 = (rgb2 >> 8) & 0xFF;
-        int b2 = rgb2 & 0xFF;
-
-        // Normalize alpha values
-        double alpha1 = a1 / 255.0;
-        double alpha2 = a2 / 255.0;
-
-        // Calculate weighted color differences
-        double deltaR = (r1 - r2) * alpha1 * alpha2;
-        double deltaG = (g1 - g2) * alpha1 * alpha2;
-        double deltaB = (b1 - b2) * alpha1 * alpha2;
-        double deltaA = (a1 - a2);
-
-        // Return the combined distance
-        return Math.sqrt(deltaR * deltaR + deltaG * deltaG + deltaB * deltaB + deltaA * deltaA);
     }
 
     /**

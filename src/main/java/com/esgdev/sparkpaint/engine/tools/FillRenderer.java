@@ -8,13 +8,14 @@ import java.awt.image.BufferedImage;
 import java.util.Stack;
 
 /**
- * Utility class for applying various gradient effects to images
+ * FillRenderer is responsible for rendering fill operations on a DrawingCanvas.
+ * It supports linear and circular gradients, smart fills, and canvas fills.
  */
-public class GradientRenderer {
+public class FillRenderer {
     private final DrawingCanvas canvas;
     private boolean useAntiAliasing = true;
 
-    public GradientRenderer(DrawingCanvas canvas) {
+    public FillRenderer(DrawingCanvas canvas) {
         this.canvas = canvas;
     }
 
@@ -66,10 +67,10 @@ public class GradientRenderer {
 
         // Set up the radial gradient paint
         RadialGradientPaint gradient = new RadialGradientPaint(
-                center,                           // Center point
-                (float) radius,                    // Radius
-                new float[]{0.0f, 1.0f},         // Distribution
-                new Color[]{                      // Colors
+                center,
+                (float) radius,
+                new float[]{0.0f, 1.0f},
+                new Color[]{
                         canvas.getDrawingColor(),
                         canvas.getFillColor()
                 }
@@ -90,8 +91,8 @@ public class GradientRenderer {
     /**
      * Applies a smart linear gradient to the specified image
      */
-    public void smartLinearGradientFill(BufferedImage image, int x, int y, Color targetColor,
-                                        Point startPoint, Point endPoint, int epsilon, GeneralPath clipPath) {
+    public void applySmartLinear(BufferedImage image, int x, int y, Color targetColor,
+                                 Point startPoint, Point endPoint, int epsilon, GeneralPath clipPath) {
         int width = image.getWidth();
         int height = image.getHeight();
         int targetRGB = targetColor.getRGB();
@@ -158,7 +159,7 @@ public class GradientRenderer {
             int currentRGB = source.getRGB(x, y);
 
             // Check color distance
-            double distance = colorDistance(currentRGB, targetRGB);
+            double distance = FillTool.colorDistance(currentRGB, targetRGB);
             if (distance > epsilon || (clipPath != null && !clipPath.contains(x, y))) {
                 continue;
             }
@@ -175,32 +176,97 @@ public class GradientRenderer {
         }
     }
 
-    /**
-     * Calculate color distance between two RGB values
-     */
-    private double colorDistance(int rgb1, int rgb2) {
-        // Extract color components including alpha
-        int a1 = (rgb1 >> 24) & 0xFF;
-        int r1 = (rgb1 >> 16) & 0xFF;
-        int g1 = (rgb1 >> 8) & 0xFF;
-        int b1 = rgb1 & 0xFF;
+    public void smartFill(BufferedImage image, int x, int y, Color targetColor, Color replacementColor,
+                          int epsilon, GeneralPath clipPath) {
+        int width = image.getWidth();
+        int height = image.getHeight();
+        int targetRGB = targetColor.getRGB();
+        int replacementRGB = replacementColor.getRGB();
 
-        int a2 = (rgb2 >> 24) & 0xFF;
-        int r2 = (rgb2 >> 16) & 0xFF;
-        int g2 = (rgb2 >> 8) & 0xFF;
-        int b2 = rgb2 & 0xFF;
+        // Check if the fill is actually setting transparency
+        boolean isTransparentFill = replacementColor.getAlpha() == 0;
 
-        // Normalize alpha values
-        double alpha1 = a1 / 255.0;
-        double alpha2 = a2 / 255.0;
+        if (targetRGB == replacementRGB) {
+            return;
+        }
 
-        // Calculate weighted color differences
-        double deltaR = (r1 - r2) * alpha1 * alpha2;
-        double deltaG = (g1 - g2) * alpha1 * alpha2;
-        double deltaB = (b1 - b2) * alpha1 * alpha2;
-        double deltaA = (a1 - a2);
+        boolean[][] visited = new boolean[width][height];
+        Stack<Point> stack = new Stack<>();
+        stack.push(new Point(x, y));
 
-        // Return the combined distance
-        return Math.sqrt(deltaR * deltaR + deltaG * deltaG + deltaB * deltaB + deltaA * deltaA);
+        while (!stack.isEmpty()) {
+            Point p = stack.pop();
+            x = p.x;
+            y = p.y;
+
+            if (x < 0 || x >= width || y < 0 || y >= height || visited[x][y]) {
+                continue;
+            }
+
+            int currentRGB = image.getRGB(x, y);
+
+            double distance = FillTool.colorDistance(currentRGB, targetRGB);
+            if (distance > epsilon || (clipPath != null && !clipPath.contains(x, y))) {
+                continue;
+            }
+
+            // Handle transparency specially
+            if (isTransparentFill) {
+                // Set full transparency (alpha = 0), preserving RGB
+                image.setRGB(x, y, currentRGB & 0x00FFFFFF);
+            } else {
+                image.setRGB(x, y, replacementRGB);
+            }
+
+            visited[x][y] = true;
+
+            // Check neighbors
+            if (x > 0) stack.push(new Point(x - 1, y));
+            if (x < width - 1) stack.push(new Point(x + 1, y));
+            if (y > 0) stack.push(new Point(x, y - 1));
+            if (y < height - 1) stack.push(new Point(x, y + 1));
+        }
+    }
+
+    public void canvasFill(BufferedImage image, Color replacementColor, GeneralPath clipPath) {
+        int width = image.getWidth();
+        int height = image.getHeight();
+        int replacementRGB = replacementColor.getRGB();
+        boolean isTransparentFill = replacementColor.getAlpha() == 0;
+
+        // Use clipPath if available, otherwise fill entire image
+        if (clipPath != null) {
+            // Fill only within the clip path
+            Graphics2D g2d = image.createGraphics();
+            g2d.setClip(clipPath);
+
+            if (isTransparentFill) {
+                // Clear to transparency
+                g2d.setComposite(AlphaComposite.Clear);
+                g2d.fillRect(0, 0, width, height);
+            } else {
+                // Normal fill
+                g2d.setColor(replacementColor);
+                g2d.fillRect(0, 0, width, height);
+            }
+            g2d.dispose();
+        } else {
+            // Fill the entire image
+            if (isTransparentFill) {
+                // Clear each pixel to transparency
+                for (int y = 0; y < height; y++) {
+                    for (int x = 0; x < width; x++) {
+                        image.setRGB(x, y, image.getRGB(x, y) & 0x00FFFFFF);
+                    }
+                }
+            } else {
+                // Normal fill
+                for (int y = 0; y < height; y++) {
+                    for (int x = 0; x < width; x++) {
+                        image.setRGB(x, y, replacementRGB);
+                    }
+                }
+            }
+        }
     }
 }
