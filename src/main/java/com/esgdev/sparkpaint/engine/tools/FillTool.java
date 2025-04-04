@@ -28,8 +28,9 @@ public class FillTool implements DrawingTool {
     public enum FillMode {
         SMART_FILL("Smart Fill"),
         CANVAS_FILL("Entire region"),
-        GRADIENT_FILL("Gradient Fill"),
-        SMART_GRADIENT_FILL("Smart Gradient Fill");
+        LINEAR_GRADIENT("Linear Gradient"),
+        SMART_LINEAR("Smart Linear Gradient"),
+        CIRCULAR_GRADIENT("Circular Gradient");;
 
         private final String displayName;
 
@@ -68,7 +69,9 @@ public class FillTool implements DrawingTool {
 
     @Override
     public void mousePressed(MouseEvent e) {
-        if (fillMode == FillMode.GRADIENT_FILL || fillMode == FillMode.SMART_GRADIENT_FILL) {
+        if (fillMode == FillMode.LINEAR_GRADIENT ||
+                fillMode == FillMode.SMART_LINEAR ||
+        fillMode == FillMode.CIRCULAR_GRADIENT) {
             // Save to undo stack before modifying
             canvas.saveToUndoStack();
 
@@ -77,7 +80,7 @@ public class FillTool implements DrawingTool {
             isDrawingGradient = true;
 
             // For smart gradient, we also need to store the click position
-            if (fillMode == FillMode.SMART_GRADIENT_FILL) {
+            if (fillMode == FillMode.SMART_LINEAR) {
                 // Store initial click point for smart gradient
                 initialClickPoint = gradientStartPoint;
             }
@@ -150,7 +153,6 @@ public class FillTool implements DrawingTool {
         Color replacementColor = SwingUtilities.isLeftMouseButton(e) ?
                 canvas.getDrawingColor() : canvas.getFillColor();
 
-// Perform the appropriate fill operation based on the mode
         switch (fillMode) {
             case SMART_FILL:
                 smartFill(targetImage, fillPoint.x, fillPoint.y, targetColor, replacementColor, epsilon, clipPath);
@@ -166,7 +168,9 @@ public class FillTool implements DrawingTool {
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        if ((fillMode == FillMode.GRADIENT_FILL || fillMode == FillMode.SMART_GRADIENT_FILL) && isDrawingGradient) {
+        if ((fillMode == FillMode.LINEAR_GRADIENT ||
+                fillMode == FillMode.SMART_LINEAR ||
+                fillMode == FillMode.CIRCULAR_GRADIENT) && isDrawingGradient) {
             // Get current point
             gradientEndPoint = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
 
@@ -185,11 +189,17 @@ public class FillTool implements DrawingTool {
             g2d.fillRect(0, 0, tempCanvas.getWidth(), tempCanvas.getHeight());
             g2d.setComposite(AlphaComposite.SrcOver);
 
-            // Draw gradient preview
-            if (fillMode == FillMode.SMART_GRADIENT_FILL) {
-                previewSmartGradientWithMask(g2d, initialClickPoint, gradientStartPoint, gradientEndPoint);
-            } else {
-                previewGradient(g2d, gradientStartPoint, gradientEndPoint);
+
+            switch (fillMode) {
+                case SMART_LINEAR:
+                    previewSmartLinear(g2d, initialClickPoint, gradientStartPoint, gradientEndPoint);
+                    break;
+                case LINEAR_GRADIENT:
+                    previewLinearGradient(g2d, gradientStartPoint, gradientEndPoint);
+                    break;
+                case CIRCULAR_GRADIENT:
+                    previewCircularGradient(g2d, gradientStartPoint, gradientEndPoint);
+                    break;
             }
             g2d.dispose();
 
@@ -199,7 +209,9 @@ public class FillTool implements DrawingTool {
 
     @Override
     public void mouseReleased(MouseEvent e) {
-        if ((fillMode == FillMode.GRADIENT_FILL || fillMode == FillMode.SMART_GRADIENT_FILL) && isDrawingGradient) {
+        if ((fillMode == FillMode.LINEAR_GRADIENT ||
+            fillMode == FillMode.SMART_LINEAR ||
+            fillMode == FillMode.CIRCULAR_GRADIENT) && isDrawingGradient) {
             Selection selection = canvas.getSelection();
 
             // Get final gradient end point
@@ -223,7 +235,7 @@ public class FillTool implements DrawingTool {
                 adjustedStart = new Point(gradientStartPoint.x - bounds.x, gradientStartPoint.y - bounds.y);
                 adjustedEnd = new Point(gradientEndPoint.x - bounds.x, gradientEndPoint.y - bounds.y);
 
-                if (fillMode == FillMode.SMART_GRADIENT_FILL) {
+                if (fillMode == FillMode.SMART_LINEAR) {
                     adjustedClickPoint = new Point(initialClickPoint.x - bounds.x, initialClickPoint.y - bounds.y);
                 }
 
@@ -237,7 +249,7 @@ public class FillTool implements DrawingTool {
             }
 
             // Apply the gradient
-            if (fillMode == FillMode.SMART_GRADIENT_FILL) {
+            if (fillMode == FillMode.SMART_LINEAR) {
                 try {
                     // Check if click point is within bounds
                     int width = targetImage.getWidth();
@@ -255,15 +267,16 @@ public class FillTool implements DrawingTool {
                     int targetRGB = targetImage.getRGB(adjustedClickPoint.x, adjustedClickPoint.y);
                     Color targetColor = new Color(targetRGB, true);
 
-                    smartGradientFill(targetImage, adjustedClickPoint.x, adjustedClickPoint.y,
+                    smartLinearGradientFill(targetImage, adjustedClickPoint.x, adjustedClickPoint.y,
                             targetColor, adjustedStart, adjustedEnd, epsilon, clipPath);
                 } catch (Exception ex) {
                     // Log error and recover gracefully
                     System.err.println("Error applying smart gradient fill: " + ex.getMessage());
                 }
+            } else if (fillMode == FillMode.CIRCULAR_GRADIENT) {
+                applyCircularGradient(targetImage, adjustedStart, adjustedEnd, clipPath);
             } else {
-                // Apply normal gradient
-                applyGradient(targetImage, adjustedStart, adjustedEnd, clipPath);
+                applyLinearGradient(targetImage, adjustedStart, adjustedEnd, clipPath);
             }
 
             // Clean up
@@ -418,7 +431,7 @@ public class FillTool implements DrawingTool {
         return Math.sqrt(deltaR * deltaR + deltaG * deltaG + deltaB * deltaB + deltaA * deltaA);
     }
 
-    private void previewGradient(Graphics2D g2d, Point start, Point end) {
+    private void previewLinearGradient(Graphics2D g2d, Point start, Point end) {
         Selection selection = canvas.getSelection();
         GeneralPath clipPath = null;
 
@@ -471,8 +484,58 @@ public class FillTool implements DrawingTool {
         }
     }
 
+    private void previewCircularGradient(Graphics2D g2d, Point center, Point radiusPoint) {
+        Selection selection = canvas.getSelection();
+        GeneralPath clipPath = null;
 
-    private void previewSmartGradientWithMask(Graphics2D g2d, Point clickPoint, Point start, Point end) {
+        // Apply selection clipping if it exists
+        if (selection != null && selection.hasOutline()) {
+            clipPath = selection.getPath();
+            g2d.setClip(clipPath);
+        }
+
+        // Draw radius line with dashed style
+        g2d.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_BUTT,
+                BasicStroke.JOIN_BEVEL, 0, new float[]{5}, 0));
+        g2d.setColor(Color.BLACK);
+        g2d.drawLine(center.x, center.y, radiusPoint.x, radiusPoint.y);
+
+        // Draw center marker
+        int centerMarkerSize = 8;
+        g2d.setColor(Color.WHITE);
+        g2d.fillOval(center.x - centerMarkerSize/2 - 1, center.y - centerMarkerSize/2 - 1,
+                centerMarkerSize + 2, centerMarkerSize + 2);
+        g2d.setColor(canvas.getDrawingColor());
+        g2d.fillOval(center.x - centerMarkerSize/2, center.y - centerMarkerSize/2,
+                centerMarkerSize, centerMarkerSize);
+
+        // Calculate radius
+        double radius = center.distance(radiusPoint);
+
+        // Create and preview the gradient
+        RadialGradientPaint paint = new RadialGradientPaint(
+                center,
+                (float)radius,
+                new float[]{0.0f, 1.0f},
+                new Color[]{
+                        canvas.getDrawingColor(),
+                        canvas.getFillColor()
+                }
+        );
+        g2d.setPaint(paint);
+
+        // Preview with semi-transparent overlay
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f));
+
+        if (clipPath != null) {
+            g2d.fill(clipPath);
+        } else {
+            g2d.fillRect(0, 0, canvas.getCurrentLayerImage().getWidth(),
+                    canvas.getCurrentLayerImage().getHeight());
+        }
+    }
+
+    private void previewSmartLinear(Graphics2D g2d, Point clickPoint, Point start, Point end) {
         if (clickPoint == null) return;
 
         Selection selection = canvas.getSelection();
@@ -627,7 +690,7 @@ public class FillTool implements DrawingTool {
         }
     }
 
-    private void applyGradient(BufferedImage image, Point start, Point end, GeneralPath clipPath) {
+    private void applyLinearGradient(BufferedImage image, Point start, Point end, GeneralPath clipPath) {
         Graphics2D g2d = image.createGraphics();
 
         // Set up quality rendering
@@ -653,8 +716,41 @@ public class FillTool implements DrawingTool {
         g2d.dispose();
     }
 
-    private void smartGradientFill(BufferedImage image, int x, int y, Color targetColor,
-                                   Point startPoint, Point endPoint, int epsilon, GeneralPath clipPath) {
+    private void applyCircularGradient(BufferedImage image, Point center, Point radiusPoint, GeneralPath clipPath) {
+        Graphics2D g2d = image.createGraphics();
+
+        // Set up quality rendering
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+
+        // Calculate radius
+        double radius = center.distance(radiusPoint);
+
+        // Set up the radial gradient paint
+        RadialGradientPaint gradient = new RadialGradientPaint(
+                center,                           // Center point
+                (float)radius,                    // Radius
+                new float[]{0.0f, 1.0f},         // Distribution
+                new Color[]{                      // Colors
+                        canvas.getDrawingColor(),
+                        canvas.getFillColor()
+                }
+        );
+
+        g2d.setPaint(gradient);
+
+        // Apply clipping if needed
+        if (clipPath != null) {
+            g2d.setClip(clipPath);
+        }
+
+        // Fill the area with gradient
+        g2d.fillRect(0, 0, image.getWidth(), image.getHeight());
+        g2d.dispose();
+    }
+
+    private void smartLinearGradientFill(BufferedImage image, int x, int y, Color targetColor,
+                                         Point startPoint, Point endPoint, int epsilon, GeneralPath clipPath) {
         int width = image.getWidth();
         int height = image.getHeight();
         int targetRGB = targetColor.getRGB();

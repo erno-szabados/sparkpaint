@@ -96,7 +96,7 @@ public class FillToolSettings extends BaseToolSettings {
      */
     private void updateSliderEnabledStates(FillTool.FillMode mode) {
         boolean usesSmartSettings = mode == FillTool.FillMode.SMART_FILL ||
-                mode == FillTool.FillMode.SMART_GRADIENT_FILL;
+                mode == FillTool.FillMode.SMART_LINEAR;
 
         // Update epsilon slider (color tolerance)
         epsilonSlider.setEnabled(usesSmartSettings);
