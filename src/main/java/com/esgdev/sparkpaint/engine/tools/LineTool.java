@@ -259,6 +259,53 @@ public class LineTool implements DrawingTool {
         }
     }
 
+    // In LineTool.java
+    // Add a new method to get the current points for external drawing
+    public List<Point> getControlPoints() {
+        return new ArrayList<>(polylinePoints);
+    }
+
+    // Add a method to draw control points after zoom reset
+    public void drawControlPointsOverlay(Graphics2D g2d, float zoomFactor) {
+        if (polylinePoints.isEmpty()) return;
+
+        // Calculate proper size based on line thickness but not affected by zoom
+        int markerSize = Math.max(6, Math.round(canvas.getLineThickness()) + 2);
+        int halfMarker = markerSize / 2;
+
+        // Draw the control points with the original scale
+        g2d.setColor(Color.WHITE);
+        for (Point p : polylinePoints) {
+            int x = (int)(p.x * zoomFactor);
+            int y = (int)(p.y * zoomFactor);
+            g2d.fillOval(x - halfMarker, y - halfMarker, markerSize, markerSize);
+        }
+
+        g2d.setColor(Color.BLACK);
+        for (Point p : polylinePoints) {
+            int x = (int)(p.x * zoomFactor);
+            int y = (int)(p.y * zoomFactor);
+            g2d.drawOval(x - halfMarker, y - halfMarker, markerSize, markerSize);
+        }
+
+        // Draw dotted connecting lines for curve modes
+        if (mode == LineMode.CURVE || mode == LineMode.CLOSED_CURVE || mode == LineMode.FILLED_CURVE) {
+            g2d.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER,
+                    10.0f, new float[]{3.0f}, 0.0f));
+            g2d.setColor(new Color(100, 100, 100, 150)); // Semi-transparent gray
+
+            // Draw control polygon
+            for (int i = 0; i < polylinePoints.size() - 1; i++) {
+                Point p1 = polylinePoints.get(i);
+                Point p2 = polylinePoints.get(i + 1);
+                g2d.drawLine(
+                    (int)(p1.x * zoomFactor), (int)(p1.y * zoomFactor),
+                    (int)(p2.x * zoomFactor), (int)(p2.y * zoomFactor)
+                );
+            }
+        }
+    }
+
     @Override
     public void mouseScrolled(MouseWheelEvent e) {
         // No action needed for mouse scroll
@@ -516,9 +563,6 @@ public class LineTool implements DrawingTool {
                 }
             }
         }
-
-        // Draw control points and connection lines
-        drawControlPoints(g2d, tempPoints, lineThickness);
 
         g2d.dispose();
         canvas.repaint();

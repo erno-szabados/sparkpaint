@@ -316,6 +316,15 @@ public class DrawingCanvas extends JPanel implements
         // Reset scale for grid drawing
         g2d.scale(1 / zoomFactor, 1 / zoomFactor);
         renderZoomGrid(g2d);
+
+        // Draw LineTool control points if active
+        if (toolManager.getCurrentTool() == ToolManager.Tool.LINE) {
+            LineTool lineTool = (LineTool) toolManager.getTool(ToolManager.Tool.LINE);
+            if (lineTool.getMode() != LineTool.LineMode.SINGLE_LINE) {
+                lineTool.drawControlPointsOverlay(g2d, zoomFactor);
+            }
+        }
+
         if (selection != null) {
             selection.drawSelectionOutline(g2d, zoomFactor);
         }
