@@ -17,13 +17,14 @@ public class FillTool implements DrawingTool {
     private final DrawingCanvas canvas;
     private final Cursor cursor = Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR);
     private int epsilon;
-    private boolean useAntiAliasing = true;
     private Point gradientStartPoint;
     private Point gradientEndPoint;
     private boolean isDrawingGradient = false;
     private Point initialClickPoint; // For smart gradient fill
-    private BufferedImage smartGradientMask;
-    private Point lastMaskClickPoint;
+
+    // Add the GradientPreview and GradientRenderer instances
+    private final GradientPreview gradientPreview;
+    private final GradientRenderer gradientRenderer;
 
     public enum FillMode {
         SMART_FILL("Smart Fill"),
@@ -48,6 +49,8 @@ public class FillTool implements DrawingTool {
     public FillTool(DrawingCanvas canvas) {
         this.canvas = canvas;
         this.epsilon = DEFAULT_FILL_EPSILON;
+        this.gradientPreview = new GradientPreview(canvas);
+        this.gradientRenderer = new GradientRenderer(canvas);
     }
 
     public void setFillMode(FillMode mode) {
@@ -71,7 +74,7 @@ public class FillTool implements DrawingTool {
     public void mousePressed(MouseEvent e) {
         if (fillMode == FillMode.LINEAR_GRADIENT ||
                 fillMode == FillMode.SMART_LINEAR ||
-        fillMode == FillMode.CIRCULAR_GRADIENT) {
+                fillMode == FillMode.CIRCULAR_GRADIENT) {
             // Save to undo stack before modifying
             canvas.saveToUndoStack();
 
@@ -189,16 +192,24 @@ public class FillTool implements DrawingTool {
             g2d.fillRect(0, 0, tempCanvas.getWidth(), tempCanvas.getHeight());
             g2d.setComposite(AlphaComposite.SrcOver);
 
+            // Get selection information for preview
+            Selection selection = canvas.getSelection();
+            GeneralPath clipPath = null;
+            if (selection != null && selection.hasOutline()) {
+                clipPath = selection.getPath();
+            }
 
             switch (fillMode) {
                 case SMART_LINEAR:
-                    previewSmartLinear(g2d, initialClickPoint, gradientStartPoint, gradientEndPoint);
+                    CoordinateContext ctx = createCoordinateContext(selection, initialClickPoint, gradientStartPoint, gradientEndPoint);
+                    gradientPreview.previewSmartLinear(g2d, initialClickPoint, gradientStartPoint, gradientEndPoint,
+                            clipPath, ctx, epsilon);
                     break;
                 case LINEAR_GRADIENT:
-                    previewLinearGradient(g2d, gradientStartPoint, gradientEndPoint);
+                    gradientPreview.previewLinearGradient(g2d, gradientStartPoint, gradientEndPoint, clipPath);
                     break;
                 case CIRCULAR_GRADIENT:
-                    previewCircularGradient(g2d, gradientStartPoint, gradientEndPoint);
+                    gradientPreview.previewCircularGradient(g2d, gradientStartPoint, gradientEndPoint, clipPath);
                     break;
             }
             g2d.dispose();
@@ -210,8 +221,8 @@ public class FillTool implements DrawingTool {
     @Override
     public void mouseReleased(MouseEvent e) {
         if ((fillMode == FillMode.LINEAR_GRADIENT ||
-            fillMode == FillMode.SMART_LINEAR ||
-            fillMode == FillMode.CIRCULAR_GRADIENT) && isDrawingGradient) {
+                fillMode == FillMode.SMART_LINEAR ||
+                fillMode == FillMode.CIRCULAR_GRADIENT) && isDrawingGradient) {
             Selection selection = canvas.getSelection();
 
             // Get final gradient end point
@@ -248,7 +259,7 @@ public class FillTool implements DrawingTool {
                 targetImage = canvas.getCurrentLayerImage();
             }
 
-            // Apply the gradient
+            // Apply the gradient using the renderer
             if (fillMode == FillMode.SMART_LINEAR) {
                 try {
                     // Check if click point is within bounds
@@ -267,16 +278,16 @@ public class FillTool implements DrawingTool {
                     int targetRGB = targetImage.getRGB(adjustedClickPoint.x, adjustedClickPoint.y);
                     Color targetColor = new Color(targetRGB, true);
 
-                    smartLinearGradientFill(targetImage, adjustedClickPoint.x, adjustedClickPoint.y,
+                    gradientRenderer.smartLinearGradientFill(targetImage, adjustedClickPoint.x, adjustedClickPoint.y,
                             targetColor, adjustedStart, adjustedEnd, epsilon, clipPath);
                 } catch (Exception ex) {
                     // Log error and recover gracefully
                     System.err.println("Error applying smart gradient fill: " + ex.getMessage());
                 }
             } else if (fillMode == FillMode.CIRCULAR_GRADIENT) {
-                applyCircularGradient(targetImage, adjustedStart, adjustedEnd, clipPath);
+                gradientRenderer.applyCircularGradient(targetImage, adjustedStart, adjustedEnd, clipPath);
             } else {
-                applyLinearGradient(targetImage, adjustedStart, adjustedEnd, clipPath);
+                gradientRenderer.applyLinearGradient(targetImage, adjustedStart, adjustedEnd, clipPath);
             }
 
             // Clean up
@@ -284,8 +295,7 @@ public class FillTool implements DrawingTool {
             gradientStartPoint = null;
             gradientEndPoint = null;
             initialClickPoint = null;
-            smartGradientMask = null;
-            lastMaskClickPoint = null;
+            gradientPreview.clearMask();
             canvas.setToolCanvas(null);
             canvas.repaint();
         }
@@ -307,7 +317,8 @@ public class FillTool implements DrawingTool {
     }
 
     public void setAntiAliasing(boolean useAntiAliasing) {
-        this.useAntiAliasing = useAntiAliasing;
+        gradientPreview.setAntiAliasing(useAntiAliasing);
+        gradientRenderer.setAntiAliasing(useAntiAliasing);
     }
 
     private void canvasFill(BufferedImage image, Color replacementColor, GeneralPath clipPath) {
@@ -338,7 +349,6 @@ public class FillTool implements DrawingTool {
                 // Clear each pixel to transparency
                 for (int y = 0; y < height; y++) {
                     for (int x = 0; x < width; x++) {
-                        // Keep RGB values but set alpha to 0
                         image.setRGB(x, y, image.getRGB(x, y) & 0x00FFFFFF);
                     }
                 }
@@ -431,402 +441,14 @@ public class FillTool implements DrawingTool {
         return Math.sqrt(deltaR * deltaR + deltaG * deltaG + deltaB * deltaB + deltaA * deltaA);
     }
 
-    private void previewLinearGradient(Graphics2D g2d, Point start, Point end) {
-        Selection selection = canvas.getSelection();
-        GeneralPath clipPath = null;
-
-        // Apply selection clipping if it exists
-        if (selection != null && selection.hasOutline()) {
-            clipPath = selection.getPath();
-            g2d.setClip(clipPath);
-        }
-
-        // Draw a line showing gradient direction with dashed style
-        g2d.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_BUTT,
-                BasicStroke.JOIN_BEVEL, 0, new float[]{5}, 0));
-        g2d.setColor(Color.BLACK);
-        g2d.drawLine(start.x, start.y, end.x, end.y);
-
-        // Draw start marker with white outline
-        int startMarkerSize = 8;
-        g2d.setColor(Color.WHITE);
-        g2d.fillOval(start.x - startMarkerSize / 2 - 1, start.y - startMarkerSize / 2 - 1,
-                startMarkerSize + 2, startMarkerSize + 2);
-        g2d.setColor(canvas.getDrawingColor());
-        g2d.fillOval(start.x - startMarkerSize / 2, start.y - startMarkerSize / 2,
-                startMarkerSize, startMarkerSize);
-
-        // Draw end marker with white outline (larger than start marker)
-        int endMarkerSize = 12;
-        g2d.setColor(Color.WHITE);
-        g2d.fillOval(end.x - endMarkerSize / 2 - 1, end.y - endMarkerSize / 2 - 1,
-                endMarkerSize + 2, endMarkerSize + 2);
-        g2d.setColor(canvas.getFillColor());
-        g2d.fillOval(end.x - endMarkerSize / 2, end.y - endMarkerSize / 2,
-                endMarkerSize, endMarkerSize);
-
-        // Draw a gradient preview
-        GradientPaint paint = new GradientPaint(
-                start.x, start.y, canvas.getDrawingColor(),
-                end.x, end.y, canvas.getFillColor()
-        );
-        g2d.setPaint(paint);
-
-        // Preview the gradient with a semi-transparent overlay
-        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f));
-
-        // Fill either the selection area or the entire canvas
-        if (clipPath != null) {
-            g2d.fill(clipPath);
-        } else {
-            g2d.fillRect(0, 0, canvas.getCurrentLayerImage().getWidth(),
-                    canvas.getCurrentLayerImage().getHeight());
-        }
-    }
-
-    private void previewCircularGradient(Graphics2D g2d, Point center, Point radiusPoint) {
-        Selection selection = canvas.getSelection();
-        GeneralPath clipPath = null;
-
-        // Apply selection clipping if it exists
-        if (selection != null && selection.hasOutline()) {
-            clipPath = selection.getPath();
-            g2d.setClip(clipPath);
-        }
-
-        // Draw radius line with dashed style
-        g2d.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_BUTT,
-                BasicStroke.JOIN_BEVEL, 0, new float[]{5}, 0));
-        g2d.setColor(Color.BLACK);
-        g2d.drawLine(center.x, center.y, radiusPoint.x, radiusPoint.y);
-
-        // Draw center marker
-        int centerMarkerSize = 8;
-        g2d.setColor(Color.WHITE);
-        g2d.fillOval(center.x - centerMarkerSize/2 - 1, center.y - centerMarkerSize/2 - 1,
-                centerMarkerSize + 2, centerMarkerSize + 2);
-        g2d.setColor(canvas.getDrawingColor());
-        g2d.fillOval(center.x - centerMarkerSize/2, center.y - centerMarkerSize/2,
-                centerMarkerSize, centerMarkerSize);
-
-        // Calculate radius
-        double radius = center.distance(radiusPoint);
-
-        // Create and preview the gradient
-        RadialGradientPaint paint = new RadialGradientPaint(
-                center,
-                (float)radius,
-                new float[]{0.0f, 1.0f},
-                new Color[]{
-                        canvas.getDrawingColor(),
-                        canvas.getFillColor()
-                }
-        );
-        g2d.setPaint(paint);
-
-        // Preview with semi-transparent overlay
-        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f));
-
-        if (clipPath != null) {
-            g2d.fill(clipPath);
-        } else {
-            g2d.fillRect(0, 0, canvas.getCurrentLayerImage().getWidth(),
-                    canvas.getCurrentLayerImage().getHeight());
-        }
-    }
-
-    private void previewSmartLinear(Graphics2D g2d, Point clickPoint, Point start, Point end) {
-        if (clickPoint == null) return;
-
-        Selection selection = canvas.getSelection();
-
-        // Apply selection clipping if it exists
-        if (selection != null && selection.hasOutline()) {
-            g2d.setClip(selection.getPath());
-        }
-
-        // Get coordinate context with adjusted points
-        CoordinateContext ctx = createCoordinateContext(selection, clickPoint, start, end);
-
-        // Generate the mask if needed
-        if (smartGradientMask == null || lastMaskClickPoint == null ||
-                !lastMaskClickPoint.equals(ctx.adjustedClickPoint)) {
-
-            try {
-                generateMaskForGradient(ctx);
-                lastMaskClickPoint = new Point(ctx.adjustedClickPoint);
-            } catch (Exception ex) {
-                System.err.println("Error in preview: " + ex.getMessage());
-            }
-        }
-
-        // Draw gradient direction indicators
-        drawColorMarkers(g2d, start, end);
-        g2d.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_BUTT,
-                BasicStroke.JOIN_BEVEL, 0, new float[]{5}, 0));
-        g2d.setColor(Color.BLACK);
-        g2d.drawLine(start.x, start.y, end.x, end.y);
-
-        // Draw the gradient preview
-        drawGradientWithMask(g2d, ctx);
-    }
-
-    // Helper method to generate mask
-    private void generateMaskForGradient(CoordinateContext ctx) {
-        int width = ctx.currentImage.getWidth();
-        int height = ctx.currentImage.getHeight();
-
-        // Create new mask
-        smartGradientMask = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-
-        // Get target color and generate mask
-        int targetRGB = ctx.currentImage.getRGB(ctx.adjustedClickPoint.x, ctx.adjustedClickPoint.y);
-        Color targetColor = new Color(targetRGB, true);
-
-        generateSmartFillMask(smartGradientMask, ctx.currentImage,
-                ctx.adjustedClickPoint.x, ctx.adjustedClickPoint.y,
-                targetColor, epsilon, ctx.clipPath);
-    }
-
-    // Helper method to draw gradient with mask
-    private void drawGradientWithMask(Graphics2D g2d, CoordinateContext ctx) {
-        if (smartGradientMask == null) return;
-
-        // Create gradient paint
-        GradientPaint paint = new GradientPaint(
-                ctx.adjustedStart.x, ctx.adjustedStart.y, canvas.getDrawingColor(),
-                ctx.adjustedEnd.x, ctx.adjustedEnd.y, canvas.getFillColor(), false
-        );
-
-        // Create gradient image
-        BufferedImage previewImage = new BufferedImage(
-                ctx.currentImage.getWidth(), ctx.currentImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
-        Graphics2D previewG2d = previewImage.createGraphics();
-        previewG2d.setPaint(paint);
-        previewG2d.fillRect(0, 0, previewImage.getWidth(), previewImage.getHeight());
-        previewG2d.dispose();
-
-        // Apply mask with proper transformation
-        if (ctx.bounds != null) {
-            g2d.translate(ctx.bounds.x, ctx.bounds.y);
-        }
-
-        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.6f));
-        g2d.drawImage(smartGradientMask, 0, 0, null);
-        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_IN, 1.0f));
-        g2d.drawImage(previewImage, 0, 0, null);
-
-        if (ctx.bounds != null) {
-            g2d.translate(-ctx.bounds.x, -ctx.bounds.y);
-        }
-    }
-
-    // Helper method to draw color markers
-    private void drawColorMarkers(Graphics2D g2d, Point start, Point end) {
-        // Draw start marker with white outline
-        int startMarkerSize = 8;
-        g2d.setColor(Color.WHITE);
-        g2d.fillOval(start.x - startMarkerSize / 2 - 1, start.y - startMarkerSize / 2 - 1,
-                startMarkerSize + 2, startMarkerSize + 2);
-        g2d.setColor(canvas.getDrawingColor());
-        g2d.fillOval(start.x - startMarkerSize / 2, start.y - startMarkerSize / 2,
-                startMarkerSize, startMarkerSize);
-
-        // Draw end marker with white outline (larger than start marker)
-        int endMarkerSize = 12;
-        g2d.setColor(Color.WHITE);
-        g2d.fillOval(end.x - endMarkerSize / 2 - 1, end.y - endMarkerSize / 2 - 1,
-                endMarkerSize + 2, endMarkerSize + 2);
-        g2d.setColor(canvas.getFillColor());
-        g2d.fillOval(end.x - endMarkerSize / 2, end.y - endMarkerSize / 2,
-                endMarkerSize, endMarkerSize);
-    }
-
-
-    private void generateSmartFillMask(BufferedImage mask, BufferedImage source,
-                                       int x, int y, Color targetColor,
-                                       int epsilon, GeneralPath clipPath) {
-        int width = source.getWidth();
-        int height = source.getHeight();
-        int targetRGB = targetColor.getRGB();
-
-        // Clear the mask
-        Graphics2D maskG2d = mask.createGraphics();
-        maskG2d.setComposite(AlphaComposite.Clear);
-        maskG2d.fillRect(0, 0, width, height);
-        maskG2d.dispose();
-
-        // Use flood fill to identify pixels to include
-        boolean[][] visited = new boolean[width][height];
-        Stack<Point> stack = new Stack<>();
-        stack.push(new Point(x, y));
-
-        while (!stack.isEmpty()) {
-            Point p = stack.pop();
-            x = p.x;
-            y = p.y;
-
-            if (x < 0 || x >= width || y < 0 || y >= height || visited[x][y]) {
-                continue;
-            }
-
-            int currentRGB = source.getRGB(x, y);
-
-            // Check color distance
-            double distance = colorDistance(currentRGB, targetRGB);
-            if (distance > epsilon || (clipPath != null && !clipPath.contains(x, y))) {
-                continue;
-            }
-
-            // Mark this pixel in the mask
-            mask.setRGB(x, y, 0xFFFFFFFF); // Opaque white
-            visited[x][y] = true;
-
-            // Check neighbors
-            if (x > 0) stack.push(new Point(x - 1, y));
-            if (x < width - 1) stack.push(new Point(x + 1, y));
-            if (y > 0) stack.push(new Point(x, y - 1));
-            if (y < height - 1) stack.push(new Point(x, y + 1));
-        }
-    }
-
-    private void applyLinearGradient(BufferedImage image, Point start, Point end, GeneralPath clipPath) {
-        Graphics2D g2d = image.createGraphics();
-
-        // Set up quality rendering
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON :
-                        RenderingHints.VALUE_ANTIALIAS_OFF);
-
-        // Set up gradient
-        GradientPaint gradient = new GradientPaint(
-                start.x, start.y, canvas.getDrawingColor(),
-                end.x, end.y, canvas.getFillColor(),
-                false // Don't cycle the gradient
-        );
-        g2d.setPaint(gradient);
-
-        // Apply clipping if needed
-        if (clipPath != null) {
-            g2d.setClip(clipPath);
-        }
-
-        // Fill the area with gradient
-        g2d.fillRect(0, 0, image.getWidth(), image.getHeight());
-        g2d.dispose();
-    }
-
-    private void applyCircularGradient(BufferedImage image, Point center, Point radiusPoint, GeneralPath clipPath) {
-        Graphics2D g2d = image.createGraphics();
-
-        // Set up quality rendering
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
-
-        // Calculate radius
-        double radius = center.distance(radiusPoint);
-
-        // Set up the radial gradient paint
-        RadialGradientPaint gradient = new RadialGradientPaint(
-                center,                           // Center point
-                (float)radius,                    // Radius
-                new float[]{0.0f, 1.0f},         // Distribution
-                new Color[]{                      // Colors
-                        canvas.getDrawingColor(),
-                        canvas.getFillColor()
-                }
-        );
-
-        g2d.setPaint(gradient);
-
-        // Apply clipping if needed
-        if (clipPath != null) {
-            g2d.setClip(clipPath);
-        }
-
-        // Fill the area with gradient
-        g2d.fillRect(0, 0, image.getWidth(), image.getHeight());
-        g2d.dispose();
-    }
-
-    private void smartLinearGradientFill(BufferedImage image, int x, int y, Color targetColor,
-                                         Point startPoint, Point endPoint, int epsilon, GeneralPath clipPath) {
-        int width = image.getWidth();
-        int height = image.getHeight();
-        int targetRGB = targetColor.getRGB();
-
-        // Create a mask image to store which pixels should be filled
-        BufferedImage mask = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D maskG2d = mask.createGraphics();
-        maskG2d.setComposite(AlphaComposite.Clear);
-        maskG2d.fillRect(0, 0, width, height);
-        maskG2d.dispose();
-
-        // Use the smart fill algorithm to determine which pixels to fill
-        boolean[][] visited = new boolean[width][height];
-        Stack<Point> stack = new Stack<>();
-        stack.push(new Point(x, y));
-
-        while (!stack.isEmpty()) {
-            Point p = stack.pop();
-            x = p.x;
-            y = p.y;
-
-            if (x < 0 || x >= width || y < 0 || y >= height || visited[x][y]) {
-                continue;
-            }
-
-            int currentRGB = image.getRGB(x, y);
-
-            double distance = colorDistance(currentRGB, targetRGB);
-            if (distance > epsilon || (clipPath != null && !clipPath.contains(x, y))) {
-                continue;
-            }
-
-            // Mark this pixel as one to fill in the mask
-            mask.setRGB(x, y, 0xFFFFFFFF); // Opaque white
-            visited[x][y] = true;
-
-            // Check neighbors
-            if (x > 0) stack.push(new Point(x - 1, y));
-            if (x < width - 1) stack.push(new Point(x + 1, y));
-            if (y > 0) stack.push(new Point(x, y - 1));
-            if (y < height - 1) stack.push(new Point(x, y + 1));
-        }
-
-        // Create and fill a buffer with gradient
-        BufferedImage gradientImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D gradientG2d = gradientImage.createGraphics();
-
-        // Create the gradient
-        GradientPaint gradient = new GradientPaint(
-                startPoint.x, startPoint.y, canvas.getDrawingColor(),
-                endPoint.x, endPoint.y, canvas.getFillColor(),
-                false // Don't cycle the gradient
-        );
-        gradientG2d.setPaint(gradient);
-        gradientG2d.fillRect(0, 0, width, height);
-        gradientG2d.dispose();
-
-        // Apply the gradient only where mask is white
-        for (int py = 0; py < height; py++) {
-            for (int px = 0; px < width; px++) {
-                int maskRGB = mask.getRGB(px, py);
-                if (maskRGB != 0) { // If not transparent
-                    image.setRGB(px, py, gradientImage.getRGB(px, py));
-                }
-            }
-        }
-    }
-
-    // 1. Create a helper method for coordinate adjustment
+    // Helper method for coordinate adjustment
     private Point adjustToImageBounds(Point p, int width, int height) {
         int x = Math.max(0, Math.min(width - 1, p.x));
         int y = Math.max(0, Math.min(height - 1, p.y));
         return new Point(x, y);
     }
 
-    // 2. Extract coordinate transformations for selection handling
+    // Extract coordinate transformations for selection handling
     private CoordinateContext createCoordinateContext(Selection selection, Point clickPoint,
                                                       Point startPoint, Point endPoint) {
         CoordinateContext ctx = new CoordinateContext();
@@ -866,15 +488,5 @@ public class FillTool implements DrawingTool {
         ctx.adjustedEnd = adjustToImageBounds(ctx.adjustedEnd, width, height);
 
         return ctx;
-    }
-
-    // 3. Helper class to store coordinate context
-    private static class CoordinateContext {
-        BufferedImage currentImage;
-        GeneralPath clipPath;
-        Rectangle bounds;
-        Point adjustedClickPoint;
-        Point adjustedStart;
-        Point adjustedEnd;
     }
 }
