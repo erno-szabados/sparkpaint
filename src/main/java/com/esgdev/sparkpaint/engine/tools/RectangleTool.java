@@ -1,3 +1,4 @@
+
 package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
@@ -70,6 +71,15 @@ public class RectangleTool implements DrawingTool {
         int y = Math.min(startPoint.y, point.y);
         int width = Math.abs(point.x - startPoint.x);
         int height = Math.abs(point.y - startPoint.y);
+
+        // Check if Shift key is pressed
+        boolean isShiftDown = (e.getModifiersEx() & MouseEvent.SHIFT_DOWN_MASK) != 0;
+        if (isShiftDown) {
+            // Make it a square
+            int side = Math.max(width, height);
+            width = side;
+            height = side;
+        }
 
         // Check if we're using transparent colors
         boolean transparentFill = isFilled && canvas.getFillColor().getAlpha() == 0;
@@ -180,6 +190,15 @@ public class RectangleTool implements DrawingTool {
         int y = Math.min(adjustedStartPoint.y, adjustedEndPoint.y);
         int width = Math.abs(adjustedEndPoint.x - adjustedStartPoint.x);
         int height = Math.abs(adjustedEndPoint.y - adjustedStartPoint.y);
+
+        // Check if Shift key is pressed
+        boolean isShiftDown = (e.getModifiersEx() & MouseEvent.SHIFT_DOWN_MASK) != 0;
+        if (isShiftDown) {
+            // Make it a square
+            int side = Math.max(width, height);
+            width = side;
+            height = side;
+        }
 
         // Check if we're using transparent colors
         boolean transparentFill = isFilled && canvas.getFillColor().getAlpha() == 0;
