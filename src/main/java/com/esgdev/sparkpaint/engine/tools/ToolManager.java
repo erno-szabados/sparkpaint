@@ -85,7 +85,7 @@ public class ToolManager implements ToolManagement {
     public void initTools() {
         tools.put(Tool.LINE, new LineTool(drawingCanvas));
         tools.put(Tool.RECTANGLE, new RectangleTool(drawingCanvas));
-        tools.put(Tool.CIRCLE, new CircleTool(drawingCanvas));
+        tools.put(Tool.CIRCLE, new EllipseTool(drawingCanvas));
         tools.put(Tool.FILL, new FillTool(drawingCanvas));
         tools.put(Tool.EYEDROPPER, new EyedropperTool(drawingCanvas));
         tools.put(Tool.PENCIL, new PencilTool(drawingCanvas));
