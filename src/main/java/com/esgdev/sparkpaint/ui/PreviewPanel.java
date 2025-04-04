@@ -13,7 +13,7 @@ import java.awt.image.BufferedImage;
 public class PreviewPanel extends JPanel implements CanvasChangeListener {
     private static final int PREVIEW_WIDTH = 200;
     private static final int PREVIEW_HEIGHT = 150;
-    private static final Color VIEWPORT_COLOR = new Color(0, 0, 255, 64);
+    private static final Color VIEWPORT_COLOR = new Color(0, 0, 255, 32);
     private static final Color VIEWPORT_BORDER_COLOR = new Color(0, 0, 255, 128);
 
     private final DrawingCanvas canvas;
@@ -151,26 +151,35 @@ public class PreviewPanel extends JPanel implements CanvasChangeListener {
         g2d.setColor(Color.LIGHT_GRAY);
         g2d.fillRect(0, 0, getWidth(), getHeight());
 
-        if (previewImage != null) {
-            // Center the preview image
-            int x = (getWidth() - previewImage.getWidth()) / 2;
-            int y = (getHeight() - previewImage.getHeight()) / 2;
-
-            g2d.drawImage(previewImage, x, y, null);
-
-            // Draw viewport rectangle
-            Rectangle adjustedRect = new Rectangle(
-                    x + viewportRect.x,
-                    y + viewportRect.y,
-                    viewportRect.width,
-                    viewportRect.height
-            );
-
-            g2d.setColor(VIEWPORT_COLOR);
-            g2d.fill(adjustedRect);
-            g2d.setColor(VIEWPORT_BORDER_COLOR);
-            g2d.draw(adjustedRect);
+        if (previewImage == null) {
+            return;
         }
+
+        // Center the preview image
+        int x = (getWidth() - previewImage.getWidth()) / 2;
+        int y = (getHeight() - previewImage.getHeight()) / 2;
+
+        g2d.drawImage(previewImage, x, y, null);
+
+        BufferedImage layerImage = canvas.getLayers().get(0).getImage();
+        // Only draw viewport rectangle if canvas is larger than preview
+        if (!(layerImage.getWidth() * canvas.getZoomFactor() > PREVIEW_WIDTH) &&
+                !(layerImage.getHeight() * canvas.getZoomFactor() > PREVIEW_HEIGHT)) {
+            return;
+        }
+
+        // Draw viewport rectangle
+        Rectangle adjustedRect = new Rectangle(
+                x + viewportRect.x,
+                y + viewportRect.y,
+                viewportRect.width,
+                viewportRect.height
+        );
+
+        g2d.setColor(VIEWPORT_COLOR);
+        g2d.fill(adjustedRect);
+        g2d.setColor(VIEWPORT_BORDER_COLOR);
+        g2d.draw(adjustedRect);
     }
 
     @Override
