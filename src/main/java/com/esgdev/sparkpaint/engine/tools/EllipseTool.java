@@ -62,7 +62,8 @@ public class EllipseTool implements DrawingTool {
         applySelectionClip(g2d, selection);
 
         // Draw the circle with preview settings
-        drawCircle(g2d, startPoint, point, true);
+        boolean isShiftDown = (e.getModifiersEx() & MouseEvent.SHIFT_DOWN_MASK) != 0;
+        drawCircle(g2d, startPoint, point, true, isShiftDown);
 
         g2d.dispose();
         canvas.repaint();
@@ -82,14 +83,15 @@ public class EllipseTool implements DrawingTool {
         configureGraphics(drawContext.g2d);
 
         // Draw the circle
-        drawCircle(drawContext.g2d, drawContext.start, drawContext.end, false);
+        boolean isShiftDown = (e.getModifiersEx() & MouseEvent.SHIFT_DOWN_MASK) != 0;
+        drawCircle(drawContext.g2d, drawContext.start, drawContext.end, false, isShiftDown);
 
         // Apply transparency if needed
         boolean transparentFill = isFilled && canvas.getFillColor().getAlpha() == 0;
         boolean transparentOutline = canvas.getDrawingColor().getAlpha() == 0;
 
         if (transparentFill || transparentOutline) {
-            Rectangle ellipseBounds = calculateEllipseBounds(drawContext.start, drawContext.end);
+            Rectangle ellipseBounds = calculateEllipseBounds(drawContext.start, drawContext.end, isShiftDown);
             applyTransparency(drawContext.targetImage, ellipseBounds, transparentFill, transparentOutline);
         }
 
@@ -164,7 +166,7 @@ public class EllipseTool implements DrawingTool {
                 useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
     }
 
-    private Rectangle calculateEllipseBounds(Point start, Point end) {
+    private Rectangle calculateEllipseBounds(Point start, Point end, boolean isShiftDown) {
         if (isCenterBased) {
             int radius = (int) Math.sqrt(Math.pow(end.x - start.x, 2) + Math.pow(end.y - start.y, 2));
             return new Rectangle(start.x - radius, start.y - radius, radius * 2, radius * 2);
@@ -174,13 +176,18 @@ public class EllipseTool implements DrawingTool {
             int width = Math.abs(end.x - start.x);
             int height = Math.abs(end.y - start.y);
 
-            // No longer forcing a square shape in non-center mode
+            if (isShiftDown) {
+                // Force a circle by making width equal to height
+                int diameter = Math.max(width, height);
+                return new Rectangle(x, y, diameter, diameter);
+            }
+
             return new Rectangle(x, y, width, height);
         }
     }
 
-    private void drawCircle(Graphics2D g2d, Point start, Point end, boolean isPreview) {
-        Rectangle bounds = calculateEllipseBounds(start, end);
+    private void drawCircle(Graphics2D g2d, Point start, Point end, boolean isPreview, boolean isShiftDown) {
+        Rectangle bounds = calculateEllipseBounds(start, end, isShiftDown);
 
         boolean transparentFill = isFilled && canvas.getFillColor().getAlpha() == 0;
         boolean transparentOutline = canvas.getDrawingColor().getAlpha() == 0;
