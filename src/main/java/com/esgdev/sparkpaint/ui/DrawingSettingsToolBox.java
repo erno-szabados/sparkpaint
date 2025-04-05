@@ -37,11 +37,11 @@ public class DrawingSettingsToolBox extends Box implements ToolChangeListener {
         toolSettings.put(ToolManager.Tool.LINE, new LineToolSettings(canvas));
         toolSettings.put(ToolManager.Tool.PENCIL, new PencilToolSettings(canvas));
         toolSettings.put(ToolManager.Tool.BRUSH, new BrushToolSettings(canvas));
+        toolSettings.put(ToolManager.Tool.FILTER_BRUSH, new FilterBrushToolSettings(canvas));
         toolSettings.put(ToolManager.Tool.FILL, new FillToolSettings(canvas));
         toolSettings.put(ToolManager.Tool.RECTANGLE_SELECTION, new RectangleSelectionToolSettings(canvas));
         toolSettings.put(ToolManager.Tool.TEXT, new TextToolSettings(canvas));
         toolSettings.put(ToolManager.Tool.FREEHAND_SELECTION, new FreehandSelectionToolSettings(canvas));
-
 
         // Add other tool settings
     }
