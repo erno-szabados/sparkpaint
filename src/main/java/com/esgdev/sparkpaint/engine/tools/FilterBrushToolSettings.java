@@ -12,8 +12,6 @@ public class FilterBrushToolSettings extends BaseToolSettings {
     private final FilterBrushTool filterBrushTool;
     private JSlider strengthSlider;
     private JLabel strengthValueLabel;
-    private JCheckBox antiAliasingCheckbox;
-    private boolean useAntiAliasing = true;  // Default value
 
     public FilterBrushToolSettings(DrawingCanvas canvas) {
         super(canvas);
@@ -70,10 +68,6 @@ public class FilterBrushToolSettings extends BaseToolSettings {
             applySettings();
         });
 
-        // Anti-aliasing checkbox
-        antiAliasingCheckbox = new JCheckBox("Anti-aliasing", useAntiAliasing);
-        antiAliasingCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
-        antiAliasingCheckbox.addActionListener(e -> applySettings());
 
         panel.add(filterTypeLabel);
         panel.add(Box.createVerticalStrut(2));
@@ -90,8 +84,6 @@ public class FilterBrushToolSettings extends BaseToolSettings {
         panel.add(strengthSlider);
         panel.add(Box.createVerticalStrut(2));
         panel.add(strengthValueLabel);
-        panel.add(Box.createVerticalStrut(5));
-        panel.add(antiAliasingCheckbox);
         panel.add(Box.createVerticalGlue());
 
         resetToDefaults();
@@ -104,8 +96,6 @@ public class FilterBrushToolSettings extends BaseToolSettings {
             filterBrushTool.setSize(sizeSlider.getValue());
             filterBrushTool.setFilterType((FilterBrushTool.FilterType) filterTypeComboBox.getSelectedItem());
             filterBrushTool.setStrength(strengthSlider.getValue() / 100f);
-            useAntiAliasing = antiAliasingCheckbox.isSelected();
-            filterBrushTool.setAntiAliasing(useAntiAliasing);
         }
     }
 
@@ -116,7 +106,6 @@ public class FilterBrushToolSettings extends BaseToolSettings {
         filterTypeComboBox.setSelectedItem(FilterBrushTool.FilterType.BLUR);
         strengthSlider.setValue(FilterBrushTool.DEFAULT_STRENGTH);
         strengthValueLabel.setText(String.valueOf(FilterBrushTool.DEFAULT_STRENGTH));
-        antiAliasingCheckbox.setSelected(true);
         applySettings();
     }
 }

@@ -127,7 +127,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, 
         button.putClientProperty("tool", ToolManager.Tool.FILTER_BRUSH);
         button.setToolTipText("Retouch with Filter Brush");
         button.addActionListener(e -> {
-            canvas.setCurrentTool(ToolManager.Tool.BRUSH);
+            canvas.setCurrentTool(ToolManager.Tool.FILTER_BRUSH);
             statusMessageHandler.setStatusMessage("Filter Brush selected.");
         });
         toolGroup.add(button);

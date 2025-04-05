@@ -3,7 +3,6 @@ package com.esgdev.sparkpaint.engine.tools;
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.selection.Selection;
 
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
@@ -30,13 +29,15 @@ public class FilterBrushTool implements DrawingTool {
     private FilterType filterType = FilterType.BLUR;
     private int size = DEFAULT_SIZE;
     private float strength = DEFAULT_STRENGTH / 100f;  // Range: 0.01f to 1.0f
-    private boolean useAntiAliasing = true;
 
     // Will be initialized on first use
     private FilterBrushRenderer renderer;
 
     public FilterBrushTool(DrawingCanvas canvas) {
         this.canvas = canvas;
+        // Initialize cursor shape and size
+        canvas.setCursorShape(BrushTool.BrushShape.CIRCLE);
+        canvas.setCursorSize(DEFAULT_SIZE);
     }
 
     @Override
@@ -136,7 +137,7 @@ public class FilterBrushTool implements DrawingTool {
 
         // Lazy initialization of renderer if needed
         if (renderer == null) {
-            renderer = new FilterBrushRenderer();
+            renderer = new FilterBrushRenderer(canvas);
         }
 
         // Apply the filter at the given point with current settings
@@ -144,12 +145,11 @@ public class FilterBrushTool implements DrawingTool {
         int y = p.y - size / 2;
 
         renderer.applyFilter(
-            targetImage,
-            filterType,
-            x, y, size,
-            strength,
-            useAntiAliasing,
-            g2d.getClip()
+                targetImage,
+                filterType,
+                x, y, size,
+                strength,
+                g2d.getClip()
         );
     }
 
@@ -182,9 +182,18 @@ public class FilterBrushTool implements DrawingTool {
         }
     }
 
+    // Add this to FilterBrushTool class
+    public void initializeCursor() {
+        // Set circular cursor for filter brush
+        canvas.setCursorShape(BrushTool.BrushShape.CIRCLE);
+        canvas.setCursorSize(size);
+    }
+
+    // Update setSize method
     public void setSize(int size) {
         this.size = size;
         canvas.setCursorSize(size);
+        canvas.setCursorShape(BrushTool.BrushShape.CIRCLE); // Always use circle shape for filters
     }
 
     public void setFilterType(FilterType filterType) {
@@ -193,9 +202,5 @@ public class FilterBrushTool implements DrawingTool {
 
     public void setStrength(float strength) {
         this.strength = Math.max(0.01f, Math.min(1.0f, strength));
-    }
-
-    public void setAntiAliasing(boolean useAntiAliasing) {
-        this.useAntiAliasing = useAntiAliasing;
     }
 }

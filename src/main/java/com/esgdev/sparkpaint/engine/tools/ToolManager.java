@@ -74,7 +74,7 @@ public class ToolManager implements ToolManagement {
     public void setCurrentTool(Tool tool) {
         this.currentTool = tool;
         getActiveTool().setCursor();
-        showBrushCursor = tool == Tool.BRUSH;
+        showBrushCursor = (tool == Tool.BRUSH) || (tool == Tool.FILTER_BRUSH);
         // Notify all listeners
         for (ToolChangeListener listener : toolChangeListeners) {
             listener.onToolChanged(tool);
@@ -90,6 +90,7 @@ public class ToolManager implements ToolManagement {
         tools.put(Tool.EYEDROPPER, new EyedropperTool(drawingCanvas));
         tools.put(Tool.PENCIL, new PencilTool(drawingCanvas));
         tools.put(Tool.BRUSH, new BrushTool(drawingCanvas));
+        tools.put(Tool.FILTER_BRUSH, new FilterBrushTool(drawingCanvas));
         tools.put(Tool.RECTANGLE_SELECTION, new RectangleSelectionTool(drawingCanvas));
         tools.put(Tool.FREEHAND_SELECTION, new FreeHandSelectionTool(drawingCanvas));
         tools.put(Tool.TEXT, new TextTool(drawingCanvas));
