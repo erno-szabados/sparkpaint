@@ -133,6 +133,57 @@ public class FillRenderer {
     }
 
     /**
+     * Applies a smart circular gradient to the specified image
+     */
+    public void applySmartCircular(BufferedImage image, int x, int y, Color targetColor,
+                                   Point centerPoint, Point radiusPoint, int epsilon, GeneralPath clipPath) {
+        int width = image.getWidth();
+        int height = image.getHeight();
+        int targetRGB = targetColor.getRGB();
+
+        // Create a mask image to store which pixels should be filled
+        BufferedImage mask = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D maskG2d = mask.createGraphics();
+        maskG2d.setComposite(AlphaComposite.Clear);
+        maskG2d.fillRect(0, 0, width, height);
+        maskG2d.dispose();
+
+        // Use the smart fill algorithm to determine which pixels to fill
+        generateSmartFillMask(mask, image, x, y, targetColor, epsilon, clipPath);
+
+        // Calculate the radius of the circular gradient
+        double radius = centerPoint.distance(radiusPoint);
+
+        // Create an image for the gradient
+        BufferedImage gradientImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D gradientG2d = gradientImage.createGraphics();
+
+        // Create the radial gradient paint
+        RadialGradientPaint gradient = new RadialGradientPaint(
+                centerPoint,
+                (float) radius,
+                new float[]{0.0f, 1.0f},
+                new Color[]{
+                        canvas.getDrawingColor(),
+                        canvas.getFillColor()
+                }
+        );
+        gradientG2d.setPaint(gradient);
+        gradientG2d.fillRect(0, 0, width, height);
+        gradientG2d.dispose();
+
+        // Apply the gradient only where the mask is white
+        for (int py = 0; py < height; py++) {
+            for (int px = 0; px < width; px++) {
+                int maskRGB = mask.getRGB(px, py);
+                if (maskRGB != 0) { // If not transparent
+                    image.setRGB(px, py, gradientImage.getRGB(px, py));
+                }
+            }
+        }
+    }
+
+    /**
      * Helper method to generate smart fill mask
      */
     private void generateSmartFillMask(BufferedImage mask, BufferedImage source,

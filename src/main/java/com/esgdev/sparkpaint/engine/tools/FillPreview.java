@@ -74,10 +74,10 @@ public class FillPreview {
         // Draw center marker
         int centerMarkerSize = 8;
         g2d.setColor(Color.WHITE);
-        g2d.fillOval(center.x - centerMarkerSize/2 - 1, center.y - centerMarkerSize/2 - 1,
+        g2d.fillOval(center.x - centerMarkerSize / 2 - 1, center.y - centerMarkerSize / 2 - 1,
                 centerMarkerSize + 2, centerMarkerSize + 2);
         g2d.setColor(canvas.getDrawingColor());
-        g2d.fillOval(center.x - centerMarkerSize/2, center.y - centerMarkerSize/2,
+        g2d.fillOval(center.x - centerMarkerSize / 2, center.y - centerMarkerSize / 2,
                 centerMarkerSize, centerMarkerSize);
 
         // Calculate radius
@@ -86,7 +86,7 @@ public class FillPreview {
         // Create and preview the gradient
         RadialGradientPaint paint = new RadialGradientPaint(
                 center,
-                (float)radius,
+                (float) radius,
                 new float[]{0.0f, 1.0f},
                 new Color[]{
                         canvas.getDrawingColor(),
@@ -138,7 +138,51 @@ public class FillPreview {
         g2d.drawLine(start.x, start.y, end.x, end.y);
 
         // Draw the gradient preview
-        drawGradientWithMask(g2d, ctx);
+        drawGradientWithMask(g2d, ctx, false);
+    }
+
+    /**
+     * Renders a preview of a smart circular gradient
+     */
+    public void previewSmartCircular(Graphics2D g2d, Point clickPoint, Point center, Point radiusPoint,
+                                     GeneralPath clipPath, CoordinateContext ctx, int epsilon) {
+        if (clickPoint == null) return;
+
+        // Apply selection clipping if provided
+        if (clipPath != null) {
+            g2d.setClip(clipPath);
+        }
+
+        // Generate the mask if needed
+        if (smartGradientMask == null || lastMaskClickPoint == null ||
+                !lastMaskClickPoint.equals(ctx.adjustedClickPoint)) {
+
+            try {
+                generateMaskForGradient(ctx, epsilon);
+                lastMaskClickPoint = new Point(ctx.adjustedClickPoint);
+            } catch (Exception ex) {
+                System.err.println("Error in preview: " + ex.getMessage());
+            }
+        }
+
+        // Draw gradient direction indicators
+        // Draw radius line with dashed style
+        g2d.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_BUTT,
+                BasicStroke.JOIN_BEVEL, 0, new float[]{5}, 0));
+        g2d.setColor(Color.BLACK);
+        g2d.drawLine(center.x, center.y, radiusPoint.x, radiusPoint.y);
+
+        // Draw center marker
+        int centerMarkerSize = 8;
+        g2d.setColor(Color.WHITE);
+        g2d.fillOval(center.x - centerMarkerSize / 2 - 1, center.y - centerMarkerSize / 2 - 1,
+                centerMarkerSize + 2, centerMarkerSize + 2);
+        g2d.setColor(canvas.getDrawingColor());
+        g2d.fillOval(center.x - centerMarkerSize / 2, center.y - centerMarkerSize / 2,
+                centerMarkerSize, centerMarkerSize);
+
+        // Draw the gradient preview
+        drawGradientWithMask(g2d, ctx, true);
     }
 
     /**
@@ -164,8 +208,8 @@ public class FillPreview {
      * Helper method to generate smart fill mask
      */
     private void generateSmartFillMask(BufferedImage mask, BufferedImage source,
-                                     int x, int y, Color targetColor,
-                                     int epsilon, GeneralPath clipPath) {
+                                       int x, int y, Color targetColor,
+                                       int epsilon, GeneralPath clipPath) {
         int width = source.getWidth();
         int height = source.getHeight();
         int targetRGB = targetColor.getRGB();
@@ -213,20 +257,38 @@ public class FillPreview {
     /**
      * Helper method to draw gradient with mask
      */
-    private void drawGradientWithMask(Graphics2D g2d, CoordinateContext ctx) {
+    private void drawGradientWithMask(Graphics2D g2d, CoordinateContext ctx, boolean circular) {
         if (smartGradientMask == null) return;
 
-        // Create gradient paint
-        GradientPaint paint = new GradientPaint(
-                ctx.adjustedStart.x, ctx.adjustedStart.y, canvas.getDrawingColor(),
-                ctx.adjustedEnd.x, ctx.adjustedEnd.y, canvas.getFillColor(), false
-        );
-
-        // Create gradient image
+        // Create preview image
         BufferedImage previewImage = new BufferedImage(
                 ctx.currentImage.getWidth(), ctx.currentImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
         Graphics2D previewG2d = previewImage.createGraphics();
-        previewG2d.setPaint(paint);
+
+        if (circular) {
+            // Calculate radius for circular gradient
+            double radius = ctx.adjustedStart.distance(ctx.adjustedEnd);
+
+            // Create radial gradient paint
+            RadialGradientPaint paint = new RadialGradientPaint(
+                    ctx.adjustedStart,
+                    (float) radius,
+                    new float[]{0.0f, 1.0f},
+                    new Color[]{
+                            canvas.getDrawingColor(),
+                            canvas.getFillColor()
+                    }
+            );
+            previewG2d.setPaint(paint);
+        } else {
+            // Create linear gradient paint
+            GradientPaint paint = new GradientPaint(
+                    ctx.adjustedStart.x, ctx.adjustedStart.y, canvas.getDrawingColor(),
+                    ctx.adjustedEnd.x, ctx.adjustedEnd.y, canvas.getFillColor(), false
+            );
+            previewG2d.setPaint(paint);
+        }
+
         previewG2d.fillRect(0, 0, previewImage.getWidth(), previewImage.getHeight());
         previewG2d.dispose();
 

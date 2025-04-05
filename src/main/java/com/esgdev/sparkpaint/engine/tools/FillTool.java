@@ -20,7 +20,6 @@ public class FillTool implements DrawingTool {
     private Point gradientEndPoint;
     private boolean isDrawingGradient = false;
     private Point initialClickPoint; // For smart gradient fill
-
     private final FillPreview gradientPreview;
     private final FillRenderer gradientRenderer;
 
@@ -29,7 +28,8 @@ public class FillTool implements DrawingTool {
         CANVAS_FILL("Entire region"),
         LINEAR_GRADIENT("Linear Gradient"),
         SMART_LINEAR("Smart Linear Gradient"),
-        CIRCULAR_GRADIENT("Circular Gradient");;
+        CIRCULAR_GRADIENT("Circular Gradient"),
+        SMART_CIRCULAR("Smart Circular Gradient");
 
         private final String displayName;
 
@@ -72,7 +72,8 @@ public class FillTool implements DrawingTool {
     public void mousePressed(MouseEvent e) {
         if (fillMode == FillMode.LINEAR_GRADIENT ||
                 fillMode == FillMode.SMART_LINEAR ||
-                fillMode == FillMode.CIRCULAR_GRADIENT) {
+                fillMode == FillMode.CIRCULAR_GRADIENT ||
+                fillMode == FillMode.SMART_CIRCULAR) {
             // Save to undo stack before modifying
             canvas.saveToUndoStack();
 
@@ -81,7 +82,7 @@ public class FillTool implements DrawingTool {
             isDrawingGradient = true;
 
             // For smart gradient, we also need to store the click position
-            if (fillMode == FillMode.SMART_LINEAR) {
+            if (fillMode == FillMode.SMART_LINEAR || fillMode == FillMode.SMART_CIRCULAR) {
                 // Store initial click point for smart gradient
                 initialClickPoint = gradientStartPoint;
             }
@@ -168,7 +169,8 @@ public class FillTool implements DrawingTool {
     public void mouseDragged(MouseEvent e) {
         if ((fillMode == FillMode.LINEAR_GRADIENT ||
                 fillMode == FillMode.SMART_LINEAR ||
-                fillMode == FillMode.CIRCULAR_GRADIENT) && isDrawingGradient) {
+                fillMode == FillMode.CIRCULAR_GRADIENT ||
+                fillMode == FillMode.SMART_CIRCULAR) && isDrawingGradient) {
             // Get current point
             gradientEndPoint = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
 
@@ -207,6 +209,12 @@ public class FillTool implements DrawingTool {
                 case CIRCULAR_GRADIENT:
                     gradientPreview.previewCircularGradient(g2d, gradientStartPoint, gradientEndPoint, clipPath);
                     break;
+                case SMART_CIRCULAR:
+                    CoordinateContext ctx2 = CoordinateContext.create(canvas, selection,
+                            initialClickPoint, gradientStartPoint, gradientEndPoint);
+                    gradientPreview.previewSmartCircular(g2d, initialClickPoint, gradientStartPoint, gradientEndPoint,
+                            clipPath, ctx2, epsilon);
+                    break;
             }
             g2d.dispose();
 
@@ -218,7 +226,8 @@ public class FillTool implements DrawingTool {
     public void mouseReleased(MouseEvent e) {
         if ((fillMode == FillMode.LINEAR_GRADIENT ||
                 fillMode == FillMode.SMART_LINEAR ||
-                fillMode == FillMode.CIRCULAR_GRADIENT) && isDrawingGradient) {
+                fillMode == FillMode.CIRCULAR_GRADIENT ||
+                fillMode == FillMode.SMART_CIRCULAR) && isDrawingGradient) {
             Selection selection = canvas.getSelection();
 
             // Get final gradient end point
@@ -242,7 +251,7 @@ public class FillTool implements DrawingTool {
                 adjustedStart = new Point(gradientStartPoint.x - bounds.x, gradientStartPoint.y - bounds.y);
                 adjustedEnd = new Point(gradientEndPoint.x - bounds.x, gradientEndPoint.y - bounds.y);
 
-                if (fillMode == FillMode.SMART_LINEAR) {
+                if (fillMode == FillMode.SMART_LINEAR || fillMode == FillMode.SMART_CIRCULAR) {
                     adjustedClickPoint = new Point(initialClickPoint.x - bounds.x, initialClickPoint.y - bounds.y);
                 }
 
@@ -282,6 +291,30 @@ public class FillTool implements DrawingTool {
                 }
             } else if (fillMode == FillMode.CIRCULAR_GRADIENT) {
                 gradientRenderer.applyCircularGradient(targetImage, adjustedStart, adjustedEnd, clipPath);
+            } else if (fillMode == FillMode.SMART_CIRCULAR) {
+                try {
+                    // Check if click point is within bounds
+                    int width = targetImage.getWidth();
+                    int height = targetImage.getHeight();
+
+                    // Ensure all points are within bounds
+                    adjustedClickPoint.x = Math.max(0, Math.min(width - 1, adjustedClickPoint.x));
+                    adjustedClickPoint.y = Math.max(0, Math.min(height - 1, adjustedClickPoint.y));
+                    adjustedStart.x = Math.max(0, Math.min(width - 1, adjustedStart.x));
+                    adjustedStart.y = Math.max(0, Math.min(height - 1, adjustedStart.y));
+                    adjustedEnd.x = Math.max(0, Math.min(width - 1, adjustedEnd.x));
+                    adjustedEnd.y = Math.max(0, Math.min(height - 1, adjustedEnd.y));
+
+                    // Get target color at initial click point
+                    int targetRGB = targetImage.getRGB(adjustedClickPoint.x, adjustedClickPoint.y);
+                    Color targetColor = new Color(targetRGB, true);
+
+                    gradientRenderer.applySmartCircular(targetImage, adjustedClickPoint.x, adjustedClickPoint.y,
+                            targetColor, adjustedStart, adjustedEnd, epsilon, clipPath);
+                } catch (Exception ex) {
+                    // Log error and recover gracefully
+                    System.err.println("Error applying smart circular gradient fill: " + ex.getMessage());
+                }
             } else {
                 gradientRenderer.applyLinearGradient(targetImage, adjustedStart, adjustedEnd, clipPath);
             }
