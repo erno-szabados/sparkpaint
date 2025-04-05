@@ -17,6 +17,7 @@ public class ImageScalingWorker extends SwingWorker<List<Layer>, Integer> {
     private final int newHeight;
     private final JProgressBar progressBar;
     private final JDialog progressDialog;
+    private final int blockHeight = 240; // Height of each processing block
 
     public ImageScalingWorker(JFrame parent, DrawingCanvas canvas, int newWidth, int newHeight) {
         this.canvas = canvas;
@@ -37,7 +38,7 @@ public class ImageScalingWorker extends SwingWorker<List<Layer>, Integer> {
 
         progressDialog.add(panel);
         progressDialog.pack();
-        progressDialog.setLocationRelativeTo(parent);
+        progressDialog.setLocationRelativeTo(null);
         progressDialog.setResizable(false);
     }
 
@@ -48,27 +49,50 @@ public class ImageScalingWorker extends SwingWorker<List<Layer>, Integer> {
 
         for (int i = 0; i < totalLayers; i++) {
             Layer layer = originalLayers.get(i);
-
-            // Create a new scaled layer
             Layer newLayer = new Layer(newWidth, newHeight);
             newLayer.setVisible(layer.isVisible());
             newLayer.setName(layer.getName());
 
             BufferedImage originalImage = layer.getImage();
             BufferedImage scaledImage = newLayer.getImage();
-
-            // Scale the image using bilinear interpolation
             Graphics2D g = scaledImage.createGraphics();
             g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-            g.drawImage(originalImage, 0, 0, newWidth, newHeight, null);
+
+            int numBlocks = (int) Math.ceil((double) originalImage.getHeight() / blockHeight);
+
+            for (int blockIndex = 0; blockIndex < numBlocks; blockIndex++) {
+                int yStart = blockIndex * blockHeight;
+                int yEnd = Math.min(yStart + blockHeight, originalImage.getHeight());
+
+                // Calculate the corresponding scaled y coordinates
+                int scaledYStart = (int) Math.round((double) yStart * newHeight / originalImage.getHeight());
+                int scaledYEnd = (int) Math.round((double) yEnd * newHeight / originalImage.getHeight());
+
+                int blockWidth = originalImage.getWidth();
+                int scaledBlockWidth = newWidth;
+                int scaledBlockHeight = scaledYEnd - scaledYStart;
+
+                // Extract the block from the original image
+                BufferedImage originalBlock = originalImage.getSubimage(0, yStart, blockWidth, yEnd - yStart);
+
+                // Scale the block
+                Image scaledBlockImage = originalBlock.getScaledInstance(scaledBlockWidth, scaledBlockHeight, Image.SCALE_SMOOTH);
+                BufferedImage scaledBlock = new BufferedImage(scaledBlockWidth, scaledBlockHeight, BufferedImage.TYPE_INT_ARGB);
+                Graphics2D scaledG = scaledBlock.createGraphics();
+                scaledG.drawImage(scaledBlockImage, 0, 0, null);
+                scaledG.dispose();
+
+                // Draw the scaled block to the new image
+                g.drawImage(scaledBlock, 0, scaledYStart, null);
+
+                // Update progress
+                int progress = (int) ((double) (i * numBlocks + blockIndex + 1) / (totalLayers * numBlocks) * 100);
+                setProgress(progress);
+                publish(progress);
+            }
+
             g.dispose();
-
             scaledLayers.add(newLayer);
-
-            // Update progress
-            int progress = (i + 1) * 100 / totalLayers;
-            setProgress(progress);
-            publish(progress);
         }
 
         return scaledLayers;
@@ -76,7 +100,6 @@ public class ImageScalingWorker extends SwingWorker<List<Layer>, Integer> {
 
     @Override
     protected void process(List<Integer> chunks) {
-        // Update progress bar with the latest progress value
         int latestProgress = chunks.get(chunks.size() - 1);
         progressBar.setValue(latestProgress);
         progressBar.setString(latestProgress + "%");
@@ -86,7 +109,6 @@ public class ImageScalingWorker extends SwingWorker<List<Layer>, Integer> {
     protected void done() {
         try {
             List<Layer> scaledLayers = get();
-            // Update canvas with new layers
             canvas.saveToUndoStack();
             canvas.setLayers(scaledLayers);
             canvas.setPreferredSize(new Dimension(newWidth, newHeight));
@@ -103,7 +125,6 @@ public class ImageScalingWorker extends SwingWorker<List<Layer>, Integer> {
     }
 
     public void start() {
-        // Show dialog first, then execute worker
         progressDialog.setVisible(true);
         execute();
     }

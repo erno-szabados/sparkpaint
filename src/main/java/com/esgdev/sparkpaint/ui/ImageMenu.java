@@ -254,8 +254,21 @@ public class ImageMenu extends JMenu {
         panel.add(ratioPanel);
         panel.add(previewPanel);
 
-        int result = JOptionPane.showConfirmDialog(mainFrame, panel,
-                "Scale Image", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        JOptionPane pane = new JOptionPane(panel, JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION, null, null, null);
+        JDialog dialog = pane.createDialog(mainFrame, "Scale Image");
+        dialog.setLocationRelativeTo(null);
+        dialog.setVisible(true);
+
+        int result = JOptionPane.CLOSED_OPTION;
+        Object selectedValue = pane.getValue();
+
+        if (selectedValue != null) {
+            if (selectedValue.equals(JOptionPane.OK_OPTION)) {
+                result = JOptionPane.OK_OPTION;
+            } else if (selectedValue.equals(JOptionPane.CANCEL_OPTION)) {
+                result = JOptionPane.CANCEL_OPTION;
+            }
+        }
 
         if (result == JOptionPane.OK_OPTION) {
             int widthScale = (Integer) widthScaleSpinner.getValue();
