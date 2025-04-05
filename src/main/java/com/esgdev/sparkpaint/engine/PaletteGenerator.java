@@ -16,6 +16,7 @@ public class PaletteGenerator {
     private static final int MAX_PIXELS_TO_SAMPLE = 10000;
     private static final int MAX_ITERATIONS = 20;
     private static final int BASE_CENTROIDS = 8; // Fixed number of base centroids
+    private static final int NUM_ACCENT_COLORS = 2; // Number of complementary accent colors to generate
     private static final double CONVERGENCE_THRESHOLD = 0.01;
     private PaletteGenerationProgressListener progressListener;
 
@@ -51,10 +52,6 @@ public class PaletteGenerator {
         return generatePalette(flattenedImage, k, style);
     }
 
-    // Add an overload with default style
-    public List<Color> generatePaletteFromCanvas(DrawingCanvas canvas, int k) {
-        return generatePaletteFromCanvas(canvas, k, PaletteStyle.BALANCED);
-    }
 
     /**
      * Creates a flattened image from all visible layers.
@@ -113,11 +110,57 @@ public class PaletteGenerator {
             return Collections.emptyList();
         }
 
-        // Step 1: Find base centroids (always 8)
-        List<Color> baseCentroids = kMeansClustering(imageColors, BASE_CENTROIDS);
+        // Step 1: Find base centroids (reduced by the number of accent colors)
+        List<Color> baseCentroids = kMeansClustering(imageColors, BASE_CENTROIDS - NUM_ACCENT_COLORS);
 
-        // Step 2: Generate scaled variations to reach the desired palette size
-        return generateScaledVariations(baseCentroids, k, style);
+        // Step 2: Generate complementary accent colors
+        List<Color> baseWithAccents = addComplementaryAccents(baseCentroids, NUM_ACCENT_COLORS);
+
+        // Step 3: Generate scaled variations to reach the desired palette size
+        return generateScaledVariations(baseWithAccents, k, style);
+    }
+
+    /**
+     * Adds complementary accent colors to the base palette.
+     *
+     * @param baseCentroids The base colors from k-means clustering
+     * @param numAccents    The number of accent colors to add
+     * @return A new list containing both base colors and their complements
+     */
+    private List<Color> addComplementaryAccents(List<Color> baseCentroids, int numAccents) {
+        List<Color> baseWithAccents = new ArrayList<>(baseCentroids);
+        Random random = new Random();
+
+        // Select random centroids and add their complements
+        for (int i = 0; i < numAccents && !baseCentroids.isEmpty(); i++) {
+            // Select a random centroid
+            int index = random.nextInt(baseCentroids.size());
+            Color baseColor = baseCentroids.get(index);
+
+            // Generate its complementary color (opposite on the color wheel)
+            Color complementary = generateComplementaryColor(baseColor);
+
+            // Add to the result list
+            baseWithAccents.add(complementary);
+        }
+
+        return baseWithAccents;
+    }
+
+    /**
+     * Generates a complementary color (opposite on the color wheel).
+     *
+     * @param color The base color
+     * @return The complementary color
+     */
+    private Color generateComplementaryColor(Color color) {
+        float[] hsb = Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), null);
+
+        // Complementary color has hue shifted by 180 degrees
+        float complementaryHue = (hsb[0] + 0.5f) % 1.0f;
+
+        // Keep similar saturation and brightness levels
+        return Color.getHSBColor(complementaryHue, hsb[1], hsb[2]);
     }
 
     private List<Color> generateScaledVariations(List<Color> baseColors, int targetSize, PaletteStyle style) {
