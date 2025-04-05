@@ -3,6 +3,7 @@ package com.esgdev.sparkpaint.ui;
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.layer.Layer;
 import com.esgdev.sparkpaint.ui.PaletteGeneratorDialog;
+import com.esgdev.sparkpaint.ui.helpers.ImageScalingWorker;
 
 import javax.swing.*;
 import java.awt.*;
@@ -265,25 +266,9 @@ public class ImageMenu extends JMenu {
             // Save for undo
             canvas.saveToUndoStack();
 
-            // Create scaled layers
-            List<Layer> scaledLayers = new ArrayList<>();
-            for (Layer layer : layers) {
-                Layer newLayer = new Layer(newWidth, newHeight);
-                Graphics2D g = newLayer.getImage().createGraphics();
-                g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-                g.drawImage(layer.getImage(), 0, 0, newWidth, newHeight, null);
-                g.dispose();
-
-                newLayer.setVisible(layer.isVisible());
-                scaledLayers.add(newLayer);
-            }
-
-            // Update canvas with new layers
-            canvas.saveToUndoStack();
-            canvas.setLayers(scaledLayers);
-            canvas.setPreferredSize(new Dimension(newWidth, newHeight));
-            canvas.revalidate();
-            canvas.repaint();
+            // Use the ImageScalingWorker to perform the scaling in the background
+            ImageScalingWorker worker = new ImageScalingWorker(mainFrame, canvas, newWidth, newHeight);
+            worker.start();
         }
     }
 
