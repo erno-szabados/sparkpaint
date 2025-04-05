@@ -3,6 +3,7 @@ package com.esgdev.sparkpaint.ui;
 import com.esgdev.sparkpaint.engine.CanvasPropertyChangeListener;
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.history.UndoRedoChangeListener;
+import com.esgdev.sparkpaint.engine.tools.ToolManagement;
 import com.esgdev.sparkpaint.engine.tools.ToolManager;
 
 import javax.swing.*;
@@ -65,6 +66,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, 
         this.addSeparator();
         canvas.addUndoRedoChangeListener(this);
         this.add(createBrushButton());
+        this.add(createFilterBrushButton());
         this.add(createPencilButton());
         this.add(createTextButton());
         this.add(createLineButton());
@@ -112,6 +114,21 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, 
         button.addActionListener(e -> {
             canvas.setCurrentTool(ToolManager.Tool.BRUSH);
             statusMessageHandler.setStatusMessage("Brush selected.");
+        });
+        toolGroup.add(button);
+
+        return button;
+    }
+
+    private JToggleButton createFilterBrushButton() {
+        JToggleButton button = new JToggleButton();
+        ImageIcon icon = IconLoader.loadAndScaleIcon("filter.png", IconWidth, IconHeight);
+        button.setIcon(icon);
+        button.putClientProperty("tool", ToolManager.Tool.FILTER_BRUSH);
+        button.setToolTipText("Retouch with Filter Brush");
+        button.addActionListener(e -> {
+            canvas.setCurrentTool(ToolManager.Tool.FILTER_BRUSH);
+            statusMessageHandler.setStatusMessage("Filter Brush selected.");
         });
         toolGroup.add(button);
 

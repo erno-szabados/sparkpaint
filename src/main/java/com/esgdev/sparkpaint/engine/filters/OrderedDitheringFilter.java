@@ -73,7 +73,7 @@ public class OrderedDitheringFilter {
      */
     private static int adjustColorChannel(int channel, int threshold) {
         // Apply scaled threshold adjustment
-        int adjusted = channel + (int)((threshold - BAYER_SCALE / 2) * THRESHOLD_SCALING);
+        int adjusted = channel + (int)((threshold - (double) BAYER_SCALE / 2) * THRESHOLD_SCALING);
         // Clamp to valid range
         return Math.max(0, Math.min(255, adjusted));
     }
@@ -81,7 +81,7 @@ public class OrderedDitheringFilter {
     /**
      * Find the nearest color in the palette using Euclidean distance in RGB space.
      */
-    private static Color findNearestColor(Color color, List<Color> palette) {
+    public static Color findNearestColor(Color color, List<Color> palette) {
         // Handle transparent colors
         if (color.getAlpha() < 128) {
             return new Color(0, 0, 0, 0);
@@ -109,7 +109,7 @@ public class OrderedDitheringFilter {
     /**
      * Calculate Euclidean distance between two colors in RGB space.
      */
-    private static double colorDistance(Color c1, Color c2) {
+    public static double colorDistance(Color c1, Color c2) {
         int rDiff = c1.getRed() - c2.getRed();
         int gDiff = c1.getGreen() - c2.getGreen();
         int bDiff = c1.getBlue() - c2.getBlue();

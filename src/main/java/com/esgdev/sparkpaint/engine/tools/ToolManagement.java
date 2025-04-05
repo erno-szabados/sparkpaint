@@ -33,6 +33,7 @@ public interface ToolManagement {
         FREEHAND_SELECTION,
         FILL,
         TEXT,
-        EYEDROPPER
+        EYEDROPPER,
+        FILTER_BRUSH
     }
 }
