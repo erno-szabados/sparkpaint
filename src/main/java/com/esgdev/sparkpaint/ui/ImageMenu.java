@@ -3,6 +3,7 @@ package com.esgdev.sparkpaint.ui;
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.layer.Layer;
 import com.esgdev.sparkpaint.ui.PaletteGeneratorDialog;
+import com.esgdev.sparkpaint.ui.helpers.ImageScalingWorker;
 
 import javax.swing.*;
 import java.awt.*;
@@ -253,8 +254,21 @@ public class ImageMenu extends JMenu {
         panel.add(ratioPanel);
         panel.add(previewPanel);
 
-        int result = JOptionPane.showConfirmDialog(mainFrame, panel,
-                "Scale Image", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        JOptionPane pane = new JOptionPane(panel, JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION, null, null, null);
+        JDialog dialog = pane.createDialog(mainFrame, "Scale Image");
+        dialog.setLocationRelativeTo(null);
+        dialog.setVisible(true);
+
+        int result = JOptionPane.CLOSED_OPTION;
+        Object selectedValue = pane.getValue();
+
+        if (selectedValue != null) {
+            if (selectedValue.equals(JOptionPane.OK_OPTION)) {
+                result = JOptionPane.OK_OPTION;
+            } else if (selectedValue.equals(JOptionPane.CANCEL_OPTION)) {
+                result = JOptionPane.CANCEL_OPTION;
+            }
+        }
 
         if (result == JOptionPane.OK_OPTION) {
             int widthScale = (Integer) widthScaleSpinner.getValue();
@@ -265,25 +279,9 @@ public class ImageMenu extends JMenu {
             // Save for undo
             canvas.saveToUndoStack();
 
-            // Create scaled layers
-            List<Layer> scaledLayers = new ArrayList<>();
-            for (Layer layer : layers) {
-                Layer newLayer = new Layer(newWidth, newHeight);
-                Graphics2D g = newLayer.getImage().createGraphics();
-                g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-                g.drawImage(layer.getImage(), 0, 0, newWidth, newHeight, null);
-                g.dispose();
-
-                newLayer.setVisible(layer.isVisible());
-                scaledLayers.add(newLayer);
-            }
-
-            // Update canvas with new layers
-            canvas.saveToUndoStack();
-            canvas.setLayers(scaledLayers);
-            canvas.setPreferredSize(new Dimension(newWidth, newHeight));
-            canvas.revalidate();
-            canvas.repaint();
+            // Use the ImageScalingWorker to perform the scaling in the background
+            ImageScalingWorker worker = new ImageScalingWorker(mainFrame, canvas, newWidth, newHeight);
+            worker.start();
         }
     }
 

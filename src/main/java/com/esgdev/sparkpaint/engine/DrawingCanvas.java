@@ -48,6 +48,7 @@ public class DrawingCanvas extends JPanel implements
     private float zoomFactor = 1.0f;
 
     private final List<CanvasPropertyChangeListener> propertyChangeListeners = new ArrayList<>();
+    private final List<CanvasChangeListener> canvasChangeListeners = new ArrayList<>(); // New list
     private HistoryManagement historyManager;
     private SelectionManagement selectionManager;
     private ClipboardManagement clipboardManager;
@@ -257,6 +258,20 @@ public class DrawingCanvas extends JPanel implements
         toolManager.addToolChangeListener(listener);
     }
 
+    public void addCanvasChangeListener(CanvasChangeListener listener) {
+        canvasChangeListeners.add(listener);
+    }
+
+    public void removeCanvasChangeListener(CanvasChangeListener listener) {
+        canvasChangeListeners.remove(listener);
+    }
+
+    private void notifyCanvasChanged() {
+        for (CanvasChangeListener listener : canvasChangeListeners) {
+            listener.onCanvasChanged();
+        }
+    }
+
     public ToolManager.Tool getCurrentTool() {
         return toolManager.getCurrentTool();
     }
@@ -316,6 +331,15 @@ public class DrawingCanvas extends JPanel implements
         // Reset scale for grid drawing
         g2d.scale(1 / zoomFactor, 1 / zoomFactor);
         renderZoomGrid(g2d);
+
+        // Draw LineTool control points if active
+        if (toolManager.getCurrentTool() == ToolManager.Tool.LINE) {
+            LineTool lineTool = (LineTool) toolManager.getTool(ToolManager.Tool.LINE);
+            if (lineTool.getMode() != LineTool.LineMode.SINGLE_LINE) {
+                lineTool.drawControlPointsOverlay(g2d, zoomFactor);
+            }
+        }
+
         if (selection != null) {
             selection.drawSelectionOutline(g2d, zoomFactor);
         }
@@ -324,6 +348,7 @@ public class DrawingCanvas extends JPanel implements
         if (toolManager.isShowBrushCursor()) {
             drawCursorShape(g2d);
         }
+        notifyCanvasChanged();
 
         g2d.dispose();
     }

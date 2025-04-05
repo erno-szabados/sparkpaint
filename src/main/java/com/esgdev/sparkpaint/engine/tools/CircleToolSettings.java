@@ -108,8 +108,8 @@ public class CircleToolSettings extends BaseToolSettings {
     @Override
     public void applySettings() {
         if (canvas.getCurrentTool() == ToolManager.Tool.CIRCLE) {
-            if (canvas.getActiveTool() instanceof CircleTool) {
-                CircleTool tool = (CircleTool) canvas.getActiveTool();
+            if (canvas.getActiveTool() instanceof EllipseTool) {
+                EllipseTool tool = (EllipseTool) canvas.getActiveTool();
                 tool.setFilled(filledCheckBox.isSelected());
                 tool.setCenterBased(centerBasedButton.isSelected());
                 useAntiAliasing = antiAliasingCheckbox.isSelected();

@@ -16,6 +16,7 @@ public class PaletteGenerator {
     private static final int MAX_PIXELS_TO_SAMPLE = 10000;
     private static final int MAX_ITERATIONS = 20;
     private static final int BASE_CENTROIDS = 8; // Fixed number of base centroids
+    private static final int NUM_ACCENT_COLORS = 2; // Number of complementary accent colors to generate
     private static final double CONVERGENCE_THRESHOLD = 0.01;
     private PaletteGenerationProgressListener progressListener;
 
@@ -51,10 +52,6 @@ public class PaletteGenerator {
         return generatePalette(flattenedImage, k, style);
     }
 
-    // Add an overload with default style
-    public List<Color> generatePaletteFromCanvas(DrawingCanvas canvas, int k) {
-        return generatePaletteFromCanvas(canvas, k, PaletteStyle.BALANCED);
-    }
 
     /**
      * Creates a flattened image from all visible layers.
@@ -113,22 +110,61 @@ public class PaletteGenerator {
             return Collections.emptyList();
         }
 
-        // Step 1: Find base centroids (always 8)
-        List<Color> baseCentroids = kMeansClustering(imageColors, BASE_CENTROIDS);
+        // Step 1: Find base centroids (reduced by the number of accent colors)
+        List<Color> baseCentroids = kMeansClustering(imageColors, BASE_CENTROIDS - NUM_ACCENT_COLORS);
 
-        // Step 2: Generate scaled variations to reach the desired palette size
-        return generateScaledVariations(baseCentroids, k, style);
+        // Step 2: Generate complementary accent colors
+        List<Color> baseWithAccents = addComplementaryAccents(baseCentroids, NUM_ACCENT_COLORS);
+
+        // Step 3: Generate scaled variations to reach the desired palette size
+        return generateScaledVariations(baseWithAccents, k, style);
     }
 
     /**
-     * Generates variations of base colors by scaling saturation and brightness.
+     * Adds complementary accent colors to the base palette.
      *
-     * @param baseColors The base colors extracted from clustering
-     * @param targetSize The desired palette size
-     * @return An expanded palette with variations
+     * @param baseCentroids The base colors from k-means clustering
+     * @param numAccents    The number of accent colors to add
+     * @return A new list containing both base colors and their complements
      */
+    private List<Color> addComplementaryAccents(List<Color> baseCentroids, int numAccents) {
+        List<Color> baseWithAccents = new ArrayList<>(baseCentroids);
+        Random random = new Random();
+
+        // Select random centroids and add their complements
+        for (int i = 0; i < numAccents && !baseCentroids.isEmpty(); i++) {
+            // Select a random centroid
+            int index = random.nextInt(baseCentroids.size());
+            Color baseColor = baseCentroids.get(index);
+
+            // Generate its complementary color (opposite on the color wheel)
+            Color complementary = generateComplementaryColor(baseColor);
+
+            // Add to the result list
+            baseWithAccents.add(complementary);
+        }
+
+        return baseWithAccents;
+    }
+
+    /**
+     * Generates a complementary color (opposite on the color wheel).
+     *
+     * @param color The base color
+     * @return The complementary color
+     */
+    private Color generateComplementaryColor(Color color) {
+        float[] hsb = Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), null);
+
+        // Complementary color has hue shifted by 180 degrees
+        float complementaryHue = (hsb[0] + 0.5f) % 1.0f;
+
+        // Keep similar saturation and brightness levels
+        return Color.getHSBColor(complementaryHue, hsb[1], hsb[2]);
+    }
+
     private List<Color> generateScaledVariations(List<Color> baseColors, int targetSize, PaletteStyle style) {
-        // Sort base colors by hue before equalizing
+        // Sort and process base colors as before
         List<Color> sortedBaseColors = sortColorsByHue(baseColors);
         List<Color> equalizedBaseColors = equalizeColorAttributes(sortedBaseColors);
         List<Color> filteredBaseColors = filterSimilarColors(equalizedBaseColors);
@@ -137,41 +173,107 @@ public class PaletteGenerator {
         // Calculate variations needed per base color
         int variationsPerBase = (int) Math.ceil((double) targetSize / filteredBaseColors.size());
 
-        // Select variation factors based on palette style
-        List<float[]> variationFactors = getVariationFactorsByStyle(style);
-
         // Generate variations for each base color
         for (Color baseColor : filteredBaseColors) {
             if (expandedPalette.size() >= targetSize) break;
 
-            // Generate variations for this base color
-            List<Color> colorVariations = new ArrayList<>();
-            for (float[] factors : variationFactors) {
-                Color variation = adjustColorSaturationBrightness(baseColor, factors[0], factors[1]);
-                colorVariations.add(variation);
-            }
+            // Generate variations based on style and number needed
+            List<Color> variations = generateVariationsForBaseColor(baseColor, variationsPerBase, style);
 
-            // Sort variations by brightness
-            colorVariations.sort(Comparator.comparingDouble(this::getBrightness));
-
-            // Add variations to palette
-            int variationsToAdd = Math.min(variationsPerBase, targetSize - expandedPalette.size());
-            int step = Math.max(1, colorVariations.size() / variationsToAdd);
-            for (int i = 0; i < variationsToAdd && i * step < colorVariations.size(); i++) {
-                expandedPalette.add(colorVariations.get(i * step));
-            }
-        }
-
-        // Add extreme variations if needed
-        if (expandedPalette.size() < targetSize) {
-            float[] extremeFactors = getExtremeFactorsByStyle(style);
-            for (Color baseColor : filteredBaseColors) {
-                if (expandedPalette.size() >= targetSize) break;
-                expandedPalette.add(adjustColorSaturationBrightness(baseColor, extremeFactors[0], extremeFactors[1]));
+            // Add up to variationsPerBase colors to the palette
+            int toAdd = Math.min(variationsPerBase, targetSize - expandedPalette.size());
+            for (int i = 0; i < toAdd; i++) {
+                expandedPalette.add(variations.get(i));
             }
         }
 
         return expandedPalette.subList(0, Math.min(targetSize, expandedPalette.size()));
+    }
+
+    private List<Color> generateVariationsForBaseColor(Color baseColor, int variationsNeeded, PaletteStyle style) {
+        List<Color> variations = new ArrayList<>();
+
+        // Calculate brightness and saturation scaling factors based on style and variations needed
+        float[][] scalingFactors = calculateScalingFactors(variationsNeeded, style);
+
+        // Generate color variations
+        for (float[] factors : scalingFactors) {
+            variations.add(adjustColorSaturationBrightness(baseColor, factors[0], factors[1]));
+        }
+
+        // Sort by brightness for consistent ordering
+        variations.sort(Comparator.comparingDouble(this::getBrightness));
+
+        return variations;
+    }
+
+    private float[][] calculateScalingFactors(int variationsNeeded, PaletteStyle style) {
+        float[][] factors = new float[variationsNeeded][2];
+
+        // Default min/max ranges for saturation and brightness based on style
+        float minSat = 0.7f, maxSat = 1.3f;
+        float minBri = 0.8f, maxBri = 1.2f;
+
+        // Adjust ranges based on style
+        switch (style) {
+            case VIVID:
+                minSat = 1.0f;
+                maxSat = 1.4f;
+                minBri = 1.0f;
+                maxBri = 1.2f;
+                break;
+            case PASTEL:
+                minSat = 0.4f;
+                maxSat = 0.7f;
+                minBri = 1.1f;
+                maxBri = 1.3f;
+                break;
+            case MUTED:
+                minSat = 0.5f;
+                maxSat = 0.8f;
+                minBri = 0.75f;
+                maxBri = 0.9f;
+                break;
+            case DEEP:
+                minSat = 1.1f;
+                maxSat = 1.4f;
+                minBri = 0.7f;
+                maxBri = 0.9f;
+                break;
+            case PLAYFUL:
+                minSat = 0.5f;
+                maxSat = 1.4f;
+                minBri = 0.7f;
+                maxBri = 1.3f;
+                break;
+        }
+
+        // Evenly distribute factors across the range
+        if (variationsNeeded == 1) {
+            // Just use the base color with slight style adjustment
+            factors[0][0] = (minSat + maxSat) / 2;
+            factors[0][1] = (minBri + maxBri) / 2;
+        } else {
+            // Distribute brightness evenly (most important for pixel art)
+            for (int i = 0; i < variationsNeeded; i++) {
+                float briProgress = (float) i / (variationsNeeded - 1);
+                float brightness = minBri + briProgress * (maxBri - minBri);
+                factors[i][1] = brightness;
+
+                // For saturation, either match to brightness or use a different pattern
+                if (style == PaletteStyle.PLAYFUL) {
+                    // Saturation varies inversely with brightness for more contrast in PLAYFUL style
+                    float satProgress = 1.0f - briProgress;
+                    factors[i][0] = minSat + satProgress * (maxSat - minSat);
+                } else {
+                    // Distribute saturation evenly for other styles
+                    float satProgress = (float) i / (variationsNeeded - 1);
+                    factors[i][0] = minSat + satProgress * (maxSat - minSat);
+                }
+            }
+        }
+
+        return factors;
     }
 
     /**

@@ -259,6 +259,53 @@ public class LineTool implements DrawingTool {
         }
     }
 
+    // In LineTool.java
+    // Add a new method to get the current points for external drawing
+    public List<Point> getControlPoints() {
+        return new ArrayList<>(polylinePoints);
+    }
+
+    // Add a method to draw control points after zoom reset
+    public void drawControlPointsOverlay(Graphics2D g2d, float zoomFactor) {
+        if (polylinePoints.isEmpty()) return;
+
+        // Calculate proper size based on line thickness but not affected by zoom
+        int markerSize = Math.max(6, Math.round(canvas.getLineThickness()) + 2);
+        int halfMarker = markerSize / 2;
+
+        // Draw the control points with the original scale
+        g2d.setColor(Color.WHITE);
+        for (Point p : polylinePoints) {
+            int x = (int) (p.x * zoomFactor);
+            int y = (int) (p.y * zoomFactor);
+            g2d.fillOval(x - halfMarker, y - halfMarker, markerSize, markerSize);
+        }
+
+        g2d.setColor(Color.BLACK);
+        for (Point p : polylinePoints) {
+            int x = (int) (p.x * zoomFactor);
+            int y = (int) (p.y * zoomFactor);
+            g2d.drawOval(x - halfMarker, y - halfMarker, markerSize, markerSize);
+        }
+
+        // Draw dotted connecting lines for curve modes
+        if (mode == LineMode.CURVE || mode == LineMode.CLOSED_CURVE || mode == LineMode.FILLED_CURVE) {
+            g2d.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER,
+                    10.0f, new float[]{3.0f}, 0.0f));
+            g2d.setColor(new Color(100, 100, 100, 150)); // Semi-transparent gray
+
+            // Draw control polygon
+            for (int i = 0; i < polylinePoints.size() - 1; i++) {
+                Point p1 = polylinePoints.get(i);
+                Point p2 = polylinePoints.get(i + 1);
+                g2d.drawLine(
+                        (int) (p1.x * zoomFactor), (int) (p1.y * zoomFactor),
+                        (int) (p2.x * zoomFactor), (int) (p2.y * zoomFactor)
+                );
+            }
+        }
+    }
+
     @Override
     public void mouseScrolled(MouseWheelEvent e) {
         // No action needed for mouse scroll
@@ -481,79 +528,42 @@ public class LineTool implements DrawingTool {
                 }
             }
         } else {
-            // Calculate and draw the curve
+            // Calculate curve points for CURVE or CLOSED_CURVE
             List<Point> curvePoints = calculateCurvePoints(tempPoints);
+
             if (curvePoints.size() > 1) {
+                // Create a path for the curve (for consistent rendering)
+                Path2D path = new Path2D.Float();
+                path.moveTo(curvePoints.get(0).x, curvePoints.get(0).y);
+
+                for (int i = 1; i < curvePoints.size(); i++) {
+                    path.lineTo(curvePoints.get(i).x, curvePoints.get(i).y);
+                }
+
                 if (isTransparentLine) {
-                    // Two-color dashed lines for transparent
-                    for (int i = 0; i < curvePoints.size() - 1; i++) {
-                        Point p1 = curvePoints.get(i);
-                        Point p2 = curvePoints.get(i + 1);
+                    // First pass: White dashes
+                    g2d.setColor(Color.WHITE);
+                    g2d.setStroke(basicStroke);
+                    g2d.draw(path);
 
-                        // First pass: White dashes
-                        g2d.setColor(Color.WHITE);
-                        g2d.setStroke(basicStroke);
-                        g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
-
-                        // Second pass: Black dashes with offset
-                        g2d.setColor(Color.BLACK);
-                        g2d.setStroke(new BasicStroke(lineThickness,
-                                BasicStroke.CAP_BUTT,
-                                BasicStroke.JOIN_MITER,
-                                10.0f, dashPattern, dashPattern[0]));
-                        g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
-                    }
+                    // Second pass: Black dashes with offset
+                    g2d.setColor(Color.BLACK);
+                    g2d.setStroke(new BasicStroke(lineThickness,
+                            BasicStroke.CAP_BUTT,
+                            BasicStroke.JOIN_MITER,
+                            10.0f, dashPattern, dashPattern[0]));
+                    g2d.draw(path);
                 } else {
                     // Solid line with actual drawing color
                     g2d.setColor(drawingColor);
                     g2d.setStroke(new BasicStroke(lineThickness));
-
-                    for (int i = 0; i < curvePoints.size() - 1; i++) {
-                        Point p1 = curvePoints.get(i);
-                        Point p2 = curvePoints.get(i + 1);
-                        g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
-                    }
+                    g2d.draw(path);
                 }
             }
         }
 
-        // Draw control points and connection lines
-        drawControlPoints(g2d, tempPoints, lineThickness);
-
         g2d.dispose();
         canvas.repaint();
-    }
-
-    private void drawControlPoints(Graphics2D g2d, List<Point> points, float lineThickness) {
-        // Determine point marker size based on line thickness
-        int markerSize = Math.max(6, Math.round(lineThickness) + 2);
-        int halfMarker = markerSize / 2;
-
-        // Add markers for control points
-        g2d.setColor(Color.WHITE);
-        for (Point p : polylinePoints) {
-            g2d.fillOval(p.x - halfMarker, p.y - halfMarker, markerSize, markerSize);
-        }
-        g2d.setColor(Color.BLACK);
-        for (Point p : polylinePoints) {
-            g2d.drawOval(p.x - halfMarker, p.y - halfMarker, markerSize, markerSize);
-        }
-
-        // Draw dotted line connecting control points (only for curve mode)
-        if (mode == LineMode.CURVE || mode == LineMode.CLOSED_CURVE) {
-            g2d.setStroke(new BasicStroke(1.0f,
-                    BasicStroke.CAP_BUTT,
-                    BasicStroke.JOIN_MITER,
-                    10.0f, new float[]{3.0f}, 0.0f));
-            g2d.setColor(new Color(100, 100, 100, 150)); // Semi-transparent gray
-
-            // Draw control polygon
-            for (int i = 0; i < points.size() - 1; i++) {
-                Point p1 = points.get(i);
-                Point p2 = points.get(i + 1);
-                g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
-            }
-        }
     }
 
     private void finalizeLine() {
