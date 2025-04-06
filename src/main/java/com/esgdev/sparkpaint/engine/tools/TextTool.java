@@ -2,13 +2,12 @@ package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.selection.Selection;
+import com.esgdev.sparkpaint.engine.tools.renderers.TextToolRenderer;
 import com.esgdev.sparkpaint.ui.ToolChangeListener;
 
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
-import java.awt.font.FontRenderContext;
-import java.awt.font.TextLayout;
 import java.awt.image.BufferedImage;
 
 public class TextTool implements DrawingTool, ToolChangeListener {
@@ -16,12 +15,16 @@ public class TextTool implements DrawingTool, ToolChangeListener {
     private final Cursor cursor = Cursor.getPredefinedCursor(Cursor.TEXT_CURSOR);
     private String text = "Sample Text";
     private Font font = new Font("Arial", Font.PLAIN, 24);
-    private boolean useAntiAliasing = true;
     private Point previewPoint = null;
+
+    // Add TextToolRenderer field
+    private final TextToolRenderer renderer;
 
     public TextTool(DrawingCanvas canvas) {
         this.canvas = canvas;
         canvas.addToolChangeListener(this);
+        // Initialize the renderer
+        this.renderer = new TextToolRenderer();
     }
 
     @Override
@@ -67,103 +70,52 @@ public class TextTool implements DrawingTool, ToolChangeListener {
         // Get the point in the appropriate coordinate system
         Point drawPoint = canvas.getDrawingCoordinates(e.getPoint(), canvas.getZoomFactor());
 
-        // Check if using transparency
-        boolean isTransparent = canvas.getDrawingColor().getAlpha() == 0;
+        // Get drawing context based on selection
+        DrawContext drawContext = prepareDrawContext(selection, drawPoint);
 
-        if (isTransparent) {
-            drawTransparentText(drawPoint);
-        } else {
-            drawNormalText(drawPoint);
-        }
+        // Draw the text using the renderer
+        renderer.drawText(drawContext.targetImage, drawContext.g2d, drawContext.position,
+                text, font, canvas.getDrawingColor(), false);
+
+        drawContext.g2d.dispose();
 
         // Clear preview
         clearPreview();
         canvas.repaint();
     }
 
-    private void drawNormalText(Point drawPoint) {
-        Selection selection = canvas.getSelection();
+    // Helper class for drawing context
+    private static class DrawContext {
+        final Graphics2D g2d;
+        final BufferedImage targetImage;
+        final Point position;
+
+        DrawContext(Graphics2D g2d, BufferedImage targetImage, Point position) {
+            this.g2d = g2d;
+            this.targetImage = targetImage;
+            this.position = position;
+        }
+    }
+
+    private DrawContext prepareDrawContext(Selection selection, Point drawPoint) {
         Graphics2D g2d;
-        Point adjustedDrawPoint = drawPoint;
+        Point adjustedPosition = drawPoint;
+        BufferedImage targetImage;
 
         if (selection != null && selection.hasOutline()) {
-            // Get drawing graphics from the selection manager
             g2d = canvas.getDrawingGraphics();
             selection.setModified(true);
-
-            // Get selection bounds to adjust coordinates
-            Rectangle bounds = selection.getBounds();
-
-            // Adjust coordinates relative to the selection bounds
-            adjustedDrawPoint = new Point(drawPoint.x - bounds.x, drawPoint.y - bounds.y);
-        } else {
-            // Draw on current layer
-            g2d = canvas.getCurrentLayerImage().createGraphics();
-        }
-
-        // Configure and draw text
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
-        g2d.setFont(font);
-        g2d.setColor(canvas.getDrawingColor());
-        g2d.drawString(text, adjustedDrawPoint.x, adjustedDrawPoint.y);
-        g2d.dispose();
-    }
-
-    private void drawTransparentText(Point drawPoint) {
-        Selection selection = canvas.getSelection();
-        BufferedImage targetImage;
-        Point adjustedDrawPoint;
-
-        if (selection != null && selection.hasOutline()) {
             targetImage = selection.getContent();
+
+            // Adjust coordinates relative to selection bounds
             Rectangle bounds = selection.getBounds();
-            adjustedDrawPoint = new Point(drawPoint.x - bounds.x, drawPoint.y - bounds.y);
-            selection.setModified(true);
+            adjustedPosition = new Point(drawPoint.x - bounds.x, drawPoint.y - bounds.y);
         } else {
             targetImage = canvas.getCurrentLayerImage();
-            adjustedDrawPoint = drawPoint;
+            g2d = (Graphics2D) targetImage.getGraphics();
         }
 
-        // Create a mask image for transparency
-        BufferedImage maskImage = new BufferedImage(targetImage.getWidth(), targetImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
-        Graphics2D maskG2d = maskImage.createGraphics();
-
-        // Apply same rendering hints
-        maskG2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
-
-        // Draw text onto mask
-        maskG2d.setFont(font);
-        maskG2d.setColor(Color.WHITE);
-        maskG2d.drawString(text, adjustedDrawPoint.x, adjustedDrawPoint.y);
-        maskG2d.dispose();
-
-        // Apply transparency where mask is white
-        Graphics2D g2d = (Graphics2D) targetImage.getGraphics();
-        applyTransparencyMask(targetImage, maskImage, g2d.getClip());
-        g2d.dispose();
-    }
-
-    /**
-     * Applies transparency to pixels in the image where the mask is non-zero
-     */
-    private void applyTransparencyMask(BufferedImage image, BufferedImage maskImage, Shape clip) {
-        // Apply transparency to pixels where the mask is non-zero
-        for (int y = 0; y < image.getHeight(); y++) {
-            for (int x = 0; x < image.getWidth(); x++) {
-                // Check if this pixel is within clip region
-                if (clip == null || clip.contains(x, y)) {
-                    int maskRGB = maskImage.getRGB(x, y);
-                    // Only process pixels where the mask is non-zero
-                    if ((maskRGB & 0xFF000000) != 0) {
-                        // Set full transparency (alpha = 0)
-                        int newRGB = image.getRGB(x, y) & 0x00FFFFFF;
-                        image.setRGB(x, y, newRGB);
-                    }
-                }
-            }
-        }
+        return new DrawContext(g2d, targetImage, adjustedPosition);
     }
 
     private void updatePreview() {
@@ -179,8 +131,7 @@ public class TextTool implements DrawingTool, ToolChangeListener {
         g2d.setComposite(AlphaComposite.SrcOver);
 
         // Apply rendering settings
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+        renderer.configureGraphics(g2d);
 
         // Apply selection clip if needed
         Selection selection = canvas.getSelection();
@@ -189,47 +140,13 @@ public class TextTool implements DrawingTool, ToolChangeListener {
         // Calculate adjusted draw point for selection
         Point adjustedPoint = previewPoint;
         if (selection != null && selection.hasOutline()) {
-            Rectangle bounds = selection.getBounds();
+            // This point is already in world coordinates, so no need to adjust for selection
             adjustedPoint = new Point(previewPoint.x, previewPoint.y);
         }
 
-        // Check if we're using transparent color
-        boolean isTransparent = canvas.getDrawingColor().getAlpha() == 0;
-
-        if (isTransparent) {
-            // Draw dotted/dashed outline for transparent text
-            g2d.setFont(font);
-
-            // Create a TextLayout to get the outline shape
-            FontRenderContext frc = g2d.getFontRenderContext();
-            TextLayout textLayout = new TextLayout(text, font, frc);
-            Shape textShape = textLayout.getOutline(null);
-
-            // Translate to the correct position
-            g2d.translate(adjustedPoint.x, adjustedPoint.y);
-
-            // Draw the outline with a dashed pattern
-            float[] dashPattern = {3.0f, 3.0f};
-            g2d.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_BUTT,
-                    BasicStroke.JOIN_MITER, 10.0f, dashPattern, 0.0f));
-
-            // Draw white line first
-            g2d.setColor(Color.WHITE);
-            g2d.draw(textShape);
-
-            // Draw black line with offset dash pattern
-            g2d.setColor(Color.BLACK);
-            g2d.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_BUTT,
-                    BasicStroke.JOIN_MITER, 10.0f, dashPattern, dashPattern[0]));
-            g2d.draw(textShape);
-        } else {
-            // For non-transparent text, show the text with semi-transparency
-            Color previewColor = canvas.getDrawingColor();
-            g2d.setColor(new Color(previewColor.getRed(), previewColor.getGreen(),
-                    previewColor.getBlue(), 128));
-            g2d.setFont(font);
-            g2d.drawString(text, adjustedPoint.x, adjustedPoint.y);
-        }
+        // Draw text preview using the renderer
+        renderer.drawText(tempCanvas, g2d, adjustedPoint, text, font,
+                canvas.getDrawingColor(), true);
 
         g2d.dispose();
         canvas.repaint();
@@ -273,7 +190,8 @@ public class TextTool implements DrawingTool, ToolChangeListener {
     }
 
     public void setAntiAliasing(boolean useAntiAliasing) {
-        this.useAntiAliasing = useAntiAliasing;
+        // Forward to renderer
+        renderer.setAntiAliasing(useAntiAliasing);
         updatePreview();
     }
 
