@@ -18,7 +18,7 @@ The SparkPaint application is designed to provide a user-friendly interface for 
 
 ### Key Features
 
-- **Drawing Tools**: A variety of tools for different drawing techniques, including brushes, pencils, text, lines, rectangles, circles, fills, and color picking.
+- **Drawing Tools**: A variety of tools for different drawing techniques, including brushes, pencils, text, lines, rectangles, circles, fills, filters and color picking.
 - **Layer Management**: Allows you to work with multiple layers, making it easier to edit and organize your artwork.
 - **Color Palette**: Offers a selection of colors and the ability to customize and save your own palettes.
 - **Zoom and Preview**: Zoom in and out of the canvas for detailed work, with a preview of the whole image.
@@ -29,16 +29,17 @@ This layout is designed to provide an intuitive and efficient environment for cr
 
 ## Tools
 
-| Tool             | Description                                                                                  |
-|------------------|----------------------------------------------------------------------------------------------|
-| Brush Tool       | The Brush Tool allows users to paint on the canvas with various brush shapes and sizes, supporting smooth edges and color blending. |
-| Pencil Tool      | The Pencil Tool enables freehand drawing with adjustable line thickness, ideal for sketching and detailed work.                    |
-| Text Tool        | The Text Tool lets users add text to the canvas with customizable fonts and sizes.                                                |
-| Line Tool        | The Line Tool allows drawing straight lines, polylines, and smooth curves with adjustable thickness.                              |
-| Rectangle Tool   | The Rectangle Tool is used to draw rectangles and squares, either filled or outlined.                                             |
-| Circle Tool      | The Circle Tool enables drawing circles and ellipses, with options for filled or outlined shapes.                                 |
-| Fill Tool        | The Fill Tool fills areas with solid colors or gradients, with adjustable color tolerance.                                        |
-| Eyedropper Tool  | The Eyedropper Tool picks colors from the canvas for reuse in the artwork.                                                        |
+| Tool            | Description                                                                                  |
+|-----------------|----------------------------------------------------------------------------------------------|
+| Brush Tool      | The Brush Tool allows users to paint on the canvas with various brush shapes and sizes, supporting smooth edges and color blending. |
+| Pencil Tool     | The Pencil Tool enables freehand drawing with adjustable line thickness, ideal for sketching and detailed work.                    |
+| Text Tool       | The Text Tool lets users add text to the canvas with customizable fonts and sizes.                                                |
+| Line Tool       | The Line Tool allows drawing straight lines, polylines, and smooth curves with adjustable thickness.                              |
+| Rectangle Tool  | The Rectangle Tool is used to draw rectangles and squares, either filled or outlined.                                             |
+| Circle Tool     | The Circle Tool enables drawing circles and ellipses, with options for filled or outlined shapes.                                 |
+| Fill Tool       | The Fill Tool fills areas with solid colors or gradients, with adjustable color tolerance.                                        |
+| Eyedropper Tool | The Eyedropper Tool picks colors from the canvas for reuse in the artwork.                                                        |
+| Filter Tool     | The Filter Tool provides brushes for blur, noise, dithering, brightness and darkness.                                             |
 
 ## Using The Tools
 
@@ -231,6 +232,25 @@ The Eyedropper Tool in SparkPaint allows users to pick colors from the canvas. I
 
 The Eyedropper Tool is simple and effective for color selection and reuse in your artwork.
 
+### Filter Tool
+
+The Filter Tool in SparkPaint allows users to apply various effects to their images. It includes options for blurring, brightening, adding noise, and dithering.
+
+#### Features
+- **Blur**: Apply a blur effect to soften the image.
+- **Brighten**: Increase the brightness of the image.
+- **Darken**: Decrease the brightness of the image.
+- **Noise**: Add noise to the image for a grainy effect.
+- **Dithering**: Apply dithering to create a textured effect.
+
+#### How to Use
+1. **Select the Filter Tool**: Choose the Filter Tool from the toolbar.
+2. **Adjust Settings**: Use the Filter Tool Settings panel to customize the effect:
+    - **Brush Size**: Adjust the size slider to set the brush size.
+    - **Effect Type**: Select the desired effect from the dropdown menu.
+    - **Intensity**: Adjust the intensity slider to control the strength of the effect.
+3. **Apply Effect**: Click on the canvas to apply the selected effect.
+
 ## Palette 
 
 ### Color Palette
@@ -305,6 +325,10 @@ The selection system in SparkPaint allows users to select, modify, and manipulat
 2. **Freehand Selection Tool**:
    - **Creating a Selection**: Click and drag to draw a freehand path. The selection will follow the path drawn by the cursor.
    - **Moving a Selection**: To be able to move a selection, you have to copy or cut it first. Once you did so, click inside an existing selection and drag to move it to a new location.
+
+3. **Magic Wand Tool**:
+   - **Creating a Selection**: Click on an area of the canvas to select all connected pixels of similar color. The selection will be based on the color similarity and tolerance settings.
+   - **Adjusting Tolerance**: Use the tolerance slider to control how similar colors need to be included in the selection.
 
 ### Managing Selections
 

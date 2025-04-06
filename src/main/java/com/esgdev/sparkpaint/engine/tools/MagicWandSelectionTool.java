@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MagicWandSelectionTool extends AbstractSelectionTool {
-    private int tolerance = 32; // Default tolerance value (0-255)
+    private int tolerance = 32;
     Point worldDragOffset;
 
     public MagicWandSelectionTool(DrawingCanvas canvas) {

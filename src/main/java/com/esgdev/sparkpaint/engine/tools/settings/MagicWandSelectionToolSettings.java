@@ -71,8 +71,7 @@ public class MagicWandSelectionToolSettings extends AbstractSelectionToolSetting
     public void resetToDefaults() {
         toleranceSlider.setValue(32);
         toleranceValueLabel.setText("32");
-        // TODO verify if we can eliminate this
-        //setTransparencyCheckbox(true);
+        transparencyCheckbox.setSelected(false);
         applySettings();
     }
 }

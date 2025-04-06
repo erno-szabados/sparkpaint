@@ -91,18 +91,18 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, 
 
         // Buttons to add in grid
         JToggleButton[] buttons = {
-                createSelectButton(),
-                createFreehandSelectButton(),
-                createMagicWandButton(),
                 createBrushButton(),
                 createPencilButton(),
                 createRectangleButton(),
                 createCircleButton(),
                 createFillButton(),
                 createEyedropperButton(),
-                createFilterBrushButton(),
                 createLineButton(),
-                createTextButton()
+                createTextButton(),
+                createSelectButton(),
+                createFreehandSelectButton(),
+                createMagicWandButton(),
+                createFilterBrushButton(),
         };
 
         // Add buttons to the grid
