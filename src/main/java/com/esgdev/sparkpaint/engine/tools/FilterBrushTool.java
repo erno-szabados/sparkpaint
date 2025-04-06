@@ -2,6 +2,7 @@ package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.selection.Selection;
+import com.esgdev.sparkpaint.engine.tools.renderers.FilterBrushRenderer;
 
 import java.awt.*;
 import java.awt.event.MouseEvent;
@@ -17,7 +18,9 @@ public class FilterBrushTool implements DrawingTool {
     public enum FilterType {
         BLUR,
         NOISE,
-        DITHER
+        DITHER,
+        BRIGHTEN,
+        DARKEN
     }
 
     public static final int DEFAULT_SIZE = 25;
@@ -140,14 +143,10 @@ public class FilterBrushTool implements DrawingTool {
             renderer = new FilterBrushRenderer(canvas);
         }
 
-        // Apply the filter at the given point with current settings
-        int x = p.x - size / 2;
-        int y = p.y - size / 2;
-
         renderer.applyFilter(
                 targetImage,
                 filterType,
-                x, y, size,
+                p.x, p.y, size,
                 strength,
                 g2d.getClip()
         );
@@ -177,6 +176,10 @@ public class FilterBrushTool implements DrawingTool {
                 return "Filter Brush: Noise mode";
             case DITHER:
                 return "Filter Brush: Dither mode";
+            case BRIGHTEN:
+                return "Filter Brush: Brighten mode";
+            case DARKEN:
+                return "Filter Brush: Darken mode";
             default:
                 return "Filter Brush: Unknown mode";
         }

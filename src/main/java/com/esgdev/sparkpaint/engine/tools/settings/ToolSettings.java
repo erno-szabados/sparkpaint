@@ -1,4 +1,4 @@
-package com.esgdev.sparkpaint.engine.tools;
+package com.esgdev.sparkpaint.engine.tools.settings;
 
 import javax.swing.*;
 

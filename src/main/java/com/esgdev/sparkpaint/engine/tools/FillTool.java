@@ -2,6 +2,8 @@ package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.selection.Selection;
+import com.esgdev.sparkpaint.engine.tools.renderers.FillPreview;
+import com.esgdev.sparkpaint.engine.tools.renderers.FillRenderer;
 
 import javax.swing.*;
 import java.awt.*;
@@ -12,7 +14,7 @@ import java.awt.geom.GeneralPath;
 import java.awt.image.BufferedImage;
 
 public class FillTool implements DrawingTool {
-    public static final int DEFAULT_FILL_EPSILON = 30;
+    public static final int DEFAULT_FILL_EPSILON = 100;
     private final DrawingCanvas canvas;
     private final Cursor cursor = Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR);
     private int epsilon;

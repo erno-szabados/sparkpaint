@@ -24,6 +24,9 @@ public class HelpMenu extends JMenu {
         JDialog aboutDialog = new JDialog();
         aboutDialog.setTitle("About SparkPaint");
         aboutDialog.setModal(true);
+        ImageIcon icon = IconLoader.loadAndScaleIcon("sparkpaint.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight);
+        aboutDialog.setIconImage(icon.getImage());
+
 
         // Create content panel with proper layout
         JPanel contentPanel = new JPanel();
@@ -36,7 +39,7 @@ public class HelpMenu extends JMenu {
         nameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         // Add version
-        JLabel versionLabel = new JLabel("Version 0.20");
+        JLabel versionLabel = new JLabel("Version 0.21");
         versionLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         // Create JTextPane for styled text with proper alignment
@@ -106,6 +109,8 @@ public class HelpMenu extends JMenu {
         manualDialog.setTitle("SparkPaint Manual");
         manualDialog.setModal(true);
         manualDialog.setSize(800, 600);
+        ImageIcon icon = IconLoader.loadAndScaleIcon("sparkpaint.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight);
+        manualDialog.setIconImage(icon.getImage());
 
         // Create a text area to display the manual content
         JTextPane textPane = new JTextPane();

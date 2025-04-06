@@ -51,35 +51,94 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, 
         canvas.addToolChangeListener(this);
     }
 
-
     private void initializeToolbar() {
+        // Using BoxLayout for vertical stacking without stretching
         this.setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         this.setFloatable(false);
         this.setRollover(true);
-        this.add(createSelectButton());
-        this.add(createFreehandSelectButton());
-        // Undo/redo tools
+
+        // Panel for undo/redo buttons
+        JPanel undoRedoPanel = new JPanel(new GridLayout(1, 2, 2, 0));
         undoButton = createUndoButton();
-        this.add(undoButton);
         redoButton = createRedoButton();
-        this.add(redoButton);
-        this.addSeparator();
-        canvas.addUndoRedoChangeListener(this);
-        this.add(createBrushButton());
-        this.add(createFilterBrushButton());
-        this.add(createPencilButton());
-        this.add(createTextButton());
-        this.add(createLineButton());
-        this.add(createRectangleButton());
-        this.add(createCircleButton());
-        this.addSeparator();
-        this.add(createFillButton());
-        this.add(createEyedropperButton());
+        configureButtonSize(undoButton);
+        configureButtonSize(redoButton);
+        undoRedoPanel.add(undoButton);
+        undoRedoPanel.add(redoButton);
+        undoRedoPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        undoRedoPanel.setMaximumSize(new Dimension(IconWidth*2 + 10, IconHeight + 4));
+
+        // Panel for color buttons
+        JPanel colorButtonsPanel = new JPanel(new GridLayout(1, 2, 2, 0));
         colorButton = createColorButton();
-        this.add(colorButton);
         fillColorButton = createFillColorButton();
-        this.add(fillColorButton);
-        this.addSeparator();
+        configureButtonSize(colorButton);
+        configureButtonSize(fillColorButton);
+        colorButtonsPanel.add(colorButton);
+        colorButtonsPanel.add(fillColorButton);
+        colorButtonsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        colorButtonsPanel.setMaximumSize(new Dimension(IconWidth*2 + 10, IconHeight + 4));
+
+        // Add control panels first
+        this.add(undoRedoPanel);
+        this.add(Box.createVerticalStrut(2)); // Small gap
+
+        // Create panel for tools with a GridLayout (not GridBagLayout)
+        // This ensures equal spacing and proper sizing
+        int numToolButtons = 14; // Total number of tool buttons
+        int numRows = (numToolButtons + 1) / 2; // Calculate rows needed (rounded up)
+        JPanel toolsPanel = new JPanel(new GridLayout(numRows, 2, 2, 2));
+
+        // Buttons to add in grid
+        JToggleButton[] buttons = {
+                createBrushButton(),
+                createPencilButton(),
+                createRectangleButton(),
+                createCircleButton(),
+                createFillButton(),
+                createEyedropperButton(),
+                createLineButton(),
+                createTextButton(),
+                createSelectButton(),
+                createFreehandSelectButton(),
+                createMagicWandButton(),
+                createFilterBrushButton(),
+        };
+
+        // Add buttons to the grid
+        for (JToggleButton button : buttons) {
+            configureButtonSize(button);
+            toolsPanel.add(button);
+        }
+
+        // If we have an odd number of buttons, add an empty panel to fill the grid
+        toolsPanel.add(new JPanel());
+
+        // Fix the maximum size to prevent stretching
+        Dimension toolsPanelSize = new Dimension(IconWidth*2 + 10, (IconHeight + 4) * numRows + 4);
+        toolsPanel.setMaximumSize(toolsPanelSize);
+        toolsPanel.setPreferredSize(toolsPanelSize);
+        toolsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        // Add the tools panel without a border
+        this.add(toolsPanel);
+        this.add(Box.createVerticalStrut(2)); // Small gap
+        this.add(colorButtonsPanel);
+
+        // Add remaining space at the bottom
+        this.add(Box.createVerticalGlue());
+
+        // Add listeners
+        canvas.addUndoRedoChangeListener(this);
+        canvas.addToolChangeListener(this);
+    }
+
+    // Helper method to configure button size consistently
+    private void configureButtonSize(AbstractButton button) {
+        button.setMargin(new Insets(1, 1, 1, 1));
+        button.setPreferredSize(new Dimension(IconWidth + 4, IconHeight + 4));
+        button.setMinimumSize(new Dimension(IconWidth + 4, IconHeight + 4));
+        button.setMaximumSize(new Dimension(IconWidth + 4, IconHeight + 4));
     }
 
     private JButton createUndoButton() {
@@ -263,7 +322,6 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, 
     }
 
     private JToggleButton createFreehandSelectButton() {
-        // FIXME new icon
         ImageIcon icon = IconLoader.loadAndScaleIcon("lasso.png", IconWidth, IconHeight);
         JToggleButton button = new JToggleButton(icon);
         button.putClientProperty("tool", ToolManager.Tool.FREEHAND_SELECTION);
@@ -275,6 +333,20 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, 
         toolGroup.add(button);
         return button;
     }
+
+    private JToggleButton createMagicWandButton() {
+        ImageIcon icon = IconLoader.loadAndScaleIcon("wand.png", IconWidth, IconHeight);
+        JToggleButton button = new JToggleButton(icon);
+        button.putClientProperty("tool", ToolManager.Tool.MAGIC_WAND_SELECTION);
+        button.setToolTipText("Magic wand Selection Tool");
+        button.addActionListener(e -> {
+            canvas.setCurrentTool(ToolManager.Tool.MAGIC_WAND_SELECTION);
+            statusMessageHandler.setStatusMessage("Magic wand selection tool selected.");
+        });
+        toolGroup.add(button);
+        return button;
+    }
+
 
     private JToggleButton createEyedropperButton() {
         ImageIcon icon = IconLoader.loadAndScaleIcon("eyedropper.png", IconWidth, IconHeight);

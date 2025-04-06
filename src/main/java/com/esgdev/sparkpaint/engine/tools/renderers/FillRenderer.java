@@ -1,6 +1,7 @@
-package com.esgdev.sparkpaint.engine.tools;
+package com.esgdev.sparkpaint.engine.tools.renderers;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
+import com.esgdev.sparkpaint.engine.tools.FillTool;
 
 import java.awt.*;
 import java.awt.geom.GeneralPath;
@@ -11,16 +12,11 @@ import java.util.Stack;
  * FillRenderer is responsible for rendering fill operations on a DrawingCanvas.
  * It supports linear and circular gradients, smart fills, and canvas fills.
  */
-public class FillRenderer {
+public class FillRenderer extends BaseRenderer {
     private final DrawingCanvas canvas;
-    private boolean useAntiAliasing = true;
 
     public FillRenderer(DrawingCanvas canvas) {
         this.canvas = canvas;
-    }
-
-    public void setAntiAliasing(boolean useAntiAliasing) {
-        this.useAntiAliasing = useAntiAliasing;
     }
 
     /**
@@ -30,9 +26,7 @@ public class FillRenderer {
         Graphics2D g2d = image.createGraphics();
 
         // Set up quality rendering
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON :
-                        RenderingHints.VALUE_ANTIALIAS_OFF);
+        configureGraphics(g2d);
 
         // Set up gradient
         GradientPaint gradient = new GradientPaint(
@@ -59,11 +53,16 @@ public class FillRenderer {
         Graphics2D g2d = image.createGraphics();
 
         // Set up quality rendering
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+        configureGraphics(g2d);
 
         // Calculate radius
         double radius = center.distance(radiusPoint);
+
+        // Handle zero radius case
+        if (radius <= 0) {
+            // Use a small minimum radius instead of zero
+            radius = 1.0;
+        }
 
         // Set up the radial gradient paint
         RadialGradientPaint gradient = new RadialGradientPaint(
@@ -95,17 +94,12 @@ public class FillRenderer {
                                  Point startPoint, Point endPoint, int epsilon, GeneralPath clipPath) {
         int width = image.getWidth();
         int height = image.getHeight();
-        int targetRGB = targetColor.getRGB();
 
         // Create a mask image to store which pixels should be filled
-        BufferedImage mask = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D maskG2d = mask.createGraphics();
-        maskG2d.setComposite(AlphaComposite.Clear);
-        maskG2d.fillRect(0, 0, width, height);
-        maskG2d.dispose();
+        BufferedImage mask = createMask(width, height, clipPath);
 
         // Use the smart fill algorithm to determine which pixels to fill
-        generateSmartFillMask(mask, image, x, y, targetColor, epsilon, clipPath);
+        RenderUtils.generateSmartFillMask(mask, image, x, y, targetColor, epsilon, clipPath);
 
         // Create and fill a buffer with gradient
         BufferedImage gradientImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
@@ -139,20 +133,21 @@ public class FillRenderer {
                                    Point centerPoint, Point radiusPoint, int epsilon, GeneralPath clipPath) {
         int width = image.getWidth();
         int height = image.getHeight();
-        int targetRGB = targetColor.getRGB();
 
         // Create a mask image to store which pixels should be filled
-        BufferedImage mask = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D maskG2d = mask.createGraphics();
-        maskG2d.setComposite(AlphaComposite.Clear);
-        maskG2d.fillRect(0, 0, width, height);
-        maskG2d.dispose();
+        BufferedImage mask = createMask(width, height, clipPath);
 
         // Use the smart fill algorithm to determine which pixels to fill
-        generateSmartFillMask(mask, image, x, y, targetColor, epsilon, clipPath);
+        RenderUtils.generateSmartFillMask(mask, image, x, y, targetColor, epsilon, clipPath);
 
         // Calculate the radius of the circular gradient
         double radius = centerPoint.distance(radiusPoint);
+
+        // Handle zero radius case
+        if (radius <= 0) {
+            // Use a small minimum radius instead of zero
+            radius = 1.0;
+        }
 
         // Create an image for the gradient
         BufferedImage gradientImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
@@ -180,50 +175,6 @@ public class FillRenderer {
                     image.setRGB(px, py, gradientImage.getRGB(px, py));
                 }
             }
-        }
-    }
-
-    /**
-     * Helper method to generate smart fill mask
-     */
-    private void generateSmartFillMask(BufferedImage mask, BufferedImage source,
-                                       int x, int y, Color targetColor,
-                                       int epsilon, GeneralPath clipPath) {
-        int width = source.getWidth();
-        int height = source.getHeight();
-        int targetRGB = targetColor.getRGB();
-
-        // Use flood fill to identify pixels to include
-        boolean[][] visited = new boolean[width][height];
-        Stack<Point> stack = new Stack<>();
-        stack.push(new Point(x, y));
-
-        while (!stack.isEmpty()) {
-            Point p = stack.pop();
-            x = p.x;
-            y = p.y;
-
-            if (x < 0 || x >= width || y < 0 || y >= height || visited[x][y]) {
-                continue;
-            }
-
-            int currentRGB = source.getRGB(x, y);
-
-            // Check color distance
-            double distance = FillTool.colorDistance(currentRGB, targetRGB);
-            if (distance > epsilon || (clipPath != null && !clipPath.contains(x, y))) {
-                continue;
-            }
-
-            // Mark this pixel in the mask
-            mask.setRGB(x, y, 0xFFFFFFFF); // Opaque white
-            visited[x][y] = true;
-
-            // Check neighbors
-            if (x > 0) stack.push(new Point(x - 1, y));
-            if (x < width - 1) stack.push(new Point(x + 1, y));
-            if (y > 0) stack.push(new Point(x, y - 1));
-            if (y < height - 1) stack.push(new Point(x, y + 1));
         }
     }
 
@@ -289,6 +240,7 @@ public class FillRenderer {
         if (clipPath != null) {
             // Fill only within the clip path
             Graphics2D g2d = image.createGraphics();
+            configureGraphics(g2d);
             g2d.setClip(clipPath);
 
             if (isTransparentFill) {

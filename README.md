@@ -19,14 +19,21 @@ doodling and pixeling.
 ### Drawing Tools
 - **Brush Tool**: Create soft strokes with adjustable size, shape, and blend strength
 - **Pencil Tool**: Make precise pixel-perfect lines
-- **Shape Tools**: Draw lines, rectangles, and circles/ellipses
+- **Line Tool**: Draw straight lines, smooth curves, outlines, and filled shapes
+- **Shape Tools**: Draw rectangles and circles/ellipses
 - **Fill Tool**: Apply color to areas with adjustable tolerance and edge detection
 - **Text Tool**: Add text to your images
+- **Brush Filter**: Apply brush effects like blur, brighten, noise and dithering to images
 
 ### Selection Tools
 - **Rectangle Selection**: Select rectangular areas
 - **Freehand Selection**: Create custom-shaped selections
+- **Magic Wand**: Select areas based on color similarity
 - **Selection Operations**: Rotate, cut, copy, and paste with transparency support
+
+### Layers
+- **Layer Management**: Create, delete, and manage multiple layers
+- **Layer Effects**: Basic layer adjustments like opacity, saturation, and brightness
 
 ### Color Management
 - **Color Picker**: Select colors from your canvas
@@ -35,7 +42,7 @@ doodling and pixeling.
 ### Image Manipulation
 - **Transparency Support**: Work with transparent backgrounds and selections
 - **Undo/Redo**: 16-step history for reversing changes
-- **Zoom**: Multiple zoom levels for detailed work (0.5x, 1x, 2x, 4x, 8x, 12x)
+- **Zoom**: Multiple zoom levels for detailed work (0.5x, 1x, 2x, 4x, 8x, 12x) with preview
 
 ### File Operations
 - **Multiple Formats**: Load and save in PNG, JPG, and BMP formats
@@ -53,7 +60,7 @@ doodling and pixeling.
 ## System Requirements
 
 - Java Runtime Environment (JRE) 8 or higher
-- 1GB RAM minimum
+- 1GB RAM recommended (works with 512MB too)
 - 50MB disk space (for the JRE)
 
 ## Development
@@ -62,3 +69,4 @@ SparkPaint is built using:
 - Java with Swing/AWT for the user interface
 - Java2D for image rendering and manipulation
 - Maven for project management
+- Claude 3.7 AI for code generation

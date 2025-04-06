@@ -25,6 +25,15 @@ public class MainFrame extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1024, 768);
         setLocationRelativeTo(null); // Centers the window on the screen
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException |
+                 UnsupportedLookAndFeelException ignored) {
+            // Not fatal, just use the default look and feel
+        }
+        ImageIcon icon = IconLoader.loadAndScaleIcon("sparkpaint.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight);
+        setIconImage(icon.getImage());
+
 
         // Initialize the main components
         initializeUI();
