@@ -58,6 +58,12 @@ public class FillRenderer extends BaseRenderer {
         // Calculate radius
         double radius = center.distance(radiusPoint);
 
+        // Handle zero radius case
+        if (radius <= 0) {
+            // Use a small minimum radius instead of zero
+            radius = 1.0;
+        }
+
         // Set up the radial gradient paint
         RadialGradientPaint gradient = new RadialGradientPaint(
                 center,
@@ -136,6 +142,12 @@ public class FillRenderer extends BaseRenderer {
 
         // Calculate the radius of the circular gradient
         double radius = centerPoint.distance(radiusPoint);
+
+        // Handle zero radius case
+        if (radius <= 0) {
+            // Use a small minimum radius instead of zero
+            radius = 1.0;
+        }
 
         // Create an image for the gradient
         BufferedImage gradientImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
