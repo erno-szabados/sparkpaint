@@ -2,6 +2,8 @@ package com.esgdev.sparkpaint.engine.tools;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.selection.Selection;
+import com.esgdev.sparkpaint.engine.tools.renderers.FillPreview;
+import com.esgdev.sparkpaint.engine.tools.renderers.FillRenderer;
 
 import javax.swing.*;
 import java.awt.*;

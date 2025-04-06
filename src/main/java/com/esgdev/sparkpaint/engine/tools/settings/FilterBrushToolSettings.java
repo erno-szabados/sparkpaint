@@ -1,6 +1,8 @@
-package com.esgdev.sparkpaint.engine.tools;
+package com.esgdev.sparkpaint.engine.tools.settings;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
+import com.esgdev.sparkpaint.engine.tools.FilterBrushTool;
+import com.esgdev.sparkpaint.engine.tools.ToolManager;
 
 import javax.swing.*;
 import java.awt.*;

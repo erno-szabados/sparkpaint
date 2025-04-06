@@ -1,6 +1,7 @@
-package com.esgdev.sparkpaint.engine.tools;
+package com.esgdev.sparkpaint.engine.tools.renderers;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
+import com.esgdev.sparkpaint.engine.tools.FillTool;
 
 import java.awt.*;
 import java.awt.geom.GeneralPath;

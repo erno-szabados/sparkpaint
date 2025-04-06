@@ -1,7 +1,8 @@
-package com.esgdev.sparkpaint.engine.tools;
+package com.esgdev.sparkpaint.engine.tools.renderers;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.filters.OrderedDitheringFilter;
+import com.esgdev.sparkpaint.engine.tools.FilterBrushTool;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
