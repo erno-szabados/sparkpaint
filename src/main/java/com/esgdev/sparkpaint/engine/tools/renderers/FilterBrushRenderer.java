@@ -61,16 +61,30 @@ public class FilterBrushRenderer extends BaseRenderer {
                         canvas.getDrawingColor(), canvas.getFillColor());
                 break;
             case BRIGHTEN:
-                applyBrightnessFilter(targetImage, startX, startY, endX, endY, size, strength, mask, clip, true);
+                applyBrightnessFilter(targetImage, startX, startY, endX, endY, strength, mask, clip, true);
                 break;
             case DARKEN:
-                applyBrightnessFilter(targetImage, startX, startY, endX, endY, size, strength, mask, clip, false);
+                applyBrightnessFilter(targetImage, startX, startY, endX, endY, strength, mask, clip, false);
                 break;
         }
     }
 
+    /**
+     * Applies a brightness filter to the image.
+     * Brush size is not directly used, but it determines the area of effect via the mask.
+     *
+     * @param image    The image to apply the filter to
+     * @param startX   Starting X coordinate
+     * @param startY   Starting Y coordinate
+     * @param endX     Ending X coordinate
+     * @param endY     Ending Y coordinate
+     * @param strength Filter strength (0.0-1.0)
+     * @param mask     The mask for the brush shape
+     * @param clip     The clipping region to respect when applying the filter
+     * @param brighten Whether to brighten or darken the image
+     */
     private void applyBrightnessFilter(BufferedImage image, int startX, int startY, int endX, int endY,
-                                       int brushSize, float strength, int[][] mask, Shape clip, boolean brighten) {
+                                       float strength, int[][] mask, Shape clip, boolean brighten) {
         final int maxAdjustment = (int) (100 * strength);
         final int sign = brighten ? 1 : -1;
 

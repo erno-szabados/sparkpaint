@@ -6,15 +6,15 @@ import com.esgdev.sparkpaint.engine.tools.LineTool;
 import java.awt.*;
 import java.awt.geom.Path2D;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * LineToolRenderer handles the actual rendering of various line types for the LineTool.
  * This class is responsible for transparent drawing, path drawing, and curve calculations.
  */
-public class LineToolRenderer {
+public class LineToolRenderer extends BaseRenderer {
 
-    private boolean useAntiAliasing = true;
     private float curveTension = 0.5f;
 
     public LineToolRenderer(DrawingCanvas canvas) {
@@ -24,7 +24,8 @@ public class LineToolRenderer {
     /**
      * Draws a single line between two points.
      */
-    public void drawLine(BufferedImage targetImage, Graphics2D g2d, Point p1, Point p2, Color color, float lineThickness) {
+    public void drawLine(BufferedImage targetImage, Graphics2D g2d, Point p1, Point p2,
+                         Color color, float lineThickness) {
         if (color.getAlpha() == 0) {
             drawTransparentLine(targetImage, g2d, p1, p2, lineThickness);
         } else {
@@ -36,7 +37,8 @@ public class LineToolRenderer {
     /**
      * Draws a polyline using the provided points.
      */
-    public void drawPolyline(BufferedImage targetImage, Graphics2D g2d, List<Point> points, Color color, float lineThickness) {
+    public void drawPolyline(BufferedImage targetImage, Graphics2D g2d, List<Point> points,
+                             Color color, float lineThickness) {
         if (points.size() < 2) return;
 
         if (color.getAlpha() == 0) {
@@ -136,14 +138,13 @@ public class LineToolRenderer {
         g2d.setComposite(AlphaComposite.SrcOver);
 
         // Apply rendering settings
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+        configureGraphics(g2d);
 
         // Boolean for closed modes
         boolean closePath = mode == LineTool.LineMode.CLOSED_CURVE || mode == LineTool.LineMode.FILLED_CURVE;
 
         // Create temporary list including the current point
-        List<Point> tempPoints = new java.util.ArrayList<>(points);
+        List<Point> tempPoints = new ArrayList<>(points);
         tempPoints.add(currentPoint);
 
         // Close path if needed
@@ -153,12 +154,7 @@ public class LineToolRenderer {
 
         // Draw preview based on mode
         boolean isTransparentLine = color.getAlpha() == 0;
-        float[] dashPattern = {8.0f, 8.0f};
 
-        BasicStroke basicStroke = new BasicStroke(lineThickness + 2,
-                BasicStroke.CAP_BUTT,
-                BasicStroke.JOIN_MITER,
-                10.0f, dashPattern, 0.0f);
         if (mode == LineTool.LineMode.SINGLE_LINE) {
             if (tempPoints.size() < 2) return;
 
@@ -166,19 +162,10 @@ public class LineToolRenderer {
             Point endPoint = tempPoints.get(1);
 
             if (isTransparentLine) {
-                // Define dash pattern for transparent preview
-                // Draw white line first (wider)
-                g2d.setColor(Color.WHITE);
-                g2d.setStroke(basicStroke);
-                g2d.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
-
-                // Draw black line on top (narrower, offset dash pattern)
-                g2d.setColor(Color.BLACK);
-                g2d.setStroke(new BasicStroke(lineThickness,
-                        BasicStroke.CAP_BUTT,
-                        BasicStroke.JOIN_MITER,
-                        10.0f, dashPattern, dashPattern[0]));
-                g2d.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
+                // Draw dashed outline for transparent line
+                Shape line = new java.awt.geom.Line2D.Float(
+                        startPoint.x, startPoint.y, endPoint.x, endPoint.y);
+                RenderUtils.drawDashedOutline(g2d, line, lineThickness);
             } else {
                 // Non-transparent color - draw solid line
                 g2d.setColor(color);
@@ -192,19 +179,9 @@ public class LineToolRenderer {
                 Point p2 = tempPoints.get(i + 1);
 
                 if (isTransparentLine) {
-                    // Two-color dashed lines for transparent
-                    // First pass: White dashes
-                    g2d.setColor(Color.WHITE);
-                    g2d.setStroke(basicStroke);
-                    g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
-
-                    // Second pass: Black dashes with offset
-                    g2d.setColor(Color.BLACK);
-                    g2d.setStroke(new BasicStroke(lineThickness,
-                            BasicStroke.CAP_BUTT,
-                            BasicStroke.JOIN_MITER,
-                            10.0f, dashPattern, dashPattern[0]));
-                    g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
+                    // Draw dashed outline for transparent line
+                    Shape line = new java.awt.geom.Line2D.Float(p1.x, p1.y, p2.x, p2.y);
+                    RenderUtils.drawDashedOutline(g2d, line, lineThickness);
                 } else {
                     // Solid line with actual drawing color
                     g2d.setColor(color);
@@ -238,19 +215,7 @@ public class LineToolRenderer {
 
                 // Draw outline
                 if (isTransparentLine) {
-                    // Two-color dashed outline for transparent color
-                    // First pass: White dashes
-                    g2d.setColor(Color.WHITE);
-                    g2d.setStroke(basicStroke);
-                    g2d.draw(path);
-
-                    // Second pass: Black dashes with offset
-                    g2d.setColor(Color.BLACK);
-                    g2d.setStroke(new BasicStroke(lineThickness,
-                            BasicStroke.CAP_BUTT,
-                            BasicStroke.JOIN_MITER,
-                            10.0f, dashPattern, dashPattern[0]));
-                    g2d.draw(path);
+                    RenderUtils.drawDashedOutline(g2d, path, lineThickness);
                 } else {
                     // Solid outline with actual drawing color
                     g2d.setColor(color);
@@ -272,18 +237,7 @@ public class LineToolRenderer {
                 }
 
                 if (isTransparentLine) {
-                    // First pass: White dashes
-                    g2d.setColor(Color.WHITE);
-                    g2d.setStroke(basicStroke);
-                    g2d.draw(path);
-
-                    // Second pass: Black dashes with offset
-                    g2d.setColor(Color.BLACK);
-                    g2d.setStroke(new BasicStroke(lineThickness,
-                            BasicStroke.CAP_BUTT,
-                            BasicStroke.JOIN_MITER,
-                            10.0f, dashPattern, dashPattern[0]));
-                    g2d.draw(path);
+                    RenderUtils.drawDashedOutline(g2d, path, lineThickness);
                 } else {
                     // Solid line with actual drawing color
                     g2d.setColor(color);
@@ -294,16 +248,6 @@ public class LineToolRenderer {
         }
 
         g2d.dispose();
-    }
-
-    /**
-     * Configure the graphics context with color, stroke and rendering hints.
-     */
-    private void configureGraphics(Graphics2D g2d, Color color, float lineThickness) {
-        g2d.setColor(color);
-        g2d.setStroke(new BasicStroke(lineThickness));
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
     }
 
     /**
@@ -318,16 +262,13 @@ public class LineToolRenderer {
 
         try {
             // Create a temporary mask image for the line
-            BufferedImage maskImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
+            BufferedImage maskImage = createMask(image.getWidth(), image.getHeight(), g2d.getClip());
             Graphics2D maskG2d = maskImage.createGraphics();
 
             // Set up the mask with the same stroke settings
-            maskG2d.setStroke(new BasicStroke(lineThickness));
-            maskG2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                    useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+            configureGraphics(maskG2d, lineThickness);
 
             // Draw white line on mask
-            maskG2d.setColor(Color.WHITE);
             maskG2d.drawLine(p1.x, p1.y, p2.x, p2.y);
             maskG2d.dispose();
 
@@ -339,21 +280,7 @@ public class LineToolRenderer {
             int maxY = Math.min(image.getHeight(), Math.max(p1.y, p2.y) + lineWidth);
 
             // Apply transparency to pixels where the mask is non-zero
-            for (int y = minY; y < maxY; y++) {
-                for (int x = minX; x < maxX; x++) {
-                    // Check if this pixel is within clip region
-                    Shape clip = g2d.getClip();
-                    if (clip == null || clip.contains(x, y)) {
-                        int maskRGB = maskImage.getRGB(x, y);
-                        // Only process pixels where the mask is non-zero
-                        if ((maskRGB & 0xFF000000) != 0) {
-                            // Set full transparency (alpha = 0)
-                            int newRGB = image.getRGB(x, y) & 0x00FFFFFF;
-                            image.setRGB(x, y, newRGB);
-                        }
-                    }
-                }
-            }
+            applyTransparencyMaskWithBounds(image, maskImage, g2d.getClip(), minX, minY, maxX, maxY);
         } catch (Exception e) {
             System.err.println("Exception in drawTransparentLine: " + e.getMessage());
             e.printStackTrace();
@@ -372,16 +299,13 @@ public class LineToolRenderer {
 
         try {
             // Create a temporary mask image for the path outline
-            BufferedImage maskImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
+            BufferedImage maskImage = createMask(image.getWidth(), image.getHeight(), g2d.getClip());
             Graphics2D maskG2d = maskImage.createGraphics();
 
             // Set up the mask with the same stroke settings
-            maskG2d.setStroke(new BasicStroke(lineThickness));
-            maskG2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                    useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+            configureGraphics(maskG2d, lineThickness);
 
             // Draw white path outline on mask
-            maskG2d.setColor(Color.WHITE);
             maskG2d.draw(path);
             maskG2d.dispose();
 
@@ -394,20 +318,7 @@ public class LineToolRenderer {
             int maxY = Math.min(image.getHeight(), bounds.y + bounds.height + padding);
 
             // Apply transparency to pixels where the mask is non-zero
-            for (int y = minY; y < maxY; y++) {
-                for (int x = minX; x < maxX; x++) {
-                    // Check if this pixel is within clip region
-                    if (g2d.getClip() == null || g2d.getClip().contains(x, y)) {
-                        int maskRGB = maskImage.getRGB(x, y);
-                        // Only process pixels where the mask is non-zero
-                        if ((maskRGB & 0xFF000000) != 0) {
-                            // Set full transparency (alpha = 0)
-                            int newRGB = image.getRGB(x, y) & 0x00FFFFFF;
-                            image.setRGB(x, y, newRGB);
-                        }
-                    }
-                }
-            }
+            applyTransparencyMaskWithBounds(image, maskImage, g2d.getClip(), minX, minY, maxX, maxY);
         } catch (Exception e) {
             System.err.println("Exception in drawTransparentPath: " + e.getMessage());
             e.printStackTrace();
@@ -426,15 +337,10 @@ public class LineToolRenderer {
 
         try {
             // Create a temporary mask image for the path
-            BufferedImage maskImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
+            BufferedImage maskImage = createMask(image.getWidth(), image.getHeight(), g2d.getClip());
             Graphics2D maskG2d = maskImage.createGraphics();
 
-            // Set up the mask with same settings
-            maskG2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                    useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
-
             // Fill the path with white on the mask
-            maskG2d.setColor(Color.WHITE);
             maskG2d.fill(path);
             maskG2d.dispose();
 
@@ -446,23 +352,31 @@ public class LineToolRenderer {
             int maxY = Math.min(image.getHeight(), bounds.y + bounds.height);
 
             // Apply transparency to pixels where the mask is non-zero
-            for (int y = minY; y < maxY; y++) {
-                for (int x = minX; x < maxX; x++) {
-                    // Check if this pixel is within clip region
-                    if (g2d.getClip() == null || g2d.getClip().contains(x, y)) {
-                        int maskRGB = maskImage.getRGB(x, y);
-                        // Only process pixels where the mask is non-zero
-                        if ((maskRGB & 0xFF000000) != 0) {
-                            // Set full transparency (alpha = 0)
-                            int newRGB = image.getRGB(x, y) & 0x00FFFFFF;
-                            image.setRGB(x, y, newRGB);
-                        }
-                    }
-                }
-            }
+            applyTransparencyMaskWithBounds(image, maskImage, g2d.getClip(), minX, minY, maxX, maxY);
         } catch (Exception e) {
             System.err.println("Exception in fillTransparentPath: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Apply transparency to pixels in bounded region where the mask is non-zero.
+     */
+    private void applyTransparencyMaskWithBounds(BufferedImage image, BufferedImage maskImage,
+                                                 Shape clip, int minX, int minY, int maxX, int maxY) {
+        for (int y = minY; y < maxY; y++) {
+            for (int x = minX; x < maxX; x++) {
+                // Check if this pixel is within clip region
+                if (clip == null || clip.contains(x, y)) {
+                    int maskRGB = maskImage.getRGB(x, y);
+                    // Only process pixels where the mask is non-zero
+                    if ((maskRGB & 0xFF000000) != 0) {
+                        // Set full transparency (alpha = 0)
+                        int newRGB = image.getRGB(x, y) & 0x00FFFFFF;
+                        image.setRGB(x, y, newRGB);
+                    }
+                }
+            }
         }
     }
 
@@ -471,13 +385,13 @@ public class LineToolRenderer {
      */
     public List<Point> calculateCurvePoints(List<Point> controlPoints) {
         if (controlPoints.size() < 2) {
-            return new java.util.ArrayList<>(controlPoints);
+            return new ArrayList<>(controlPoints);
         }
 
-        List<Point> curvePoints = new java.util.ArrayList<>();
+        List<Point> curvePoints = new ArrayList<>();
 
         // Create phantom points at the ends if needed
-        List<Point> points = new java.util.ArrayList<>();
+        List<Point> points = new ArrayList<>();
 
         // Add first control point as phantom start point
         Point p0 = controlPoints.get(0);
@@ -598,10 +512,6 @@ public class LineToolRenderer {
                     (int) (p2.x * zoomFactor), (int) (p2.y * zoomFactor)
             );
         }
-    }
-
-    public void setAntiAliasing(boolean useAntiAliasing) {
-        this.useAntiAliasing = useAntiAliasing;
     }
 
     public void setCurveTension(float tension) {
