@@ -82,8 +82,6 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, 
         // Add control panels first
         this.add(undoRedoPanel);
         this.add(Box.createVerticalStrut(2)); // Small gap
-        this.add(colorButtonsPanel);
-        this.add(Box.createVerticalStrut(2)); // Small gap
 
         // Create panel for tools with a GridLayout (not GridBagLayout)
         // This ensures equal spacing and proper sizing
@@ -123,6 +121,8 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, 
 
         // Add the tools panel without a border
         this.add(toolsPanel);
+        this.add(Box.createVerticalStrut(2)); // Small gap
+        this.add(colorButtonsPanel);
 
         // Add remaining space at the bottom
         this.add(Box.createVerticalGlue());
