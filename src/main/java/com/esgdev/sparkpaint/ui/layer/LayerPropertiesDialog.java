@@ -2,6 +2,8 @@ package com.esgdev.sparkpaint.ui.layer;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.layer.Layer;
+import com.esgdev.sparkpaint.ui.DrawingToolbar;
+import com.esgdev.sparkpaint.ui.IconLoader;
 
 import javax.swing.*;
 import java.awt.*;
@@ -35,6 +37,9 @@ public class LayerPropertiesDialog extends JDialog {
         super(owner, "Adjust Layer: " + canvas.getLayers().get(canvas.getCurrentLayerIndex()).getName(), true);
         this.canvas = canvas;
         this.layer = canvas.getLayers().get(canvas.getCurrentLayerIndex());
+        ImageIcon icon = IconLoader.loadAndScaleIcon("sparkpaint.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight);
+        setIconImage(icon.getImage());
+
 
         // Store original values
         this.originalImage = deepCopyImage(layer.getImage());
