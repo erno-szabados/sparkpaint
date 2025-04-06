@@ -61,102 +61,37 @@ public class FilterBrushRenderer extends BaseRenderer {
                         canvas.getDrawingColor(), canvas.getFillColor());
                 break;
             case BRIGHTEN:
-                applyBrightenFilter(targetImage, startX, startY, endX, endY, size, strength, mask, clip);
+                applyBrightnessFilter(targetImage, startX, startY, endX, endY, size, strength, mask, clip, true);
                 break;
             case DARKEN:
-                applyDarkenFilter(targetImage, startX, startY, endX, endY, size, strength, mask, clip);
+                applyBrightnessFilter(targetImage, startX, startY, endX, endY, size, strength, mask, clip, false);
                 break;
         }
     }
 
-    private void applyBrightenFilter(BufferedImage image, int startX, int startY, int endX, int endY,
-                                     int brushSize, float strength, int[][] mask, Shape clip) {
-        // Maximum brightness adjustment based on strength (0-100)
-        int maxAdjustment = (int) (100 * strength);
+    private void applyBrightnessFilter(BufferedImage image, int startX, int startY, int endX, int endY,
+                                       int brushSize, float strength, int[][] mask, Shape clip, boolean brighten) {
+        final int maxAdjustment = (int) (100 * strength);
+        final int sign = brighten ? 1 : -1;
 
-        for (int y = startY; y < endY; y++) {
-            for (int x = startX; x < endX; x++) {
-                // Check mask and clip
-                int maskX = x - startX;
-                int maskY = y - startY;
-
-                if (maskX >= 0 && maskX < mask.length &&
-                        maskY >= 0 && maskY < mask[0].length && mask[maskX][maskY] > 0) {
-
-                    if (clip != null && !clip.contains(x, y)) {
-                        continue;
-                    }
-
-                    // Get original pixel
-                    int rgb = image.getRGB(x, y);
+        processPixels(image, startX, startY, endX, endY, mask, clip,
+                (x, y, rgb, intensity) -> {
                     int a = (rgb >> 24) & 0xFF;
-
-                    // Skip fully transparent pixels
-                    if (a == 0) continue;
-
                     int r = (rgb >> 16) & 0xFF;
                     int g = (rgb >> 8) & 0xFF;
                     int b = rgb & 0xFF;
 
                     // Calculate adjustment based on mask intensity
-                    float intensity = mask[maskX][maskY] / 255.0f;
-                    int adjustment = (int) (maxAdjustment * intensity);
+                    int adjustment = (int) (maxAdjustment * intensity) * sign;
 
-                    // Apply brightness increase to RGB values
-                    r = Math.min(255, r + adjustment);
-                    g = Math.min(255, g + adjustment);
-                    b = Math.min(255, b + adjustment);
+                    // Apply brightness adjustment to RGB values
+                    r = Math.min(255, Math.max(0, r + adjustment));
+                    g = Math.min(255, Math.max(0, g + adjustment));
+                    b = Math.min(255, Math.max(0, b + adjustment));
 
-                    // Write back the modified pixel
-                    image.setRGB(x, y, (a << 24) | (r << 16) | (g << 8) | b);
-                }
-            }
-        }
-    }
-
-    private void applyDarkenFilter(BufferedImage image, int startX, int startY, int endX, int endY,
-                                   int brushSize, float strength, int[][] mask, Shape clip) {
-        // Maximum darkness adjustment based on strength (0-100)
-        int maxAdjustment = (int) (100 * strength);
-
-        for (int y = startY; y < endY; y++) {
-            for (int x = startX; x < endX; x++) {
-                // Check mask and clip
-                int maskX = x - startX;
-                int maskY = y - startY;
-
-                if (maskX >= 0 && maskX < mask.length &&
-                        maskY >= 0 && maskY < mask[0].length && mask[maskX][maskY] > 0) {
-
-                    if (clip != null && !clip.contains(x, y)) {
-                        continue;
-                    }
-
-                    // Get original pixel
-                    int rgb = image.getRGB(x, y);
-                    int a = (rgb >> 24) & 0xFF;
-
-                    // Skip fully transparent pixels
-                    if (a == 0) continue;
-
-                    int r = (rgb >> 16) & 0xFF;
-                    int g = (rgb >> 8) & 0xFF;
-                    int b = rgb & 0xFF;
-
-                    // Calculate adjustment based on mask intensity
-                    float intensity = mask[maskX][maskY] / 255.0f;
-                    int adjustment = (int) (maxAdjustment * intensity);
-
-                    // Apply darkness increase to RGB values
-                    r = Math.max(0, r - adjustment);
-                    g = Math.max(0, g - adjustment);
-                    b = Math.max(0, b - adjustment);
-
-                    // Write back the modified pixel
-                    image.setRGB(x, y, (a << 24) | (r << 16) | (g << 8) | b);
-                }
-            }
-        }
+                    // Return the modified pixel
+                    return (a << 24) | (r << 16) | (g << 8) | b;
+                });
     }
 
     private void applyBlurFilter(BufferedImage image, int startX, int startY, int endX, int endY,
@@ -249,51 +184,26 @@ public class FilterBrushRenderer extends BaseRenderer {
 
     private void applyNoiseFilter(BufferedImage image, int startX, int startY, int endX, int endY,
                                   int brushSize, float strength, int[][] mask, Shape clip) {
-        // Maximum noise amount based on strength
-        int maxNoiseAmount = (int) (50 * strength); // Reduced range for more controlled effect
+        final int maxNoiseAmount = (int) (50 * strength);
 
-        // Apply noise with mask
-        for (int y = startY; y < endY; y++) {
-            for (int x = startX; x < endX; x++) {
-                // Check mask and clip
-                int maskX = x - startX;
-                int maskY = y - startY;
-
-                if (maskX >= 0 && maskX < mask.length &&
-                        maskY >= 0 && maskY < mask[0].length && mask[maskX][maskY] > 0) {
-
-                    if (clip != null && !clip.contains(x, y)) {
-                        continue;
-                    }
-
-                    // Get original pixel
-                    int rgb = image.getRGB(x, y);
+        processPixels(image, startX, startY, endX, endY, mask, clip,
+                (x, y, rgb, intensity) -> {
                     int a = (rgb >> 24) & 0xFF;
-
-                    // Skip fully transparent pixels
-                    if (a == 0) continue;
-
                     int r = (rgb >> 16) & 0xFF;
                     int g = (rgb >> 8) & 0xFF;
                     int b = rgb & 0xFF;
 
-                    // Generate white noise (-maxNoiseAmount to +maxNoiseAmount)
+                    // Generate white noise
                     int noiseValue = random.nextInt(maxNoiseAmount * 2 + 1) - maxNoiseAmount;
-
-                    // Scale noise by mask intensity
-                    float intensity = mask[maskX][maskY] / 255.0f;
                     noiseValue = (int) (noiseValue * intensity);
 
-                    // Apply noise to RGB values (affecting brightness)
+                    // Apply noise to RGB values
                     r = Math.min(255, Math.max(0, r + noiseValue));
                     g = Math.min(255, Math.max(0, g + noiseValue));
                     b = Math.min(255, Math.max(0, b + noiseValue));
 
-                    // Write back the modified pixel
-                    image.setRGB(x, y, (a << 24) | (r << 16) | (g << 8) | b);
-                }
-            }
-        }
+                    return (a << 24) | (r << 16) | (g << 8) | b;
+                });
     }
 
     private void applyDitherFilter(BufferedImage image, int startX, int startY, int endX, int endY,
@@ -382,6 +292,44 @@ public class FilterBrushRenderer extends BaseRenderer {
         }
 
         return closest;
+    }
+
+    private void processPixels(BufferedImage image, int startX, int startY, int endX, int endY,
+                               int[][] mask, Shape clip, PixelProcessor processor) {
+        for (int y = startY; y < endY; y++) {
+            for (int x = startX; x < endX; x++) {
+                // Check mask and clip
+                int maskX = x - startX;
+                int maskY = y - startY;
+
+                if (maskX >= 0 && maskX < mask.length &&
+                        maskY >= 0 && maskY < mask[0].length && mask[maskX][maskY] > 0) {
+
+                    if (clip != null && !clip.contains(x, y)) {
+                        continue;
+                    }
+
+                    // Get original pixel
+                    int rgb = image.getRGB(x, y);
+                    int a = (rgb >> 24) & 0xFF;
+
+                    // Skip fully transparent pixels
+                    if (a == 0) continue;
+
+                    // Calculate mask intensity
+                    float intensity = mask[maskX][maskY] / 255.0f;
+
+                    // Process the pixel
+                    int newRgb = processor.processPixel(x, y, rgb, intensity);
+                    image.setRGB(x, y, newRgb);
+                }
+            }
+        }
+    }
+
+    // Functional interface for pixel processing
+    private interface PixelProcessor {
+        int processPixel(int x, int y, int rgb, float intensity);
     }
 
     private double colorDistance(Color c1, Color c2) {

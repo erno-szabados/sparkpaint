@@ -143,14 +143,10 @@ public class FilterBrushTool implements DrawingTool {
             renderer = new FilterBrushRenderer(canvas);
         }
 
-        // Apply the filter at the given point with current settings
-        int x = p.x - size / 2;
-        int y = p.y - size / 2;
-
         renderer.applyFilter(
                 targetImage,
                 filterType,
-                x, y, size,
+                p.x, p.y, size,
                 strength,
                 g2d.getClip()
         );
