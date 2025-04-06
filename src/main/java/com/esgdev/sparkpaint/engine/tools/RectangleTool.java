@@ -22,7 +22,7 @@ public class RectangleTool implements DrawingTool {
         this.canvas = canvas;
         this.isFilled = false;
         // Initialize the renderer
-        this.renderer = new RectangleToolRenderer(canvas);
+        this.renderer = new RectangleToolRenderer();
     }
 
     @Override
@@ -61,8 +61,6 @@ public class RectangleTool implements DrawingTool {
         g2d.fillRect(0, 0, tempCanvas.getWidth(), tempCanvas.getHeight());
         g2d.setComposite(AlphaComposite.SrcOver);
 
-        // Apply rendering settings and selection clip
-        renderer.configureGraphics(g2d, canvas.getLineThickness());
         applySelectionClip(g2d, selection);
 
         // Calculate rectangle bounds - is shift down for perfect square?
@@ -87,9 +85,6 @@ public class RectangleTool implements DrawingTool {
 
         // Get appropriate graphics context and adjust points if needed
         DrawContext drawContext = prepareDrawContext(selection, startPoint, point);
-
-        // Apply rendering settings
-        renderer.configureGraphics(drawContext.g2d, canvas.getLineThickness());
 
         // Calculate rectangle bounds - is shift down for perfect square?
         boolean isShiftDown = (e.getModifiersEx() & MouseEvent.SHIFT_DOWN_MASK) != 0;

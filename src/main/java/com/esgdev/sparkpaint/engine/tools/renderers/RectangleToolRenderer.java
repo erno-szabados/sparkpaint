@@ -10,11 +10,9 @@ import java.awt.image.BufferedImage;
  * This class is responsible for drawing both filled and non-filled rectangles,
  * handling transparent drawing, and creating preview visualizations.
  */
-public class RectangleToolRenderer {
+public class RectangleToolRenderer extends BaseRenderer {
 
-    private boolean useAntiAliasing = true;
-
-    public RectangleToolRenderer(DrawingCanvas canvas) {
+    public RectangleToolRenderer() {
     }
 
     /**
@@ -23,6 +21,8 @@ public class RectangleToolRenderer {
     public void drawRectangle(BufferedImage targetImage, Graphics2D g2d, Rectangle bounds,
                               Color outlineColor, Color fillColor, float lineThickness,
                               boolean isFilled, boolean isPreview) {
+        configureGraphics(g2d, lineThickness);
+
         boolean transparentFill = isFilled && fillColor.getAlpha() == 0;
         boolean transparentOutline = outlineColor.getAlpha() == 0;
 
@@ -191,21 +191,5 @@ public class RectangleToolRenderer {
             System.err.println("Exception in applyTransparency: " + e.getMessage());
             e.printStackTrace();
         }
-    }
-
-    /**
-     * Configure graphics context with rendering settings.
-     */
-    public void configureGraphics(Graphics2D g2d, float lineThickness) {
-        g2d.setStroke(new BasicStroke(lineThickness));
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
-    }
-
-    /**
-     * Set whether to use antialiasing for rendering.
-     */
-    public void setAntiAliasing(boolean useAntiAliasing) {
-        this.useAntiAliasing = useAntiAliasing;
     }
 }

@@ -8,9 +8,7 @@ import java.awt.image.BufferedImage;
  * This class is responsible for drawing points and lines, handling transparent drawing,
  * and applying appropriate rendering settings.
  */
-public class PencilToolRenderer {
-
-    private boolean useAntiAliasing = true;
+public class PencilToolRenderer extends BaseRenderer {
 
     public PencilToolRenderer() {
     }
@@ -111,22 +109,5 @@ public class PencilToolRenderer {
             System.err.println("Error drawing transparent line: " + ex.getMessage());
             ex.printStackTrace();
         }
-    }
-
-    /**
-     * Configure graphics context with rendering settings.
-     */
-    public void configureGraphics(Graphics2D g2d, Color color, float thickness) {
-        g2d.setStroke(new BasicStroke(thickness));
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
-        g2d.setColor(color);
-    }
-
-    /**
-     * Set whether to use antialiasing for rendering.
-     */
-    public void setAntiAliasing(boolean useAntiAliasing) {
-        this.useAntiAliasing = useAntiAliasing;
     }
 }

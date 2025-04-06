@@ -45,7 +45,7 @@ public class LineTool implements DrawingTool {
         this.canvas = canvas;
         this.polylinePoints = new ArrayList<>();
         // Initialize the renderer
-        this.renderer = new LineToolRenderer(canvas);
+        this.renderer = new LineToolRenderer();
     }
 
     public void setMode(LineMode mode) {

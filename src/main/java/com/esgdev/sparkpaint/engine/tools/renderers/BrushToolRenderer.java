@@ -15,8 +15,7 @@ public class BrushToolRenderer extends BaseRenderer {
     private final Random random = new Random();
     private static final int SPRAY_REFERENCE_SIZE = 5;
 
-    public BrushToolRenderer(DrawingCanvas ignored) {
-        // No initialization needed here
+    public BrushToolRenderer() {
     }
 
     /**

@@ -163,7 +163,7 @@ public class BrushTool implements DrawingTool {
 
         // Lazy initialization of renderer if needed
         if (renderer == null) {
-            renderer = new BrushToolRenderer(canvas);
+            renderer = new BrushToolRenderer();
         }
 
         BufferedImage targetImage;

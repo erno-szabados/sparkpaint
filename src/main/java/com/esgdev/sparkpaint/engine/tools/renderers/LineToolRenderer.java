@@ -17,8 +17,7 @@ public class LineToolRenderer extends BaseRenderer {
 
     private float curveTension = 0.5f;
 
-    public LineToolRenderer(DrawingCanvas canvas) {
-        // Canvas reference not needed for now but included for consistency with BrushToolRenderer
+    public LineToolRenderer() {
     }
 
     /**

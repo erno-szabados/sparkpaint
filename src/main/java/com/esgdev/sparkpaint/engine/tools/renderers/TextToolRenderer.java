@@ -10,9 +10,7 @@ import java.awt.image.BufferedImage;
  * This class is responsible for drawing text, handling transparent text,
  * and creating preview visualizations.
  */
-public class TextToolRenderer {
-
-    private boolean useAntiAliasing = true;
+public class TextToolRenderer extends BaseRenderer {
 
     public TextToolRenderer() {
     }
@@ -22,6 +20,8 @@ public class TextToolRenderer {
      */
     public void drawText(BufferedImage targetImage, Graphics2D g2d, Point position,
                          String text, Font font, Color textColor, boolean isPreview) {
+        // Apply rendering settings
+        configureGraphics(g2d);
         boolean isTransparent = textColor.getAlpha() == 0;
 
         if (isPreview) {
@@ -106,41 +106,5 @@ public class TextToolRenderer {
             g2d.setFont(font);
             g2d.drawString(text, position.x, position.y);
         }
-    }
-
-    /**
-     * Applies transparency to pixels in the image where the mask is non-zero.
-     */
-    private void applyTransparencyMask(BufferedImage image, BufferedImage maskImage, Shape clip) {
-        // Apply transparency to pixels where the mask is non-zero
-        for (int y = 0; y < image.getHeight(); y++) {
-            for (int x = 0; x < image.getWidth(); x++) {
-                // Check if this pixel is within clip region
-                if (clip == null || clip.contains(x, y)) {
-                    int maskRGB = maskImage.getRGB(x, y);
-                    // Only process pixels where the mask is non-zero
-                    if ((maskRGB & 0xFF000000) != 0) {
-                        // Set full transparency (alpha = 0)
-                        int newRGB = image.getRGB(x, y) & 0x00FFFFFF;
-                        image.setRGB(x, y, newRGB);
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Configure graphics context with rendering settings.
-     */
-    public void configureGraphics(Graphics2D g2d) {
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
-    }
-
-    /**
-     * Set whether to use antialiasing for rendering.
-     */
-    public void setAntiAliasing(boolean useAntiAliasing) {
-        this.useAntiAliasing = useAntiAliasing;
     }
 }

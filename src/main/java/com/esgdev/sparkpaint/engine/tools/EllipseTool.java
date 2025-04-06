@@ -23,7 +23,7 @@ public class EllipseTool implements DrawingTool {
         this.canvas = canvas;
         this.isFilled = false;
         // Initialize the renderer
-        this.renderer = new EllipseToolRenderer(canvas);
+        this.renderer = new EllipseToolRenderer();
     }
 
     @Override
@@ -62,8 +62,6 @@ public class EllipseTool implements DrawingTool {
         g2d.fillRect(0, 0, tempCanvas.getWidth(), tempCanvas.getHeight());
         g2d.setComposite(AlphaComposite.SrcOver);
 
-        // Apply rendering settings and selection clip
-        renderer.configureGraphics(g2d, canvas.getLineThickness());
         applySelectionClip(g2d, selection);
 
         // Calculate ellipse bounds - is shift down for perfect circle?
@@ -88,9 +86,6 @@ public class EllipseTool implements DrawingTool {
 
         // Get appropriate graphics context and adjust points if needed
         DrawContext drawContext = prepareDrawContext(selection, startPoint, point);
-
-        // Apply rendering settings
-        renderer.configureGraphics(drawContext.g2d, canvas.getLineThickness());
 
         // Calculate ellipse bounds - is shift down for perfect circle?
         boolean isShiftDown = (e.getModifiersEx() & MouseEvent.SHIFT_DOWN_MASK) != 0;

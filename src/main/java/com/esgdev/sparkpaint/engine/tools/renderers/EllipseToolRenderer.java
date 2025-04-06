@@ -12,8 +12,7 @@ import java.awt.image.BufferedImage;
  */
 public class EllipseToolRenderer extends BaseRenderer {
 
-    public EllipseToolRenderer(DrawingCanvas canvas) {
-        // No initialization needed
+    public EllipseToolRenderer() {
     }
 
     /**
@@ -22,6 +21,7 @@ public class EllipseToolRenderer extends BaseRenderer {
     public void drawEllipse(BufferedImage targetImage, Graphics2D g2d, Rectangle bounds,
                             Color outlineColor, Color fillColor, float lineThickness,
                             boolean isFilled, boolean isPreview) {
+        configureGraphics(g2d, lineThickness);
         boolean transparentFill = isFilled && fillColor.getAlpha() == 0;
         boolean transparentOutline = outlineColor.getAlpha() == 0;
 
@@ -160,14 +160,5 @@ public class EllipseToolRenderer extends BaseRenderer {
             System.err.println("Exception in applyTransparency: " + e.getMessage());
             e.printStackTrace();
         }
-    }
-
-    /**
-     * Configure graphics context with rendering settings.
-     * This method is now inherited from BaseRenderer
-     */
-    @Override
-    public void configureGraphics(Graphics2D g2d, float lineThickness) {
-        super.configureGraphics(g2d, lineThickness);
     }
 }

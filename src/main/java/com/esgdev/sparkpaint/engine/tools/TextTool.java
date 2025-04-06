@@ -130,8 +130,6 @@ public class TextTool implements DrawingTool, ToolChangeListener {
         g2d.fillRect(0, 0, tempCanvas.getWidth(), tempCanvas.getHeight());
         g2d.setComposite(AlphaComposite.SrcOver);
 
-        // Apply rendering settings
-        renderer.configureGraphics(g2d);
 
         // Apply selection clip if needed
         Selection selection = canvas.getSelection();
