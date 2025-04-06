@@ -131,10 +131,18 @@ public class PaletteGenerator {
         List<Color> baseWithAccents = new ArrayList<>(baseCentroids);
         Random random = new Random();
 
+        // Keep track of already used indices to prevent duplicates
+        Set<Integer> usedIndices = new HashSet<>();
+
         // Select random centroids and add their complements
-        for (int i = 0; i < numAccents && !baseCentroids.isEmpty(); i++) {
-            // Select a random centroid
-            int index = random.nextInt(baseCentroids.size());
+        for (int i = 0; i < numAccents && usedIndices.size() < baseCentroids.size(); i++) {
+            // Select a random centroid that wasn't used before
+            int index;
+            do {
+                index = random.nextInt(baseCentroids.size());
+            } while (usedIndices.contains(index));
+
+            usedIndices.add(index);
             Color baseColor = baseCentroids.get(index);
 
             // Generate its complementary color (opposite on the color wheel)
