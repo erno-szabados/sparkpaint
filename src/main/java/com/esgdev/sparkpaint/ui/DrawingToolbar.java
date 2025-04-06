@@ -85,7 +85,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, 
 
         // Create panel for tools with a GridLayout (not GridBagLayout)
         // This ensures equal spacing and proper sizing
-        int numToolButtons = 11; // Total number of tool buttons
+        int numToolButtons = 14; // Total number of tool buttons
         int numRows = (numToolButtons + 1) / 2; // Calculate rows needed (rounded up)
         JPanel toolsPanel = new JPanel(new GridLayout(numRows, 2, 2, 2));
 
@@ -93,6 +93,7 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, 
         JToggleButton[] buttons = {
                 createSelectButton(),
                 createFreehandSelectButton(),
+                createMagicWandButton(),
                 createBrushButton(),
                 createPencilButton(),
                 createRectangleButton(),
@@ -321,7 +322,6 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, 
     }
 
     private JToggleButton createFreehandSelectButton() {
-        // FIXME new icon
         ImageIcon icon = IconLoader.loadAndScaleIcon("lasso.png", IconWidth, IconHeight);
         JToggleButton button = new JToggleButton(icon);
         button.putClientProperty("tool", ToolManager.Tool.FREEHAND_SELECTION);
@@ -333,6 +333,20 @@ public class DrawingToolbar extends JToolBar implements UndoRedoChangeListener, 
         toolGroup.add(button);
         return button;
     }
+
+    private JToggleButton createMagicWandButton() {
+        ImageIcon icon = IconLoader.loadAndScaleIcon("wand.png", IconWidth, IconHeight);
+        JToggleButton button = new JToggleButton(icon);
+        button.putClientProperty("tool", ToolManager.Tool.MAGIC_WAND_SELECTION);
+        button.setToolTipText("Magic wand Selection Tool");
+        button.addActionListener(e -> {
+            canvas.setCurrentTool(ToolManager.Tool.MAGIC_WAND_SELECTION);
+            statusMessageHandler.setStatusMessage("Magic wand selection tool selected.");
+        });
+        toolGroup.add(button);
+        return button;
+    }
+
 
     private JToggleButton createEyedropperButton() {
         ImageIcon icon = IconLoader.loadAndScaleIcon("eyedropper.png", IconWidth, IconHeight);

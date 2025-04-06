@@ -93,6 +93,7 @@ public class ToolManager implements ToolManagement {
         tools.put(Tool.FILTER_BRUSH, new FilterBrushTool(drawingCanvas));
         tools.put(Tool.RECTANGLE_SELECTION, new RectangleSelectionTool(drawingCanvas));
         tools.put(Tool.FREEHAND_SELECTION, new FreeHandSelectionTool(drawingCanvas));
+        tools.put(Tool.MAGIC_WAND_SELECTION, new MagicWandSelectionTool(drawingCanvas));
         tools.put(Tool.TEXT, new TextTool(drawingCanvas));
     }
 

@@ -1,7 +1,11 @@
 package com.esgdev.sparkpaint.engine.tools.renderers;
 
+import com.esgdev.sparkpaint.engine.tools.FillTool;
+
 import java.awt.*;
+import java.awt.geom.GeneralPath;
 import java.awt.image.BufferedImage;
+import java.util.Stack;
 
 /**
  * Utility class for common rendering operations.
@@ -114,5 +118,50 @@ public class RenderUtils {
                 BasicStroke.JOIN_MITER,
                 10.0f, dashPattern, dashPattern[0]));
         g2d.draw(shape);
+    }
+
+    /**
+     * Helper method to generate smart fill mask
+     * TODO move to RenderUtils
+     */
+    public static void generateSmartFillMask(BufferedImage mask, BufferedImage source,
+                                       int x, int y, Color targetColor,
+                                       int epsilon, GeneralPath clipPath) {
+        int width = source.getWidth();
+        int height = source.getHeight();
+        int targetRGB = targetColor.getRGB();
+
+        // Use flood fill to identify pixels to include
+        boolean[][] visited = new boolean[width][height];
+        Stack<Point> stack = new Stack<>();
+        stack.push(new Point(x, y));
+
+        while (!stack.isEmpty()) {
+            Point p = stack.pop();
+            x = p.x;
+            y = p.y;
+
+            if (x < 0 || x >= width || y < 0 || y >= height || visited[x][y]) {
+                continue;
+            }
+
+            int currentRGB = source.getRGB(x, y);
+
+            // Check color distance
+            double distance = FillTool.colorDistance(currentRGB, targetRGB);
+            if (distance > epsilon || (clipPath != null && !clipPath.contains(x, y))) {
+                continue;
+            }
+
+            // Mark this pixel in the mask
+            mask.setRGB(x, y, 0xFFFFFFFF); // Opaque white
+            visited[x][y] = true;
+
+            // Check neighbors
+            if (x > 0) stack.push(new Point(x - 1, y));
+            if (x < width - 1) stack.push(new Point(x + 1, y));
+            if (y > 0) stack.push(new Point(x, y - 1));
+            if (y < height - 1) stack.push(new Point(x, y + 1));
+        }
     }
 }

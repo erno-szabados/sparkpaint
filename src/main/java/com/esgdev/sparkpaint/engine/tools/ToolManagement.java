@@ -34,6 +34,7 @@ public interface ToolManagement {
         FILL,
         TEXT,
         EYEDROPPER,
-        FILTER_BRUSH
+        FILTER_BRUSH,
+        MAGIC_WAND_SELECTION
     }
 }
