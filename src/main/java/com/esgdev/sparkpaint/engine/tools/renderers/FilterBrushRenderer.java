@@ -1,7 +1,6 @@
 package com.esgdev.sparkpaint.engine.tools.renderers;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
-import com.esgdev.sparkpaint.engine.filters.OrderedDitheringFilter;
 import com.esgdev.sparkpaint.engine.tools.FilterBrushTool;
 
 import java.awt.*;
@@ -14,8 +13,9 @@ import java.util.List;
  * FilterBrushRenderer handles the actual implementation of different image filters
  * applied by the FilterBrushTool.
  */
-public class FilterBrushRenderer {
+public class FilterBrushRenderer extends BaseRenderer {
     private final DrawingCanvas canvas;
+    private final Random random = new Random();
 
     public FilterBrushRenderer(DrawingCanvas canvas) {
         this.canvas = canvas;
@@ -40,13 +40,13 @@ public class FilterBrushRenderer {
             Shape clip) {
 
         // Boundary checks
-        int startX = Math.max(0, x);
-        int startY = Math.max(0, y);
-        int endX = Math.min(targetImage.getWidth(), x + size);
-        int endY = Math.min(targetImage.getHeight(), y + size);
+        int startX = Math.max(0, x - size / 2);
+        int startY = Math.max(0, y - size / 2);
+        int endX = Math.min(targetImage.getWidth(), x + size / 2);
+        int endY = Math.min(targetImage.getHeight(), y + size / 2);
 
         // Create a mask for the brush shape (circular)
-        int[][] mask = createBrushMask(size, size);
+        int[][] mask = RenderUtils.createCircularMask(size, size);
 
         // Apply the appropriate filter
         switch (filterType) {
@@ -57,7 +57,8 @@ public class FilterBrushRenderer {
                 applyNoiseFilter(targetImage, startX, startY, endX, endY, size, strength, mask, clip);
                 break;
             case DITHER:
-                applyDitherFilter(targetImage, startX, startY, endX, endY, size, strength, mask, clip, canvas.getDrawingColor(), canvas.getFillColor());
+                applyDitherFilter(targetImage, startX, startY, endX, endY, size, strength, mask, clip,
+                        canvas.getDrawingColor(), canvas.getFillColor());
                 break;
             case BRIGHTEN:
                 applyBrightenFilter(targetImage, startX, startY, endX, endY, size, strength, mask, clip);
@@ -66,28 +67,6 @@ public class FilterBrushRenderer {
                 applyDarkenFilter(targetImage, startX, startY, endX, endY, size, strength, mask, clip);
                 break;
         }
-    }
-
-    private int[][] createBrushMask(int width, int height) {
-        int[][] mask = new int[width][height];
-        int centerX = width / 2;
-        int centerY = height / 2;
-        double radius = Math.min(width, height) / 2.0;
-
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                double distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
-                if (distance <= radius) {
-                    // Fade intensity from center (1.0) to edge (0.0)
-                    double intensity = 1.0 - (distance / radius);
-                    mask[x][y] = (int) (intensity * 255);
-                } else {
-                    mask[x][y] = 0;
-                }
-            }
-        }
-
-        return mask;
     }
 
     private void applyBrightenFilter(BufferedImage image, int startX, int startY, int endX, int endY,
@@ -185,13 +164,13 @@ public class FilterBrushRenderer {
         // Gaussian blur implementation
         int radius = Math.max(1, Math.round(brushSize * strength / 4));
 
-        // Create kernel with size based on radius
-        int size = radius * 2 + 1;
-        float[][] kernel = createGaussianKernel(radius);
+        // Create kernel with size based on radius - use utility method
+        float[][] kernel = RenderUtils.createGaussianKernel(radius);
 
         // Create a copy of the affected area to avoid sampling from already blurred pixels
         BufferedImage copy = new BufferedImage(endX - startX, endY - startY, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = copy.createGraphics();
+        configureGraphics(g2d); // Use inherited method to configure anti-aliasing
         g2d.drawImage(image.getSubimage(startX, startY, endX - startX, endY - startY), 0, 0, null);
         g2d.dispose();
 
@@ -209,6 +188,12 @@ public class FilterBrushRenderer {
                         continue;
                     }
 
+                    // Get mask intensity
+                    float intensity = mask[maskX][maskY] / 255.0f;
+
+                    // Skip pixels where the brush effect is minimal
+                    if (intensity < 0.05f) continue;
+
                     // Calculate weighted sum for each channel
                     float sumR = 0, sumG = 0, sumB = 0, sumA = 0;
                     float totalWeight = 0;
@@ -218,89 +203,52 @@ public class FilterBrushRenderer {
                             int sampleX = x + kx - startX;
                             int sampleY = y + ky - startY;
 
-                            // Skip samples outside the copy area
-                            if (sampleX < 0 || sampleX >= copy.getWidth() ||
-                                    sampleY < 0 || sampleY >= copy.getHeight()) {
-                                continue;
+                            // Bounds check for sample point
+                            if (sampleX >= 0 && sampleX < copy.getWidth() &&
+                                    sampleY >= 0 && sampleY < copy.getHeight()) {
+
+                                float weight = kernel[ky + radius][kx + radius];
+                                int rgb = copy.getRGB(sampleX, sampleY);
+
+                                sumA += ((rgb >> 24) & 0xFF) * weight;
+                                sumR += ((rgb >> 16) & 0xFF) * weight;
+                                sumG += ((rgb >> 8) & 0xFF) * weight;
+                                sumB += (rgb & 0xFF) * weight;
+                                totalWeight += weight;
                             }
-
-                            // Get color and kernel weight
-                            int rgb = copy.getRGB(sampleX, sampleY);
-                            float weight = kernel[ky + radius][kx + radius];
-
-                            // Apply mask weight to create falloff at brush edges
-                            float maskWeight = mask[maskX][maskY] / 255.0f * strength;
-                            weight *= maskWeight;
-
-                            // Accumulate weighted channels
-                            sumA += ((rgb >> 24) & 0xFF) * weight;
-                            sumR += ((rgb >> 16) & 0xFF) * weight;
-                            sumG += ((rgb >> 8) & 0xFF) * weight;
-                            sumB += (rgb & 0xFF) * weight;
-                            totalWeight += weight;
                         }
                     }
 
                     // Normalize and set pixel
                     if (totalWeight > 0) {
-                        int a = Math.min(255, Math.max(0, Math.round(sumA / totalWeight)));
-                        int r = Math.min(255, Math.max(0, Math.round(sumR / totalWeight)));
-                        int g = Math.min(255, Math.max(0, Math.round(sumG / totalWeight)));
-                        int b = Math.min(255, Math.max(0, Math.round(sumB / totalWeight)));
+                        // Blend with original based on mask intensity
+                        int origRGB = image.getRGB(x, y);
+                        int origA = (origRGB >> 24) & 0xFF;
+                        int origR = (origRGB >> 16) & 0xFF;
+                        int origG = (origRGB >> 8) & 0xFF;
+                        int origB = origRGB & 0xFF;
 
-                        // Get original pixel
-                        int origRgb = image.getRGB(x, y);
-                        int origA = (origRgb >> 24) & 0xFF;
-                        int origR = (origRgb >> 16) & 0xFF;
-                        int origG = (origRgb >> 8) & 0xFF;
-                        int origB = origRgb & 0xFF;
+                        int newA = Math.round(sumA / totalWeight);
+                        int newR = Math.round(sumR / totalWeight);
+                        int newG = Math.round(sumG / totalWeight);
+                        int newB = Math.round(sumB / totalWeight);
 
-                        // Blend based on mask intensity for smooth transitions
-                        float blendFactor = mask[maskX][maskY] / 255.0f * strength;
-                        a = Math.round(origA * (1 - blendFactor) + a * blendFactor);
-                        r = Math.round(origR * (1 - blendFactor) + r * blendFactor);
-                        g = Math.round(origG * (1 - blendFactor) + g * blendFactor);
-                        b = Math.round(origB * (1 - blendFactor) + b * blendFactor);
+                        // Mix original and blurred based on intensity
+                        int finalA = Math.round(origA * (1 - intensity) + newA * intensity);
+                        int finalR = Math.round(origR * (1 - intensity) + newR * intensity);
+                        int finalG = Math.round(origG * (1 - intensity) + newG * intensity);
+                        int finalB = Math.round(origB * (1 - intensity) + newB * intensity);
 
-                        image.setRGB(x, y, (a << 24) | (r << 16) | (g << 8) | b);
+                        // Set the result
+                        image.setRGB(x, y, (finalA << 24) | (finalR << 16) | (finalG << 8) | finalB);
                     }
                 }
             }
         }
     }
 
-    private float[][] createGaussianKernel(int radius) {
-        int size = radius * 2 + 1;
-        float[][] kernel = new float[size][size];
-        float sigma = radius / 3.0f;
-        float twoSigmaSquare = 2.0f * sigma * sigma;
-        float sigmaRoot = (float) Math.sqrt(2.0f * Math.PI * sigma * sigma);
-        float total = 0.0f;
-
-        for (int y = -radius; y <= radius; y++) {
-            for (int x = -radius; x <= radius; x++) {
-                float distance = x * x + y * y;
-                kernel[y + radius][x + radius] =
-                        (float) Math.exp(-distance / twoSigmaSquare) / sigmaRoot;
-                total += kernel[y + radius][x + radius];
-            }
-        }
-
-        // Normalize the kernel
-        for (int y = 0; y < size; y++) {
-            for (int x = 0; x < size; x++) {
-                kernel[y][x] /= total;
-            }
-        }
-
-        return kernel;
-    }
-
     private void applyNoiseFilter(BufferedImage image, int startX, int startY, int endX, int endY,
                                   int brushSize, float strength, int[][] mask, Shape clip) {
-        // Use simple white noise instead of Perlin noise
-        Random random = new Random();
-
         // Maximum noise amount based on strength
         int maxNoiseAmount = (int) (50 * strength); // Reduced range for more controlled effect
 
@@ -398,38 +346,52 @@ public class FilterBrushRenderer {
 
                     // Apply dithering with the brush intensity
                     if (intensity >= 0.9f) { // Full dithering
-                        // Adjust color channels based on threshold
-                        int r = adjustColorChannel(originalColor.getRed(), threshold, thresholdScaling);
-                        int g = adjustColorChannel(originalColor.getGreen(), threshold, thresholdScaling);
-                        int b = adjustColorChannel(originalColor.getBlue(), threshold, thresholdScaling);
-
-                        // Keep original alpha
-                        int a = originalColor.getAlpha();
-
-                        // Find nearest color in palette
-                        Color newColor = OrderedDitheringFilter.findNearestColor(new Color(r, g, b, a), palette);
-                        image.setRGB(x, y, newColor.getRGB());
+                        // Find closest color in palette
+                        Color closestColor = findClosestColor(originalColor, palette, threshold, thresholdScaling);
+                        image.setRGB(x, y, closestColor.getRGB());
                     } else {
-                        // Partial dithering - blend between original and dithered
-                        // Adjust color channels
-                        int r = adjustColorChannel(originalColor.getRed(), threshold, thresholdScaling);
-                        int g = adjustColorChannel(originalColor.getGreen(), threshold, thresholdScaling);
-                        int b = adjustColorChannel(originalColor.getBlue(), threshold, thresholdScaling);
-                        int a = originalColor.getAlpha();
-
-                        // Find nearest color in palette
-                        Color ditheredColor = OrderedDitheringFilter.findNearestColor(new Color(r, g, b, a), palette);
-
-                        // Blend based on intensity
-                        r = (int) (originalColor.getRed() * (1 - intensity) + ditheredColor.getRed() * intensity);
-                        g = (int) (originalColor.getGreen() * (1 - intensity) + ditheredColor.getGreen() * intensity);
-                        b = (int) (originalColor.getBlue() * (1 - intensity) + ditheredColor.getBlue() * intensity);
-
-                        image.setRGB(x, y, new Color(r, g, b, a).getRGB());
+                        // Partial dithering - blend original with dithered
+                        Color ditheredColor = findClosestColor(originalColor, palette, threshold, thresholdScaling);
+                        Color blendedColor = RenderUtils.getBlendedColor(
+                                originalColor.getRGB(), intensity, ditheredColor);
+                        image.setRGB(x, y, blendedColor.getRGB());
                     }
                 }
             }
         }
+    }
+
+    private Color findClosestColor(Color originalColor, List<Color> palette, int threshold, double thresholdScaling) {
+        // Apply threshold adjustment
+        int r = adjustColorChannel(originalColor.getRed(), threshold, thresholdScaling);
+        int g = adjustColorChannel(originalColor.getGreen(), threshold, thresholdScaling);
+        int b = adjustColorChannel(originalColor.getBlue(), threshold, thresholdScaling);
+
+        Color adjustedColor = new Color(r, g, b, originalColor.getAlpha());
+
+        // Find the closest color in palette
+        Color closest = palette.get(0);
+        double minDistance = colorDistance(adjustedColor, closest);
+
+        for (Color color : palette) {
+            double distance = colorDistance(adjustedColor, color);
+            if (distance < minDistance) {
+                minDistance = distance;
+                closest = color;
+            }
+        }
+
+        return closest;
+    }
+
+    private double colorDistance(Color c1, Color c2) {
+        int rDiff = c1.getRed() - c2.getRed();
+        int gDiff = c1.getGreen() - c2.getGreen();
+        int bDiff = c1.getBlue() - c2.getBlue();
+        int aDiff = c1.getAlpha() - c2.getAlpha();
+
+        // Weighted distance calculation giving more weight to alpha differences
+        return Math.sqrt(rDiff * rDiff + gDiff * gDiff + bDiff * bDiff + 2 * aDiff * aDiff);
     }
 
     private static List<Color> getPalette(float strength, Color primaryColor, Color secondaryColor) {

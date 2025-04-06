@@ -12,16 +12,11 @@ import java.util.Stack;
  * FillRenderer is responsible for rendering fill operations on a DrawingCanvas.
  * It supports linear and circular gradients, smart fills, and canvas fills.
  */
-public class FillRenderer {
+public class FillRenderer extends BaseRenderer {
     private final DrawingCanvas canvas;
-    private boolean useAntiAliasing = true;
 
     public FillRenderer(DrawingCanvas canvas) {
         this.canvas = canvas;
-    }
-
-    public void setAntiAliasing(boolean useAntiAliasing) {
-        this.useAntiAliasing = useAntiAliasing;
     }
 
     /**
@@ -31,9 +26,7 @@ public class FillRenderer {
         Graphics2D g2d = image.createGraphics();
 
         // Set up quality rendering
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON :
-                        RenderingHints.VALUE_ANTIALIAS_OFF);
+        configureGraphics(g2d);
 
         // Set up gradient
         GradientPaint gradient = new GradientPaint(
@@ -60,8 +53,7 @@ public class FillRenderer {
         Graphics2D g2d = image.createGraphics();
 
         // Set up quality rendering
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+        configureGraphics(g2d);
 
         // Calculate radius
         double radius = center.distance(radiusPoint);
@@ -96,14 +88,9 @@ public class FillRenderer {
                                  Point startPoint, Point endPoint, int epsilon, GeneralPath clipPath) {
         int width = image.getWidth();
         int height = image.getHeight();
-        int targetRGB = targetColor.getRGB();
 
         // Create a mask image to store which pixels should be filled
-        BufferedImage mask = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D maskG2d = mask.createGraphics();
-        maskG2d.setComposite(AlphaComposite.Clear);
-        maskG2d.fillRect(0, 0, width, height);
-        maskG2d.dispose();
+        BufferedImage mask = createMask(width, height, clipPath);
 
         // Use the smart fill algorithm to determine which pixels to fill
         generateSmartFillMask(mask, image, x, y, targetColor, epsilon, clipPath);
@@ -140,14 +127,9 @@ public class FillRenderer {
                                    Point centerPoint, Point radiusPoint, int epsilon, GeneralPath clipPath) {
         int width = image.getWidth();
         int height = image.getHeight();
-        int targetRGB = targetColor.getRGB();
 
         // Create a mask image to store which pixels should be filled
-        BufferedImage mask = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D maskG2d = mask.createGraphics();
-        maskG2d.setComposite(AlphaComposite.Clear);
-        maskG2d.fillRect(0, 0, width, height);
-        maskG2d.dispose();
+        BufferedImage mask = createMask(width, height, clipPath);
 
         // Use the smart fill algorithm to determine which pixels to fill
         generateSmartFillMask(mask, image, x, y, targetColor, epsilon, clipPath);
@@ -290,6 +272,7 @@ public class FillRenderer {
         if (clipPath != null) {
             // Fill only within the clip path
             Graphics2D g2d = image.createGraphics();
+            configureGraphics(g2d);
             g2d.setClip(clipPath);
 
             if (isTransparentFill) {
