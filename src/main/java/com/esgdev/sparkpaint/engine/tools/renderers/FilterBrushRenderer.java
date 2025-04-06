@@ -24,13 +24,13 @@ public class FilterBrushRenderer {
     /**
      * Applies the specified filter to the target image at the given location.
      *
-     * @param targetImage  The image to apply the filter to
-     * @param filterType   The type of filter to apply
-     * @param x            X coordinate of the filter application area
-     * @param y            Y coordinate of the filter application area
-     * @param size         Size of the filter application area
-     * @param strength     Filter strength (0.0-1.0)
-     * @param clip         The clipping region to respect when applying the filter
+     * @param targetImage The image to apply the filter to
+     * @param filterType  The type of filter to apply
+     * @param x           X coordinate of the filter application area
+     * @param y           Y coordinate of the filter application area
+     * @param size        Size of the filter application area
+     * @param strength    Filter strength (0.0-1.0)
+     * @param clip        The clipping region to respect when applying the filter
      */
     public void applyFilter(
             BufferedImage targetImage,
@@ -59,6 +59,12 @@ public class FilterBrushRenderer {
             case DITHER:
                 applyDitherFilter(targetImage, startX, startY, endX, endY, size, strength, mask, clip, canvas.getDrawingColor(), canvas.getFillColor());
                 break;
+            case BRIGHTEN:
+                applyBrightenFilter(targetImage, startX, startY, endX, endY, size, strength, mask, clip);
+                break;
+            case DARKEN:
+                applyDarkenFilter(targetImage, startX, startY, endX, endY, size, strength, mask, clip);
+                break;
         }
     }
 
@@ -82,6 +88,96 @@ public class FilterBrushRenderer {
         }
 
         return mask;
+    }
+
+    private void applyBrightenFilter(BufferedImage image, int startX, int startY, int endX, int endY,
+                                     int brushSize, float strength, int[][] mask, Shape clip) {
+        // Maximum brightness adjustment based on strength (0-100)
+        int maxAdjustment = (int) (100 * strength);
+
+        for (int y = startY; y < endY; y++) {
+            for (int x = startX; x < endX; x++) {
+                // Check mask and clip
+                int maskX = x - startX;
+                int maskY = y - startY;
+
+                if (maskX >= 0 && maskX < mask.length &&
+                        maskY >= 0 && maskY < mask[0].length && mask[maskX][maskY] > 0) {
+
+                    if (clip != null && !clip.contains(x, y)) {
+                        continue;
+                    }
+
+                    // Get original pixel
+                    int rgb = image.getRGB(x, y);
+                    int a = (rgb >> 24) & 0xFF;
+
+                    // Skip fully transparent pixels
+                    if (a == 0) continue;
+
+                    int r = (rgb >> 16) & 0xFF;
+                    int g = (rgb >> 8) & 0xFF;
+                    int b = rgb & 0xFF;
+
+                    // Calculate adjustment based on mask intensity
+                    float intensity = mask[maskX][maskY] / 255.0f;
+                    int adjustment = (int) (maxAdjustment * intensity);
+
+                    // Apply brightness increase to RGB values
+                    r = Math.min(255, r + adjustment);
+                    g = Math.min(255, g + adjustment);
+                    b = Math.min(255, b + adjustment);
+
+                    // Write back the modified pixel
+                    image.setRGB(x, y, (a << 24) | (r << 16) | (g << 8) | b);
+                }
+            }
+        }
+    }
+
+    private void applyDarkenFilter(BufferedImage image, int startX, int startY, int endX, int endY,
+                                   int brushSize, float strength, int[][] mask, Shape clip) {
+        // Maximum darkness adjustment based on strength (0-100)
+        int maxAdjustment = (int) (100 * strength);
+
+        for (int y = startY; y < endY; y++) {
+            for (int x = startX; x < endX; x++) {
+                // Check mask and clip
+                int maskX = x - startX;
+                int maskY = y - startY;
+
+                if (maskX >= 0 && maskX < mask.length &&
+                        maskY >= 0 && maskY < mask[0].length && mask[maskX][maskY] > 0) {
+
+                    if (clip != null && !clip.contains(x, y)) {
+                        continue;
+                    }
+
+                    // Get original pixel
+                    int rgb = image.getRGB(x, y);
+                    int a = (rgb >> 24) & 0xFF;
+
+                    // Skip fully transparent pixels
+                    if (a == 0) continue;
+
+                    int r = (rgb >> 16) & 0xFF;
+                    int g = (rgb >> 8) & 0xFF;
+                    int b = rgb & 0xFF;
+
+                    // Calculate adjustment based on mask intensity
+                    float intensity = mask[maskX][maskY] / 255.0f;
+                    int adjustment = (int) (maxAdjustment * intensity);
+
+                    // Apply darkness increase to RGB values
+                    r = Math.max(0, r - adjustment);
+                    g = Math.max(0, g - adjustment);
+                    b = Math.max(0, b - adjustment);
+
+                    // Write back the modified pixel
+                    image.setRGB(x, y, (a << 24) | (r << 16) | (g << 8) | b);
+                }
+            }
+        }
     }
 
     private void applyBlurFilter(BufferedImage image, int startX, int startY, int endX, int endY,
@@ -206,7 +302,7 @@ public class FilterBrushRenderer {
         Random random = new Random();
 
         // Maximum noise amount based on strength
-        int maxNoiseAmount = (int)(50 * strength); // Reduced range for more controlled effect
+        int maxNoiseAmount = (int) (50 * strength); // Reduced range for more controlled effect
 
         // Apply noise with mask
         for (int y = startY; y < endY; y++) {
@@ -238,7 +334,7 @@ public class FilterBrushRenderer {
 
                     // Scale noise by mask intensity
                     float intensity = mask[maskX][maskY] / 255.0f;
-                    noiseValue = (int)(noiseValue * intensity);
+                    noiseValue = (int) (noiseValue * intensity);
 
                     // Apply noise to RGB values (affecting brightness)
                     r = Math.min(255, Math.max(0, r + noiseValue));
@@ -254,7 +350,7 @@ public class FilterBrushRenderer {
 
     private void applyDitherFilter(BufferedImage image, int startX, int startY, int endX, int endY,
                                    int brushSize, float strength, int[][] mask, Shape clip,
-                                  Color primaryColor, Color secondaryColor) {
+                                   Color primaryColor, Color secondaryColor) {
         // Bayer matrix for ordered dithering (8x8)
         int[][] bayerMatrix = {
                 {0, 32, 8, 40, 2, 34, 10, 42},
@@ -268,9 +364,9 @@ public class FilterBrushRenderer {
         };
 
         // Define color palette based on drawing and fill colors
-       List<Color> palette = getPalette(strength, primaryColor, secondaryColor);
+        List<Color> palette = getPalette(strength, primaryColor, secondaryColor);
 
-       double thresholdScaling = 0.2 * strength;
+        double thresholdScaling = 0.2 * strength;
 
         for (int y = startY; y < endY; y++) {
             for (int x = startX; x < endX; x++) {
@@ -343,9 +439,9 @@ public class FilterBrushRenderer {
         // Create gradient between drawing and fill colors
         for (int i = 0; i < levels; i++) {
             float ratio = (float) i / (levels - 1);
-            int r = (int) (primaryColor.getRed() * (1-ratio) + secondaryColor.getRed() * ratio);
-            int g = (int) (primaryColor.getGreen() * (1-ratio) + secondaryColor.getGreen() * ratio);
-            int b = (int) (primaryColor.getBlue() * (1-ratio) + secondaryColor.getBlue() * ratio);
+            int r = (int) (primaryColor.getRed() * (1 - ratio) + secondaryColor.getRed() * ratio);
+            int g = (int) (primaryColor.getGreen() * (1 - ratio) + secondaryColor.getGreen() * ratio);
+            int b = (int) (primaryColor.getBlue() * (1 - ratio) + secondaryColor.getBlue() * ratio);
             palette.add(new Color(r, g, b));
         }
 

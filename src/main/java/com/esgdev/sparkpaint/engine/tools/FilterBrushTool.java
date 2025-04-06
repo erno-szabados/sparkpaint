@@ -18,7 +18,9 @@ public class FilterBrushTool implements DrawingTool {
     public enum FilterType {
         BLUR,
         NOISE,
-        DITHER
+        DITHER,
+        BRIGHTEN,
+        DARKEN
     }
 
     public static final int DEFAULT_SIZE = 25;
@@ -178,6 +180,10 @@ public class FilterBrushTool implements DrawingTool {
                 return "Filter Brush: Noise mode";
             case DITHER:
                 return "Filter Brush: Dither mode";
+            case BRIGHTEN:
+                return "Filter Brush: Brighten mode";
+            case DARKEN:
+                return "Filter Brush: Darken mode";
             default:
                 return "Filter Brush: Unknown mode";
         }
