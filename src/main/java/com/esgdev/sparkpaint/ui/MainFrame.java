@@ -31,6 +31,9 @@ public class MainFrame extends JFrame {
                  UnsupportedLookAndFeelException ignored) {
             // Not fatal, just use the default look and feel
         }
+        ImageIcon icon = IconLoader.loadAndScaleIcon("sparkpaint.png", DrawingToolbar.IconWidth, DrawingToolbar.IconHeight);
+        setIconImage(icon.getImage());
+
 
         // Initialize the main components
         initializeUI();
