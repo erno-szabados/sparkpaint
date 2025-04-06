@@ -155,6 +155,10 @@ public class LineToolRenderer {
         boolean isTransparentLine = color.getAlpha() == 0;
         float[] dashPattern = {8.0f, 8.0f};
 
+        BasicStroke basicStroke = new BasicStroke(lineThickness + 2,
+                BasicStroke.CAP_BUTT,
+                BasicStroke.JOIN_MITER,
+                10.0f, dashPattern, 0.0f);
         if (mode == LineTool.LineMode.SINGLE_LINE) {
             if (tempPoints.size() < 2) return;
 
@@ -165,10 +169,7 @@ public class LineToolRenderer {
                 // Define dash pattern for transparent preview
                 // Draw white line first (wider)
                 g2d.setColor(Color.WHITE);
-                g2d.setStroke(new BasicStroke(lineThickness + 2,
-                        BasicStroke.CAP_BUTT,
-                        BasicStroke.JOIN_MITER,
-                        10.0f, dashPattern, 0.0f));
+                g2d.setStroke(basicStroke);
                 g2d.drawLine(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
 
                 // Draw black line on top (narrower, offset dash pattern)
@@ -194,10 +195,7 @@ public class LineToolRenderer {
                     // Two-color dashed lines for transparent
                     // First pass: White dashes
                     g2d.setColor(Color.WHITE);
-                    g2d.setStroke(new BasicStroke(lineThickness + 2,
-                            BasicStroke.CAP_BUTT,
-                            BasicStroke.JOIN_MITER,
-                            10.0f, dashPattern, 0.0f));
+                    g2d.setStroke(basicStroke);
                     g2d.drawLine(p1.x, p1.y, p2.x, p2.y);
 
                     // Second pass: Black dashes with offset
@@ -243,10 +241,7 @@ public class LineToolRenderer {
                     // Two-color dashed outline for transparent color
                     // First pass: White dashes
                     g2d.setColor(Color.WHITE);
-                    g2d.setStroke(new BasicStroke(lineThickness + 2,
-                            BasicStroke.CAP_BUTT,
-                            BasicStroke.JOIN_MITER,
-                            10.0f, dashPattern, 0.0f));
+                    g2d.setStroke(basicStroke);
                     g2d.draw(path);
 
                     // Second pass: Black dashes with offset
@@ -279,10 +274,7 @@ public class LineToolRenderer {
                 if (isTransparentLine) {
                     // First pass: White dashes
                     g2d.setColor(Color.WHITE);
-                    g2d.setStroke(new BasicStroke(lineThickness + 2,
-                            BasicStroke.CAP_BUTT,
-                            BasicStroke.JOIN_MITER,
-                            10.0f, dashPattern, 0.0f));
+                    g2d.setStroke(basicStroke);
                     g2d.draw(path);
 
                     // Second pass: Black dashes with offset
