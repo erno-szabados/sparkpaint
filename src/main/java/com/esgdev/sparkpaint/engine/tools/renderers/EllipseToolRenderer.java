@@ -10,11 +10,10 @@ import java.awt.image.BufferedImage;
  * This class is responsible for drawing both filled and non-filled ellipses,
  * handling transparent drawing, and creating preview visualizations.
  */
-public class EllipseToolRenderer {
-
-    private boolean useAntiAliasing = true;
+public class EllipseToolRenderer extends BaseRenderer {
 
     public EllipseToolRenderer(DrawingCanvas canvas) {
+        // No initialization needed
     }
 
     /**
@@ -91,8 +90,6 @@ public class EllipseToolRenderer {
                                          Color fillColor, Color outlineColor,
                                          boolean transparentFill, boolean transparentOutline,
                                          float lineThickness, boolean isFilled) {
-        float[] dashPattern = {8.0f, 8.0f};
-
         // For filled preview with transparency
         if (isFilled) {
             if (transparentFill) {
@@ -109,21 +106,10 @@ public class EllipseToolRenderer {
 
         // For transparent outline preview
         if (transparentOutline) {
-            // Draw white line (wider)
-            g2d.setColor(Color.WHITE);
-            g2d.setStroke(new BasicStroke(lineThickness + 2,
-                    BasicStroke.CAP_BUTT,
-                    BasicStroke.JOIN_MITER,
-                    10.0f, dashPattern, 0.0f));
-            g2d.drawOval(bounds.x, bounds.y, bounds.width, bounds.height);
-
-            // Draw black line on top (narrower, offset dash pattern)
-            g2d.setColor(Color.BLACK);
-            g2d.setStroke(new BasicStroke(lineThickness,
-                    BasicStroke.CAP_BUTT,
-                    BasicStroke.JOIN_MITER,
-                    10.0f, dashPattern, dashPattern[0]));
-            g2d.drawOval(bounds.x, bounds.y, bounds.width, bounds.height);
+            // Use utility method for dashed outline
+            Shape ovalShape = new java.awt.geom.Ellipse2D.Float(
+                    bounds.x, bounds.y, bounds.width, bounds.height);
+            RenderUtils.drawDashedOutline(g2d, ovalShape, lineThickness);
         } else {
             // Normal outline
             g2d.setColor(outlineColor);
@@ -146,27 +132,16 @@ public class EllipseToolRenderer {
 
         try {
             // Create mask for transparency
-            BufferedImage maskImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
+            BufferedImage maskImage = createMask(image.getWidth(), image.getHeight(), clip);
             Graphics2D maskG2d = maskImage.createGraphics();
-
-            // Configure graphics
-            maskG2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                    useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
-
-            // Apply the same clip as the original graphics
-            if (clip != null) {
-                maskG2d.setClip(clip);
-            }
+            configureGraphics(maskG2d, Color.WHITE, lineThickness);
 
             // Draw mask for transparent parts
             if (transparentFill && isFilled) {
-                maskG2d.setColor(Color.WHITE);
                 maskG2d.fillOval(bounds.x, bounds.y, bounds.width, bounds.height);
             }
 
             if (transparentOutline) {
-                maskG2d.setColor(Color.WHITE);
-                maskG2d.setStroke(new BasicStroke(lineThickness));
                 maskG2d.drawOval(bounds.x, bounds.y, bounds.width, bounds.height);
             }
 
@@ -179,21 +154,8 @@ public class EllipseToolRenderer {
             int maxX = Math.min(image.getWidth(), bounds.x + bounds.width + padding);
             int maxY = Math.min(image.getHeight(), bounds.y + bounds.height + padding);
 
-            // Apply transparency mask
-            for (int y = minY; y < maxY; y++) {
-                for (int x = minX; x < maxX; x++) {
-                    // Check if this pixel is within clip region
-                    if (clip == null || clip.contains(x, y)) {
-                        int maskRGB = maskImage.getRGB(x, y);
-                        // Only process pixels where the mask is non-zero
-                        if ((maskRGB & 0xFF000000) != 0) {
-                            // Set full transparency (alpha = 0)
-                            int newRGB = image.getRGB(x, y) & 0x00FFFFFF;
-                            image.setRGB(x, y, newRGB);
-                        }
-                    }
-                }
-            }
+            // Apply transparency mask using base class method
+            applyTransparencyMask(image, maskImage, clip);
         } catch (Exception e) {
             System.err.println("Exception in applyTransparency: " + e.getMessage());
             e.printStackTrace();
@@ -202,17 +164,10 @@ public class EllipseToolRenderer {
 
     /**
      * Configure graphics context with rendering settings.
+     * This method is now inherited from BaseRenderer
      */
+    @Override
     public void configureGraphics(Graphics2D g2d, float lineThickness) {
-        g2d.setStroke(new BasicStroke(lineThickness));
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
-    }
-
-    /**
-     * Set whether to use antialiasing for rendering.
-     */
-    public void setAntiAliasing(boolean useAntiAliasing) {
-        this.useAntiAliasing = useAntiAliasing;
+        super.configureGraphics(g2d, lineThickness);
     }
 }

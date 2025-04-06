@@ -11,11 +11,12 @@ import java.util.Random;
  * BrushToolRenderer handles the actual implementation of various brush rendering styles
  * used by the BrushTool.
  */
-public class BrushToolRenderer {
+public class BrushToolRenderer extends BaseRenderer {
     private final Random random = new Random();
     private static final int SPRAY_REFERENCE_SIZE = 5;
 
-    public BrushToolRenderer(DrawingCanvas canvas) {
+    public BrushToolRenderer(DrawingCanvas ignored) {
+        // No initialization needed here
     }
 
     /**
@@ -28,7 +29,7 @@ public class BrushToolRenderer {
      * @param size            Size of the brush
      * @param paintColor      Color to paint with
      * @param sprayDensity    Density for spray brush
-     * @param useAntiAliasing Whether to use anti-aliasing
+     * @param useAntiAliasing Whether to use antialiasing
      * @param blendStrength   Strength of color blending
      * @param clip            The clipping region to respect when drawing
      */
@@ -42,19 +43,22 @@ public class BrushToolRenderer {
             float blendStrength,
             Shape clip) {
 
+        // Set anti-aliasing flag
+        setAntiAliasing(useAntiAliasing);
+
         // If using transparent color, use special handling
         if (paintColor.getAlpha() == 0) {
-            handleTransparentPainting(targetImage, brushShape, x, y, size, sprayDensity, useAntiAliasing, blendStrength, clip);
+            handleTransparentPainting(targetImage, brushShape, x, y, size, sprayDensity, blendStrength, clip);
             return;
         }
 
         // Apply the brush shape at the specified location
         switch (brushShape) {
             case SQUARE:
-                drawBlendedShape(targetImage, x - size / 2, y - size / 2, size, size, paintColor, useAntiAliasing, blendStrength, clip, true);
+                drawBlendedShape(targetImage, x - size / 2, y - size / 2, size, size, paintColor, blendStrength, clip, true);
                 break;
             case CIRCLE:
-                drawBlendedShape(targetImage, x - size / 2, y - size / 2, size, size, paintColor, useAntiAliasing, blendStrength, clip, false);
+                drawBlendedShape(targetImage, x - size / 2, y - size / 2, size, size, paintColor, blendStrength, clip, false);
                 break;
             case SPRAY:
                 sprayPaint(targetImage, x, y, size, paintColor, sprayDensity, blendStrength, clip);
@@ -66,14 +70,13 @@ public class BrushToolRenderer {
      * Draws a blended shape (square or circle) on the target image.
      */
     private void drawBlendedShape(BufferedImage image, int x, int y, int width, int height,
-                                  Color paintColor, boolean useAntiAliasing, float blendStrength,
+                                  Color paintColor, float blendStrength,
                                   Shape clip, boolean isSquare) {
         // Create a temporary image for the shape
         BufferedImage tempImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
         Graphics2D tempG2d = tempImage.createGraphics();
         tempG2d.setColor(paintColor);
-        tempG2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+        configureGraphics(tempG2d);
 
         // Draw the shape to the temporary image
         if (isSquare) {
@@ -97,7 +100,7 @@ public class BrushToolRenderer {
                     // Check if this pixel is within the clipping region
                     if (clip == null || clip.contains(i, j)) {
                         int currentRGB = image.getRGB(i, j);
-                        Color blendedColor = getBlendedColor(currentRGB, blendStrength, paintColor);
+                        Color blendedColor = RenderUtils.getBlendedColor(currentRGB, blendStrength, paintColor);
                         image.setRGB(i, j, blendedColor.getRGB());
                     }
                 }
@@ -110,13 +113,11 @@ public class BrushToolRenderer {
      */
     private void handleTransparentPainting(BufferedImage targetImage, BrushTool.BrushShape shape,
                                            int x, int y, int size, int sprayDensity,
-                                           boolean useAntiAliasing, float alphaStrength, Shape clip) {
+                                           float alphaStrength, Shape clip) {
         // Create a mask image for the alpha feathering
-        BufferedImage maskImage = new BufferedImage(targetImage.getWidth(), targetImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        BufferedImage maskImage = createMask(targetImage.getWidth(), targetImage.getHeight(), clip);
         Graphics2D maskG2d = maskImage.createGraphics();
-        maskG2d.setColor(Color.WHITE);
-        maskG2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+        configureGraphics(maskG2d, Color.WHITE, 1.0f);
 
         int topLeftX = x - size / 2;
         int topLeftY = y - size / 2;
@@ -213,40 +214,10 @@ public class BrushToolRenderer {
                 // Check if this point is within the clipping region
                 if (clip == null || clip.contains(x, y)) {
                     int currentRGB = image.getRGB(x, y);
-                    Color blendedColor = getBlendedColor(currentRGB, random.nextFloat() * blendStrength, paintColor);
+                    Color blendedColor = RenderUtils.getBlendedColor(currentRGB, random.nextFloat() * blendStrength, paintColor);
                     image.setRGB(x, y, blendedColor.getRGB());
                 }
             }
         }
-    }
-
-    /**
-     * Blends the current color with the paint color based on the blend strength.
-     */
-    private Color getBlendedColor(int currentRGB, float blendStrength, Color paintColor) {
-        Color currentColor = new Color(currentRGB, true);
-
-        // Extract alpha channel
-        int currentAlpha = currentColor.getAlpha();
-
-        // If completely transparent, just use the paint color with some opacity
-        if (currentAlpha == 0) {
-            return new Color(
-                    paintColor.getRed(),
-                    paintColor.getGreen(),
-                    paintColor.getBlue(),
-                    (int) (255 * blendStrength)
-            );
-        }
-
-        // For partially or fully opaque pixels, blend color components
-        int r = (int) ((1 - blendStrength) * currentColor.getRed() + blendStrength * paintColor.getRed());
-        int g = (int) ((1 - blendStrength) * currentColor.getGreen() + blendStrength * paintColor.getGreen());
-        int b = (int) ((1 - blendStrength) * currentColor.getBlue() + blendStrength * paintColor.getBlue());
-
-        // Blend the alpha channel as well
-        int a = Math.min(255, currentAlpha + (int) (blendStrength * (255 - currentAlpha)));
-
-        return new Color(r, g, b, a);
     }
 }
