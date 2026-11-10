@@ -73,8 +73,7 @@ public class UndoRedoScenarioTest {
     }
 
     @Test
-    public void undoOfSavedLayerAddRemovesIt() {
-        canvas.saveToUndoStack();
+    public void undoOfLayerAddRemovesIt() {
         canvas.addNewLayer();
         assertEquals(2, canvas.getLayerCount());
 
@@ -84,7 +83,6 @@ public class UndoRedoScenarioTest {
     }
 
     @Test
-    @Ignore("Known bug: LayerPanel.addLayer calls addNewLayer without saving an undo state")
     public void layerAddFromPanelIsUndoable() {
         canvas.addNewLayer();
         canvas.undo();
@@ -93,24 +91,20 @@ public class UndoRedoScenarioTest {
     }
 
     @Test
-    @Ignore("Known bug: undo rolls back unrecorded layer changes made after the last snapshot")
-    public void undoAfterUnrecordedLayerAddKeepsThatLayer() {
+    public void undoAfterStrokeThenLayerAddRevertsOnlyTheAdd() {
         strokeHorizontal(5, 5, 15);
         canvas.addNewLayer();
         canvas.undo();
 
-        assertEquals(2, canvas.getLayerCount());
-        assertEquals(Color.WHITE.getRGB(), pixel(10, 5));
+        assertEquals(1, canvas.getLayerCount());
+        assertEquals(Color.RED.getRGB(), pixel(10, 5));
     }
 
     @Test
     public void layerNamesStayUniqueAfterUndoAndAdd() {
-        canvas.saveToUndoStack();
         canvas.addNewLayer();
-        canvas.saveToUndoStack();
         canvas.addNewLayer();
         canvas.undo();
-        canvas.saveToUndoStack();
         canvas.addNewLayer();
 
         Set<String> names = new HashSet<>();
@@ -152,18 +146,6 @@ public class UndoRedoScenarioTest {
     }
 
     @Test
-    public void duplicateWithSavedSnapshotIsUndoable() {
-        canvas.saveToUndoStack();
-        canvas.duplicateCurrentLayer();
-        assertEquals(2, canvas.getLayerCount());
-
-        canvas.undo();
-
-        assertEquals(1, canvas.getLayerCount());
-    }
-
-    @Test
-    @Ignore("Known bug: LayerManager/LayerPanel duplicate path saves no undo state")
     public void duplicateLayerIsUndoable() {
         canvas.duplicateCurrentLayer();
         canvas.undo();
@@ -172,7 +154,6 @@ public class UndoRedoScenarioTest {
     }
 
     @Test
-    @Ignore("Known bug: LayerPanel delete path saves no undo state")
     public void deleteLayerIsUndoable() {
         canvas.addNewLayer();
         canvas.deleteCurrentLayer();
@@ -182,7 +163,16 @@ public class UndoRedoScenarioTest {
     }
 
     @Test
-    @Ignore("Known bug: LayerPanel merge path saves no undo state")
+    public void deleteLayerRedoRemovesItAgain() {
+        canvas.addNewLayer();
+        canvas.deleteCurrentLayer();
+        canvas.undo();
+        canvas.redo();
+
+        assertEquals(1, canvas.getLayerCount());
+    }
+
+    @Test
     public void mergeDownIsUndoable() {
         canvas.addNewLayer();
         canvas.mergeCurrentLayerDown();
@@ -192,7 +182,6 @@ public class UndoRedoScenarioTest {
     }
 
     @Test
-    @Ignore("Known bug: LayerPanel flatten path saves no undo state")
     public void flattenIsUndoable() {
         canvas.addNewLayer();
         canvas.flattenLayers();
@@ -202,7 +191,6 @@ public class UndoRedoScenarioTest {
     }
 
     @Test
-    @Ignore("Known bug: LayerPanel move path saves no undo state")
     public void moveLayerIsUndoable() {
         canvas.addNewLayer();
         String bottomBefore = canvas.getLayers().get(0).getName();
@@ -210,5 +198,15 @@ public class UndoRedoScenarioTest {
         canvas.undo();
 
         assertEquals(bottomBefore, canvas.getLayers().get(0).getName());
+    }
+
+    @Test
+    public void rejectedLayerOpsAddNoUndoStep() {
+        assertFalse(canvas.mergeCurrentLayerDown());
+        assertFalse(canvas.flattenLayers());
+        assertFalse(canvas.moveLayer(0, 0));
+        canvas.deleteCurrentLayer();
+
+        assertFalse(canvas.canUndo());
     }
 }
