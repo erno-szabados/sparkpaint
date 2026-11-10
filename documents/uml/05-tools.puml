@@ -1,0 +1,116 @@
+@startuml 05-tools
+title SparkPaint - Drawing Tools Subsystem
+
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "engine.tools" {
+  enum Tool {
+    BRUSH
+    PENCIL
+    LINE
+    RECTANGLE
+    CIRCLE
+    RECTANGLE_SELECTION
+    FREEHAND_SELECTION
+    FILL
+    TEXT
+    EYEDROPPER
+    FILTER_BRUSH
+    MAGIC_WAND_SELECTION
+  }
+
+  interface ToolManagement {
+    +setToolCanvas(toolCanvas)
+    +getToolCanvas() : BufferedImage
+    +getCurrentTool() : Tool
+    +getActiveTool() : DrawingTool
+    +getTool(tool) : DrawingTool
+    +setCurrentTool(tool)
+    +initTools()
+    +isShowBrushCursor() : boolean
+    +addToolChangeListener(listener)
+  }
+
+  class ToolManager {
+    -drawingCanvas : DrawingCanvas
+    -currentTool : Tool
+    -tools : EnumMap<Tool, DrawingTool>
+    -showBrushCursor : boolean
+    +toolCanvas : BufferedImage
+    +ToolManager(drawingCanvas)
+  }
+
+  interface DrawingTool {
+    +mouseMoved(e)
+    +mousePressed(e)
+    +mouseDragged(e)
+    +mouseReleased(e)
+    +mouseScrolled(e)
+    +setCursor()
+    +statusMessage() : String
+    {static} screenToWorld(zoomFactor, point) : Point
+    {static} worldToScreen(worldPoint, zoomFactor) : Point
+  }
+
+  abstract class AbstractSelectionTool
+
+  class PencilTool
+  class BrushTool
+  class LineTool
+  class RectangleTool
+  class EllipseTool
+  class FillTool
+  class TextTool
+  class EyedropperTool
+  class FilterBrushTool
+  class RectangleSelectionTool
+  class FreeHandSelectionTool
+  class MagicWandSelectionTool
+
+  class CoordinateContext {
+    +{static} create(canvas, selection, ...) : CoordinateContext
+  }
+}
+
+package "engine" {
+  class DrawingCanvas
+  class CanvasMouseAdapter
+}
+
+package "ui" {
+  interface ToolChangeListener {
+    +onToolChanged(tool)
+  }
+}
+
+ToolManager ..|> ToolManagement
+ToolManager --> "1" DrawingCanvas
+ToolManager *-- "12" DrawingTool : tools (EnumMap)
+ToolManager ..> Tool : keys
+ToolManagement ..> Tool
+ToolManager o-- "*" ToolChangeListener
+DrawingCanvas --> ToolManagement : delegates to
+CanvasMouseAdapter ..> DrawingTool : forwards events to active tool
+
+PencilTool ..|> DrawingTool
+BrushTool ..|> DrawingTool
+LineTool ..|> DrawingTool
+RectangleTool ..|> DrawingTool
+EllipseTool ..|> DrawingTool
+FillTool ..|> DrawingTool
+TextTool ..|> DrawingTool
+TextTool ..|> ToolChangeListener
+EyedropperTool ..|> DrawingTool
+FilterBrushTool ..|> DrawingTool
+AbstractSelectionTool ..|> DrawingTool
+RectangleSelectionTool --|> AbstractSelectionTool
+FreeHandSelectionTool --|> AbstractSelectionTool
+MagicWandSelectionTool --|> AbstractSelectionTool
+
+note bottom of ToolManager
+  initTools() maps each Tool value to its
+  DrawingTool implementation.
+end note
+
+@enduml

@@ -1,0 +1,94 @@
+@startuml 08-io-clipboard
+title SparkPaint - File and Clipboard I/O
+
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "io" {
+  interface FileManagement {
+    +saveToFile(file, layers)
+    +saveToFile(file)
+    +loadFromFile(file) : LayerState
+    +loadFromLayeredFile(file) : LayerState
+    +getCurrentFilePath() : String
+    +setCurrentFilePath(path)
+    +resetCurrentFilePath()
+    +exportLayersAsPNG(directory, prefix, layers) : int
+    +generateFileNamePrefix() : String
+  }
+
+  class FileManager {
+    -canvas : DrawingCanvas
+    -currentFilePath : String
+    +FileManager(canvas)
+  }
+
+  class SparkPaintFileFormat <<utility>> {
+    {static} +saveToFile(file, layers, currentLayerIndex)
+    {static} +loadFromFile(file) : LayerState
+  }
+
+  interface ClipboardManagement {
+    +cutSelection()
+    +copySelection()
+    +pasteSelection()
+    +hasSelection() : boolean
+    +canPaste() : boolean
+    +deleteCurrentSelection()
+    +addClipboardChangeListener(listener)
+    +removeClipboardChangeListener(listener)
+  }
+
+  interface ClipboardChangeListener {
+    +clipboardStateChanged(canCopy, canPaste)
+  }
+
+  class ClipboardManager {
+    -canvas : DrawingCanvas
+    -clipboardChangeListeners : List<ClipboardChangeListener>
+    +ClipboardManager(canvas)
+  }
+
+  class ImageSelection {
+    {static} +PNG_FLAVOR : DataFlavor
+    +ImageSelection(image)
+    {static} +copyImage(image)
+    {static} +pasteImage() : BufferedImage
+  }
+}
+
+package "engine" {
+  class DrawingCanvas
+}
+
+package "engine.layer" {
+  class Layer
+}
+
+package "engine.history" {
+  class LayerState
+}
+
+package "ui" {
+  class FileMenu
+  class EditMenu
+}
+
+FileManager ..|> FileManagement
+FileManager --> "1" DrawingCanvas
+FileManager ..> SparkPaintFileFormat : layered save / load
+FileManager ..> LayerState : returns
+FileManager ..> Layer : exports PNG per layer
+FileMenu ..> DrawingCanvas : save / load through canvas
+
+ClipboardManager ..|> ClipboardManagement
+ClipboardManager --> "1" DrawingCanvas
+ClipboardManager o-- "*" ClipboardChangeListener
+ClipboardManager ..> ImageSelection : system clipboard
+EditMenu ..|> ClipboardChangeListener
+EditMenu ..> DrawingCanvas : cut / copy / paste through canvas
+
+DrawingCanvas --> FileManagement : delegates to
+DrawingCanvas --> ClipboardManagement : delegates to
+
+@enduml

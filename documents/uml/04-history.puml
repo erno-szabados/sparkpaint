@@ -1,0 +1,90 @@
+@startuml 04-history
+title SparkPaint - History (Undo/Redo) Subsystem
+
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "engine.history" {
+  interface HistoryManagement {
+    +saveToUndoStack()
+    +undo() : LayerState
+    +redo() : LayerState
+    +canUndo() : boolean
+    +canRedo() : boolean
+    +clearHistory()
+    +addUndoRedoChangeListener(listener)
+  }
+
+  interface UndoRedoChangeListener {
+    +undoRedoStateChanged(canUndo, canRedo)
+  }
+
+  class HistoryManager {
+    -undoStack : Deque<CompressedLayerState>
+    -redoStack : Deque<CompressedLayerState>
+    -undoRedoChangeListeners : List<UndoRedoChangeListener>
+    -{static} MAX_HISTORY_SIZE : int = 16
+    +HistoryManager()
+    +saveToUndoStack(layers, currentLayerIndex)
+    +undo(currentLayers, currentLayerIndex) : LayerState
+    +redo(currentLayers, currentLayerIndex) : LayerState
+    +{static} compressLayers(layers, currentLayerIndex) : CompressedLayerState
+    +{static} decompressLayers(state) : LayerState
+    +{static} compressImage(image) : byte[]
+    +{static} decompressImage(data, width, height) : BufferedImage
+  }
+
+  class LayerState {
+    -layers : List<Layer>
+    -currentLayerIndex : int
+    +getLayers() : List<Layer>
+    +getCurrentLayerIndex() : int
+  }
+
+  class CompressedLayerState {
+    -compressedLayers : List<CompressedLayer>
+    -currentLayerIndex : int
+    +toLayerState() : LayerState
+  }
+
+  class CompressedLayer {
+    -compressedData : byte[]
+    -width : int
+    -height : int
+    -visible : boolean
+    -name : String
+    +{static} fromLayer(layer) : CompressedLayer
+    +toLayer() : Layer
+  }
+}
+
+package "engine.layer" {
+  class Layer
+}
+
+package "engine" {
+  class DrawingCanvas
+}
+
+package "ui" {
+  class EditMenu
+  class DrawingToolbar
+}
+
+HistoryManager ..|> HistoryManagement
+HistoryManager *-- "0..16" CompressedLayerState : undoStack / redoStack
+HistoryManager o-- "*" UndoRedoChangeListener
+CompressedLayerState *-- "*" CompressedLayer
+CompressedLayer ..> Layer : fromLayer / toLayer
+HistoryManager ..> LayerState : returns
+HistoryManager ..> CompressedLayerState : compresses / decompresses
+DrawingCanvas --> HistoryManagement : delegates to
+EditMenu ..|> UndoRedoChangeListener
+DrawingToolbar ..|> UndoRedoChangeListener
+
+note bottom of HistoryManager
+  Snapshots are deflate-compressed.
+  Undo and redo stacks are capped at MAX_HISTORY_SIZE.
+end note
+
+@enduml

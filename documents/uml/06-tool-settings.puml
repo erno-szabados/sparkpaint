@@ -1,0 +1,78 @@
+@startuml 06-tool-settings
+title SparkPaint - Tool Settings Panels
+
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "engine.tools.settings" {
+  interface ToolSettings {
+    +createSettingsPanel() : JComponent
+    +applySettings()
+    +resetToDefaults()
+  }
+
+  abstract class BaseToolSettings {
+    #canvas : DrawingCanvas
+    #BaseToolSettings(canvas)
+    +createSettingsPanel() : JComponent
+  }
+
+  abstract class AbstractSelectionToolSettings
+
+  class PencilToolSettings
+  class BrushToolSettings
+  class LineToolSettings
+  class RectangleToolSettings
+  class CircleToolSettings
+  class FillToolSettings
+  class TextToolSettings
+  class FilterBrushToolSettings
+  class RectangleSelectionToolSettings
+  class FreehandSelectionToolSettings
+  class MagicWandSelectionToolSettings
+}
+
+package "ui" {
+  class DrawingSettingsToolBox {
+    -toolSettings : Map<Tool, ToolSettings>
+    +DrawingSettingsToolBox(canvas, statusMessageHandler)
+    +onToolChanged(tool)
+  }
+  interface ToolChangeListener {
+    +onToolChanged(tool)
+  }
+}
+
+package "engine" {
+  class DrawingCanvas
+}
+
+package "engine.tools" {
+  enum Tool
+}
+
+ToolSettings <|.. BaseToolSettings
+BaseToolSettings <|-- AbstractSelectionToolSettings
+BaseToolSettings <|-- PencilToolSettings
+BaseToolSettings <|-- BrushToolSettings
+BaseToolSettings <|-- LineToolSettings
+BaseToolSettings <|-- RectangleToolSettings
+BaseToolSettings <|-- CircleToolSettings
+BaseToolSettings <|-- FillToolSettings
+BaseToolSettings <|-- TextToolSettings
+BaseToolSettings <|-- FilterBrushToolSettings
+AbstractSelectionToolSettings <|-- RectangleSelectionToolSettings
+AbstractSelectionToolSettings <|-- FreehandSelectionToolSettings
+AbstractSelectionToolSettings <|-- MagicWandSelectionToolSettings
+
+BaseToolSettings --> "1" DrawingCanvas : canvas
+DrawingSettingsToolBox ..|> ToolChangeListener
+DrawingSettingsToolBox *-- "11" ToolSettings : one per tool
+DrawingSettingsToolBox ..> Tool : keys (EYEDROPPER has no panel)
+ToolSettings ..> Tool : settings read active tool from canvas
+
+note bottom of DrawingSettingsToolBox
+  Shows the panel for the tool selected in ToolManager.
+end note
+
+@enduml

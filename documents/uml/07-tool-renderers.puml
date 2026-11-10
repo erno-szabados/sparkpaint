@@ -1,0 +1,70 @@
+@startuml 07-tool-renderers
+title SparkPaint - Tool Renderers
+
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "engine.tools" {
+  class PencilTool
+  class BrushTool
+  class LineTool
+  class RectangleTool
+  class EllipseTool
+  class TextTool
+  class FillTool
+  class FilterBrushTool
+}
+
+package "engine.tools.renderers" {
+  abstract class BaseRenderer {
+    +setAntiAliasing(useAntiAliasing)
+  }
+  class PencilToolRenderer
+  class BrushToolRenderer
+  class LineToolRenderer
+  class RectangleToolRenderer
+  class EllipseToolRenderer
+  class TextToolRenderer
+  class FillRenderer {
+    +FillRenderer(canvas)
+  }
+  class FilterBrushRenderer {
+    +FilterBrushRenderer(canvas)
+  }
+  class FillPreview
+  class RenderUtils <<utility>>
+}
+
+package "engine" {
+  class DrawingCanvas
+}
+
+PencilToolRenderer --|> BaseRenderer
+BrushToolRenderer --|> BaseRenderer
+LineToolRenderer --|> BaseRenderer
+RectangleToolRenderer --|> BaseRenderer
+EllipseToolRenderer --|> BaseRenderer
+TextToolRenderer --|> BaseRenderer
+FillRenderer --|> BaseRenderer
+FilterBrushRenderer --|> BaseRenderer
+
+PencilTool *-- "1" PencilToolRenderer
+LineTool *-- "1" LineToolRenderer
+RectangleTool *-- "1" RectangleToolRenderer
+EllipseTool *-- "1" EllipseToolRenderer
+TextTool *-- "1" TextToolRenderer
+BrushTool ..> BrushToolRenderer : created lazily
+FilterBrushTool ..> FilterBrushRenderer : created lazily
+FillTool *-- "1" FillRenderer
+FillTool ..> FillPreview : preview
+FillRenderer ..> FillPreview
+FillRenderer --> DrawingCanvas
+FilterBrushRenderer --> DrawingCanvas
+BaseRenderer ..> RenderUtils
+
+note bottom of BaseRenderer
+  Tools handle input and state.
+  Renderers paint onto the tool canvas or layer image.
+end note
+
+@enduml
