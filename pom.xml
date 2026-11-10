@@ -31,6 +31,19 @@
             <version>4.11.0</version>
             <scope>test</scope>
         </dependency>
+        <!-- Mockito 4.11 bundles Byte Buddy 1.12.x, which cannot instrument JDK 21 Swing classes -->
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy</artifactId>
+            <version>1.17.7</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy-agent</artifactId>
+            <version>1.17.7</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <!-- Build and plugins -->
@@ -99,6 +112,32 @@
                 </executions>
                 <configuration>
                     <mainClass>com.esgdev.sparkpaint.Main</mainClass> <!-- Fully qualified Main class name -->
+                </configuration>
+            </plugin>
+            <!-- Static analysis: run on demand with `mvn pmd:pmd spotbugs:spotbugs` (not bound to the build) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <version>3.28.0</version>
+                <configuration>
+                    <targetJdk>${maven.compiler.target}</targetJdk>
+                    <rulesets>
+                        <ruleset>${project.basedir}/config/pmd-ruleset.xml</ruleset>
+                    </rulesets>
+                    <includeTests>false</includeTests>
+                    <failOnViolation>false</failOnViolation>
+                    <printFailingErrors>true</printFailingErrors>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>4.8.6.6</version>
+                <configuration>
+                    <effort>Max</effort>
+                    <threshold>Low</threshold>
+                    <includeTests>false</includeTests>
+                    <failOnError>false</failOnError>
                 </configuration>
             </plugin>
             <plugin>
