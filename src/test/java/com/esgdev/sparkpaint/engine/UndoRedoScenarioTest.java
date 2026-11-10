@@ -150,4 +150,65 @@ public class UndoRedoScenarioTest {
 
         assertTrue("a click with no change should not add an undo step", !canvas.canUndo());
     }
+
+    @Test
+    public void duplicateWithSavedSnapshotIsUndoable() {
+        canvas.saveToUndoStack();
+        canvas.duplicateCurrentLayer();
+        assertEquals(2, canvas.getLayerCount());
+
+        canvas.undo();
+
+        assertEquals(1, canvas.getLayerCount());
+    }
+
+    @Test
+    @Ignore("Known bug: LayerManager/LayerPanel duplicate path saves no undo state")
+    public void duplicateLayerIsUndoable() {
+        canvas.duplicateCurrentLayer();
+        canvas.undo();
+
+        assertEquals(1, canvas.getLayerCount());
+    }
+
+    @Test
+    @Ignore("Known bug: LayerPanel delete path saves no undo state")
+    public void deleteLayerIsUndoable() {
+        canvas.addNewLayer();
+        canvas.deleteCurrentLayer();
+        canvas.undo();
+
+        assertEquals(2, canvas.getLayerCount());
+    }
+
+    @Test
+    @Ignore("Known bug: LayerPanel merge path saves no undo state")
+    public void mergeDownIsUndoable() {
+        canvas.addNewLayer();
+        canvas.mergeCurrentLayerDown();
+        canvas.undo();
+
+        assertEquals(2, canvas.getLayerCount());
+    }
+
+    @Test
+    @Ignore("Known bug: LayerPanel flatten path saves no undo state")
+    public void flattenIsUndoable() {
+        canvas.addNewLayer();
+        canvas.flattenLayers();
+        canvas.undo();
+
+        assertEquals(2, canvas.getLayerCount());
+    }
+
+    @Test
+    @Ignore("Known bug: LayerPanel move path saves no undo state")
+    public void moveLayerIsUndoable() {
+        canvas.addNewLayer();
+        String bottomBefore = canvas.getLayers().get(0).getName();
+        canvas.moveLayer(0, 1);
+        canvas.undo();
+
+        assertEquals(bottomBefore, canvas.getLayers().get(0).getName());
+    }
 }
