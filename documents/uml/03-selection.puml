@@ -1,0 +1,84 @@
+@startuml 03-selection
+title SparkPaint - Selection Subsystem
+
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "engine.selection" {
+  interface SelectionManagement {
+    +getSelection() : Selection
+    +setSelection(selection)
+    +clearSelection()
+    +selectAll()
+    +deleteSelectionAreaFromCurrentLayer()
+    +rotateSelection(degrees)
+    +flipSelection(horizontal)
+    +isWithinSelection(worldPoint) : boolean
+    +getDrawingCoordinates(screenPoint, zoomFactor) : Point
+    +getDrawingGraphics() : Graphics2D
+  }
+
+  class SelectionManager {
+    -canvas : DrawingCanvas
+    +selection : Selection
+    +SelectionManager(canvas)
+  }
+
+  class Selection {
+    -path : GeneralPath
+    -content : BufferedImage
+    -transparent : boolean
+    -active : boolean
+    -modified : boolean
+    +Selection(rect, content)
+    +Selection(path, content)
+    +getPath() : GeneralPath
+    +getContent() : BufferedImage
+    +setContent(content, canvasBackgroundColor)
+    +isTransparent() : boolean
+    +contains(point) : boolean
+    +getBounds() : Rectangle
+    +rotate(degrees)
+    +flipHorizontal()
+    +flipVertical()
+    +drawSelectionContent(g2d)
+    +drawSelectionOutline(g2d, zoomFactor)
+    +clear()
+    +isActive() : boolean
+    +isModified() : boolean
+  }
+}
+
+package "engine.tools" {
+  abstract class AbstractSelectionTool {
+    +mousePressed(e)
+    +mouseDragged(e)
+    +mouseReleased(e)
+  }
+  class RectangleSelectionTool
+  class FreeHandSelectionTool
+  class MagicWandSelectionTool
+  interface DrawingTool
+}
+
+package "engine" {
+  class DrawingCanvas
+}
+
+SelectionManager ..|> SelectionManagement
+SelectionManager --> "1" DrawingCanvas : canvas
+SelectionManager o-- "0..1" Selection : selection
+DrawingCanvas --> SelectionManagement : delegates to
+
+AbstractSelectionTool ..|> DrawingTool
+RectangleSelectionTool --|> AbstractSelectionTool
+FreeHandSelectionTool --|> AbstractSelectionTool
+MagicWandSelectionTool --|> AbstractSelectionTool
+AbstractSelectionTool ..> Selection : reads via canvas.getSelection()
+
+note bottom of Selection
+  content holds the pixels lifted from the layer.
+  path is the outline. Rotate and flip update both.
+end note
+
+@enduml

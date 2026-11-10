@@ -1,0 +1,100 @@
+@startuml 00-overview
+title SparkPaint - Overview Class Diagram
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+hide empty members
+
+package "com.esgdev.sparkpaint" {
+  class Main
+}
+
+package "ui" {
+  class MainFrame
+  class DrawingToolbar
+  class DrawingSettingsToolBox
+  class LayerPanel
+  class ColorPalette
+  class "FileMenu, EditMenu,\nImageMenu, FilterMenu" as Menus
+}
+
+package "engine" {
+  class DrawingCanvas {
+    +create() : DrawingCanvas
+  }
+  class CanvasMouseAdapter
+
+  interface LayerManagement
+  interface SelectionManagement
+  interface HistoryManagement
+  interface ToolManagement
+  class LayerManager
+  class SelectionManager
+  class HistoryManager
+  class ToolManager
+
+  class Layer
+  class Selection
+  class LayerState
+
+  interface DrawingTool
+  class "Drawing tools\n(Brush, Pencil, Line, Rectangle, Ellipse,\nFill, Text, Eyedropper, FilterBrush,\nRectangle/FreeHand/MagicWand selection)" as Tools
+
+  class PaletteGenerator
+  class OrderedDitheringFilter <<utility>>
+}
+
+package "io" {
+  interface FileManagement
+  interface ClipboardManagement
+  class FileManager
+  class ClipboardManager
+  class PaletteManager
+  class SparkPaintFileFormat <<utility>>
+}
+
+' Application wiring
+Main ..> MainFrame : creates
+MainFrame --> DrawingCanvas : uses
+MainFrame *-- Menus
+MainFrame *-- DrawingToolbar
+MainFrame *-- DrawingSettingsToolBox
+MainFrame *-- LayerPanel
+MainFrame *-- ColorPalette
+Menus ..> PaletteGenerator : palette from image
+Menus ..> OrderedDitheringFilter : dithering filter
+
+' Canvas facade
+DrawingCanvas ..|> LayerManagement
+DrawingCanvas ..|> SelectionManagement
+DrawingCanvas ..|> HistoryManagement
+DrawingCanvas ..|> ClipboardManagement
+DrawingCanvas ..|> FileManagement
+DrawingCanvas --> ToolManagement
+DrawingCanvas *-- PaletteManager
+DrawingCanvas o-- CanvasMouseAdapter
+ColorPalette --> PaletteManager
+
+' Subsystem implementations
+LayerManager ..|> LayerManagement
+SelectionManager ..|> SelectionManagement
+HistoryManager ..|> HistoryManagement
+ToolManager ..|> ToolManagement
+FileManager ..|> FileManagement
+ClipboardManager ..|> ClipboardManagement
+FileManager ..> SparkPaintFileFormat
+FileManager ..> LayerState : loads
+
+LayerManager *-- "1..*" Layer
+SelectionManager o-- Selection
+HistoryManager ..> LayerState
+ToolManager *-- "12" DrawingTool
+DrawingTool <|.. Tools
+
+note bottom of DrawingCanvas
+  Each manager keeps a back-reference to the
+  DrawingCanvas and is wired in DrawingCanvas.create().
+end note
+
+@enduml

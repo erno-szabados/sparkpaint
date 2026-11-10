@@ -1,0 +1,66 @@
+@startuml 09-palette-filters
+title SparkPaint - Palette Generation and Filters
+
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "io" {
+  class PaletteManager {
+    +addPaletteChangeListener(listener)
+    +removePaletteChangeListener(listener)
+    +savePalette(file, colors)
+    +loadPalette(file) : List<Color>
+    +setActivePalette(palette)
+    +getActivePalette() : List<Color>
+  }
+  interface PaletteChangeListener {
+    +onPaletteChanged()
+  }
+}
+
+package "engine" {
+  class DrawingCanvas
+  class PaletteGenerator {
+    +setProgressListener(listener)
+    +generatePaletteFromCanvas(canvas, k, style) : List<Color>
+    +generatePalette(image, k, style) : List<Color>
+  }
+  enum PaletteStyle
+  interface PaletteGenerationProgressListener {
+    +onProgressUpdate(progress, max)
+  }
+}
+
+package "engine.filters" {
+  class OrderedDitheringFilter <<utility>> {
+    {static} +apply(image, palette) : BufferedImage
+    {static} +findNearestColor(color, palette) : Color
+    {static} +colorDistance(c1, c2) : double
+  }
+}
+
+package "ui" {
+  class ColorPalette
+  class PaletteGeneratorDialog
+  class FilterMenu
+  class ImageMenu
+}
+
+DrawingCanvas *-- "1" PaletteManager : paletteManager
+PaletteManager o-- "*" PaletteChangeListener
+
+PaletteGenerator o-- "0..1" PaletteGenerationProgressListener : progress
+PaletteGenerator ..> PaletteStyle
+PaletteGenerator ..> DrawingCanvas : reads pixels
+
+ColorPalette ..|> PaletteChangeListener
+ColorPalette ..> PaletteManager : active palette
+PaletteGeneratorDialog ..|> PaletteGenerationProgressListener
+PaletteGeneratorDialog ..> PaletteGenerator : creates
+PaletteGeneratorDialog ..> PaletteManager : saves result
+ImageMenu ..> PaletteGeneratorDialog : opens
+
+FilterMenu ..> OrderedDitheringFilter : apply(image, active palette)
+FilterMenu ..> PaletteManager : reads active palette
+
+@enduml

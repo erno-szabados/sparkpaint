@@ -1,0 +1,127 @@
+@startuml 01-engine-core
+title SparkPaint - Engine Core (DrawingCanvas facade and listeners)
+
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "engine" {
+  class DrawingCanvas {
+    -drawingColor : Color
+    -fillColor : Color
+    -canvasBackground : Color
+    -cursorSize : int
+    +create() : DrawingCanvas
+    +createNewCanvas(width, height, canvasBackground)
+    +initializeLayers(width, height)
+    +saveToFile(file)
+    +loadFromFile(file) : LayerState
+    +loadFromLayeredFile(file) : LayerState
+    +setDrawingColor(color)
+    +setFillColor(color)
+    +setBackgroundColor(color)
+    +getActiveTool() : DrawingTool
+    +getTool(tool) : DrawingTool
+    +getPaletteManager() : PaletteManager
+    +addCanvasChangeListener(listener)
+    +addCanvasPropertyChangeListener(listener)
+    +addToolChangeListener(listener)
+    #paintComponent(g)
+  }
+
+  class CanvasMouseAdapter {
+    -canvas : DrawingCanvas
+    +mouseMoved(e)
+    +mousePressed(e)
+    +mouseDragged(e)
+    +mouseReleased(e)
+    +mouseWheelMoved(e)
+  }
+
+  interface CanvasChangeListener {
+    +onCanvasChanged()
+  }
+
+  interface CanvasPropertyChangeListener {
+    +onDrawingColorChanged(color)
+    +onFillColorChanged(color)
+    +onBackgroundColorChanged(color)
+  }
+
+  interface ToolChangeListener {
+    +onToolChanged(tool : Tool)
+  }
+
+  interface LayerChangeListener {
+    +onLayersChanged()
+  }
+
+  interface UndoRedoChangeListener {
+    +undoRedoStateChanged(canUndo, canRedo)
+  }
+
+  interface ClipboardChangeListener {
+    +clipboardStateChanged(canCopy, canPaste)
+  }
+
+  interface DrawingTool
+  interface LayerManagement
+  interface SelectionManagement
+  interface HistoryManagement
+  interface ClipboardManagement
+  interface FileManagement
+  interface ToolManagement
+
+  class LayerManager
+  class SelectionManager
+  class HistoryManager
+  class ClipboardManager
+  class FileManager
+  class ToolManager
+  class PaletteManager
+}
+
+package "ui" {
+  class PreviewPanel
+  class EditMenu
+  class DrawingToolbar
+  class LayerPanel
+  class DrawingSettingsToolBox
+  class ColorPalette
+}
+
+DrawingCanvas ..|> LayerManagement
+DrawingCanvas ..|> SelectionManagement
+DrawingCanvas ..|> HistoryManagement
+DrawingCanvas ..|> ClipboardManagement
+DrawingCanvas ..|> FileManagement
+DrawingCanvas --> ToolManagement : toolManager
+DrawingCanvas *-- PaletteManager
+
+DrawingCanvas --> "*" CanvasChangeListener
+DrawingCanvas --> "*" CanvasPropertyChangeListener
+
+LayerManager ..|> LayerManagement
+SelectionManager ..|> SelectionManagement
+HistoryManager ..|> HistoryManagement
+ClipboardManager ..|> ClipboardManagement
+FileManager ..|> FileManagement
+ToolManager ..|> ToolManagement
+
+CanvasMouseAdapter --> DrawingCanvas : canvas
+CanvasMouseAdapter ..> DrawingTool : forwards events to active tool
+
+PreviewPanel ..|> CanvasChangeListener
+EditMenu ..|> UndoRedoChangeListener
+EditMenu ..|> ClipboardChangeListener
+DrawingToolbar ..|> UndoRedoChangeListener
+DrawingToolbar ..|> ToolChangeListener
+DrawingSettingsToolBox ..|> ToolChangeListener
+LayerPanel ..|> LayerChangeListener
+DrawingToolbar ..> CanvasPropertyChangeListener : anonymous listener
+
+note right of CanvasMouseAdapter
+  Registered by DrawingCanvas as its
+  mouse, mouse-motion and mouse-wheel listener.
+end note
+
+@enduml

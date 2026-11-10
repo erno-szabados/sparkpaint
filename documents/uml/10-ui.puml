@@ -1,0 +1,86 @@
+@startuml 10-ui
+title SparkPaint - User Interface
+
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "ui" {
+  class MainFrame extends JFrame
+  class FileMenu extends JMenu
+  class EditMenu extends JMenu
+  class ImageMenu extends JMenu
+  class FilterMenu extends JMenu
+  class HelpMenu extends JMenu
+  class DrawingToolbar extends JToolBar {
+    +DrawingToolbar(canvas, statusMessageHandler)
+  }
+  class DrawingSettingsToolBox extends Box
+  class ColorPalette extends JPanel {
+    +ColorPalette(canvas)
+  }
+  class PreviewPanel extends JPanel {
+    +PreviewPanel(canvas, scrollPane)
+  }
+  class PreviewDialog extends JDialog
+  class NewImageDialog extends JDialog
+  class PaletteGeneratorDialog extends JDialog
+  class StatusMessageHandler
+  interface ToolChangeListener {
+    +onToolChanged(tool)
+  }
+  interface CanvasChangeListener
+  interface UndoRedoChangeListener
+  interface LayerChangeListener {
+    +onLayersChanged()
+  }
+  interface ClipboardChangeListener
+}
+
+package "ui.layer" {
+  class LayerPanel extends JPanel {
+    +LayerPanel(canvas, statusMessageHandler)
+  }
+  class LayerPropertiesDialog extends JDialog
+}
+
+package "engine" {
+  class DrawingCanvas extends JPanel
+}
+
+MainFrame *-- FileMenu
+MainFrame *-- EditMenu
+MainFrame *-- ImageMenu
+MainFrame *-- FilterMenu
+MainFrame *-- HelpMenu
+MainFrame *-- DrawingToolbar
+MainFrame *-- DrawingSettingsToolBox
+MainFrame *-- LayerPanel
+MainFrame *-- ColorPalette
+MainFrame *-- PreviewPanel
+MainFrame --> "1" DrawingCanvas : canvas
+MainFrame ..> StatusMessageHandler
+
+FileMenu ..> NewImageDialog : opens
+ImageMenu ..> PreviewDialog : opens
+ImageMenu ..> PaletteGeneratorDialog : opens
+EditMenu ..> LayerPropertiesDialog : opens
+
+DrawingToolbar ..|> ToolChangeListener
+DrawingToolbar ..|> UndoRedoChangeListener
+DrawingSettingsToolBox ..|> ToolChangeListener
+EditMenu ..|> UndoRedoChangeListener
+EditMenu ..|> ClipboardChangeListener
+PreviewPanel ..|> CanvasChangeListener
+LayerPanel ..|> LayerChangeListener
+
+DrawingToolbar ..> DrawingCanvas
+DrawingSettingsToolBox ..> DrawingCanvas
+LayerPanel ..> DrawingCanvas
+ColorPalette ..> DrawingCanvas
+PreviewPanel ..> DrawingCanvas
+
+note bottom of MainFrame
+  Creates the menus and panels and wires them to the canvas.
+end note
+
+@enduml

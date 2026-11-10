@@ -1,0 +1,118 @@
+@startuml 02-layers
+title SparkPaint - Layer Subsystem
+
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "engine.layer" {
+  interface LayerManagement {
+    +addNewLayer()
+    +duplicateCurrentLayer() : boolean
+    +deleteCurrentLayer()
+    +deleteLayer(index)
+    +moveLayer(fromIndex, toIndex) : boolean
+    +mergeCurrentLayerDown() : boolean
+    +flattenLayers() : boolean
+    +initializeLayers(width, height)
+    +getLayers() : List<Layer>
+    +setLayers(layers)
+    +getCurrentLayerIndex() : int
+    +setCurrentLayerIndex(index)
+    +getCurrentLayerImage() : BufferedImage
+    +getLayerCount() : int
+    +isTransparencyVisualizationEnabled() : boolean
+    +setTransparencyVisualizationEnabled(enabled)
+    +addLayerChangeListener(listener)
+    +removeLayerChangeListener(listener)
+    +notifyLayersChanged()
+  }
+
+  interface LayerChangeListener {
+    +onLayersChanged()
+  }
+
+  class LayerManager {
+    -layers : List<Layer>
+    -transparencyBackground : BufferedImage
+    -layerChangeListeners : List<LayerChangeListener>
+    -canvas : DrawingCanvas
+    +LayerManager(canvas)
+    +getCanvas() : DrawingCanvas
+    +getTransparencyBackground() : BufferedImage
+  }
+
+  class Layer {
+    -image : BufferedImage
+    -visible : boolean
+    -name : String
+    -{static} layerCounter : int
+    +Layer(width, height)
+    +Layer(image)
+    +{static} resetCounter()
+    +getImage() : BufferedImage
+    +setImage(image)
+    +isVisible() : boolean
+    +setVisible(visible)
+    +getName() : String
+    +setName(name)
+    +adjustBrightness(value)
+    +adjustContrast(value)
+    +adjustSaturation(value)
+    +adjustOpacity(value)
+  }
+
+  class LayerState <<engine.history>> {
+    -layers : List<Layer>
+    -currentLayerIndex : int
+    +getLayers() : List<Layer>
+    +getCurrentLayerIndex() : int
+  }
+}
+
+package "engine" {
+  class DrawingCanvas
+}
+
+package "ui.layer" {
+  class LayerPanel {
+    -layerList : JList<Layer>
+    -listModel : DefaultListModel<Layer>
+    -canvas : DrawingCanvas
+    +onLayersChanged()
+  }
+  class LayerListCellRenderer
+  class LayerTransferable
+  class LayerPropertiesDialog {
+    +LayerPropertiesDialog(owner, canvas)
+  }
+}
+
+package "ui" {
+  class EditMenu
+}
+
+LayerManager ..|> LayerManagement
+LayerManager --> "1" DrawingCanvas : canvas
+LayerManager *-- "1..*" Layer : layers
+LayerManager o-- "*" LayerChangeListener
+LayerManager ..> LayerState : getLayers / setLayers
+LayerManager ..> Layer : creates on add / duplicate / flatten
+DrawingCanvas --> LayerManagement : delegates to
+
+LayerPanel ..|> LayerChangeListener
+LayerPanel --> DrawingCanvas
+LayerPanel ..> LayerListCellRenderer : renders cells
+LayerPanel ..> LayerTransferable : drag and drop
+LayerPanel --> "*" Layer : displays
+LayerListCellRenderer ..> Layer
+LayerTransferable ..> Layer : LAYER_DATA_FLAVOR
+EditMenu ..> LayerPropertiesDialog : opens
+LayerPropertiesDialog --> DrawingCanvas
+LayerPropertiesDialog ..> Layer : edits name / opacity / visibility
+
+note bottom of Layer
+  Layer names are generated from layerCounter.
+  Adjustment methods build a new image from the current one.
+end note
+
+@enduml
