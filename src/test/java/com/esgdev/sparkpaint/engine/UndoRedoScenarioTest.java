@@ -2,7 +2,6 @@ package com.esgdev.sparkpaint.engine;
 
 import com.esgdev.sparkpaint.engine.tools.ToolManager;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import javax.swing.JPanel;
@@ -14,7 +13,6 @@ import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 public class UndoRedoScenarioTest {
 
@@ -137,12 +135,14 @@ public class UndoRedoScenarioTest {
     }
 
     @Test
-    @Ignore("Known behavior: pencil press saves an undo step even when nothing is painted")
-    public void noOpPressCreatesUndoStep() {
+    public void singleClickPaintsDotAndUndoRemovesIt() {
         canvas.getActiveTool().mousePressed(ev(MouseEvent.MOUSE_PRESSED, 5, 5));
         canvas.getActiveTool().mouseReleased(ev(MouseEvent.MOUSE_RELEASED, 5, 5));
+        assertEquals(Color.RED.getRGB(), pixel(5, 5));
 
-        assertTrue("a click with no change should not add an undo step", !canvas.canUndo());
+        canvas.undo();
+
+        assertEquals(Color.WHITE.getRGB(), pixel(5, 5));
     }
 
     @Test

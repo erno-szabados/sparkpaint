@@ -316,7 +316,6 @@ public class LayerPanel extends JPanel implements LayerChangeListener {
 
     /**
      * Flattens all visible layers into a single layer.
-     * This operation cannot be undone.
      */
     private void flattenLayers() {
         if (canvas.getLayerCount() <= 1) {
@@ -343,7 +342,7 @@ public class LayerPanel extends JPanel implements LayerChangeListener {
 
         int result = JOptionPane.showConfirmDialog(
                 parentWindow,
-                "Flatten all layers into one? This operation cannot be undone.",
+                "Flatten all layers into one?",
                 "Confirm Flatten Layers",
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.WARNING_MESSAGE
