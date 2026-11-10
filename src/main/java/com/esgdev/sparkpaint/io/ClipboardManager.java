@@ -35,9 +35,15 @@ public class ClipboardManager implements ClipboardManagement {
                 || selectionRectangle.height <= 0) {
             return;
         }
+        boolean floating = selection.isFloating();
         copySelection();
-        deleteSelectionAreaFromCurrentLayer();
-        canvas.getSelection().clearOutline();
+        if (floating) {
+            // The paste was never drawn on a layer, so there is nothing to clear
+            canvas.discardFloatingPaste(selection);
+        } else {
+            deleteSelectionAreaFromCurrentLayer();
+            canvas.getSelection().clearOutline();
+        }
         canvas.repaint();
         notifyClipboardStateChanged();
     }
@@ -91,8 +97,12 @@ public class ClipboardManager implements ClipboardManagement {
 
             Selection selection = new Selection(selectionRectangle, pastedImage);
             selection.setActive(true);
+            selection.setFloating(true);
             selection.setPath(path);
             canvas.setSelection(selection);
+            // Alternative (C): save the undo step at commit instead. Layers don't change while floating,
+            // which would avoid creating an entry for a discarded paste. Undo while floating would need changes too.
+            canvas.linkLatestUndoStepToPaste(selection);
 
             canvas.repaint();
             notifyClipboardStateChanged();

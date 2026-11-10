@@ -16,6 +16,7 @@ public class Selection {
     private boolean transparent;
     private boolean active;
     private boolean modified;
+    private boolean floating;
 
     /**
      * Creates a new Selection object with the specified rectangle and content.
@@ -103,6 +104,17 @@ public class Selection {
 
     public void clearOutline() {
         path = null;
+    }
+
+    /**
+     * A floating selection is pasted content that is not yet part of any layer.
+     */
+    public boolean isFloating() {
+        return floating;
+    }
+
+    public void setFloating(boolean floating) {
+        this.floating = floating;
     }
 
 
