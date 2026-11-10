@@ -94,11 +94,15 @@ public abstract class AbstractSelectionTool implements DrawingTool {
         BufferedImage content = selection.getContent();
         if (content == null) return;
 
-        canvas.saveToUndoStack();
+        if (!selection.isFloating()) {
+            // A floating paste already saved its undo step when it was pasted
+            canvas.saveToUndoStack();
+        }
         Graphics2D g2d = canvas.getCurrentLayerImage().createGraphics();
         g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER));
         drawSelectionToCanvas(g2d, selection, content);
         g2d.dispose();
+        selection.setFloating(false);
         canvas.repaint();
     }
 
