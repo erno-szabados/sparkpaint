@@ -439,28 +439,49 @@ public class DrawingCanvas extends JPanel implements
 
     /// LayerManagement interface
 
+    /// Layer-changing operations save an undo snapshot only when they will actually run.
+
     @Override
     public void addNewLayer() {
+        saveToUndoStack();
         layerManager.addNewLayer();
     }
 
     @Override
     public boolean duplicateCurrentLayer() {
+        int index = layerManager.getCurrentLayerIndex();
+        if (index < 0 || index >= layerManager.getLayerCount()) {
+            return false;
+        }
+        saveToUndoStack();
         return layerManager.duplicateCurrentLayer();
     }
 
     @Override
     public void deleteCurrentLayer() {
+        if (layerManager.getLayerCount() <= 1) {
+            return;
+        }
+        saveToUndoStack();
         layerManager.deleteCurrentLayer();
     }
 
     @Override
     public void deleteLayer(int index) {
+        if (index < 0 || index >= layerManager.getLayerCount() || layerManager.getLayerCount() == 1) {
+            return;
+        }
+        saveToUndoStack();
         layerManager.deleteLayer(index);
     }
 
     @Override
     public boolean moveLayer(int fromIndex, int toIndex) {
+        int count = layerManager.getLayerCount();
+        if (fromIndex < 0 || fromIndex >= count || toIndex < 0 || toIndex >= count || fromIndex == toIndex) {
+            return false;
+        }
+        saveToUndoStack();
         return layerManager.moveLayer(fromIndex, toIndex);
     }
 
@@ -496,11 +517,19 @@ public class DrawingCanvas extends JPanel implements
 
     @Override
     public boolean mergeCurrentLayerDown() {
+        if (layerManager.getCurrentLayerIndex() <= 0) {
+            return false;
+        }
+        saveToUndoStack();
         return layerManager.mergeCurrentLayerDown();
     }
 
     @Override
     public boolean flattenLayers() {
+        if (layerManager.getLayerCount() <= 1) {
+            return false;
+        }
+        saveToUndoStack();
         return layerManager.flattenLayers();
     }
 
