@@ -768,6 +768,7 @@ public class DrawingCanvas extends JPanel implements
         }
         layerManager.setLayers(state.getLayers());
         layerManager.setCurrentLayerIndex(state.getCurrentLayerIndex());
+        applyRestoredSize();
         applyHistorySelection(before, state.getFloatingSelection());
         return state;
     }
@@ -782,8 +783,18 @@ public class DrawingCanvas extends JPanel implements
         }
         layerManager.setLayers(state.getLayers());
         layerManager.setCurrentLayerIndex(state.getCurrentLayerIndex());
+        applyRestoredSize();
         applyHistorySelection(before, state.getFloatingSelection());
         return state;
+    }
+
+    /**
+     * Undo and redo can change the image dimensions (e.g. undoing a scale). The scroll pane
+     * only relayouts on revalidate, so the preferred size must follow the restored layers.
+     */
+    private void applyRestoredSize() {
+        updateCanvasAfterZoom();
+        revalidate();
     }
 
     private Selection floatingSelectionOrNull() {
