@@ -1,6 +1,7 @@
 package com.esgdev.sparkpaint.engine.history;
 
 import com.esgdev.sparkpaint.engine.layer.Layer;
+import com.esgdev.sparkpaint.engine.selection.Selection;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -19,8 +20,8 @@ import java.util.zip.Inflater;
  * It compresses and decompresses layer data to save memory and improve performance.
  */
 public class HistoryManager implements HistoryManagement {
-    private final Deque<CompressedLayerState> undoStack = new ArrayDeque<>();
-    private final Deque<CompressedLayerState> redoStack = new ArrayDeque<>();
+    private final Deque<HistoryEntry> undoStack = new ArrayDeque<>();
+    private final Deque<HistoryEntry> redoStack = new ArrayDeque<>();
     private final List<UndoRedoChangeListener> undoRedoChangeListeners;
     private static final int MAX_HISTORY_SIZE = 16;
     private static final Deflater deflater = new Deflater(Deflater.BEST_SPEED);
@@ -45,11 +46,22 @@ public class HistoryManager implements HistoryManagement {
      * @param currentLayerIndex The index of the current layer.
      */
     public void saveToUndoStack(List<Layer> layers, int currentLayerIndex) {
+        saveToUndoStack(layers, currentLayerIndex, null);
+    }
+
+    /**
+     * Save the current state of layers and the floating selection to the undo stack.
+     *
+     * @param layers            The current layers to be saved.
+     * @param currentLayerIndex The index of the current layer.
+     * @param floatingSelection The floating paste active at this point, or null.
+     */
+    public void saveToUndoStack(List<Layer> layers, int currentLayerIndex, Selection floatingSelection) {
         if (layers != null && !layers.isEmpty()) {
-            CompressedLayerState state = compressLayers(layers, currentLayerIndex);
+            HistoryEntry entry = new HistoryEntry(compressLayers(layers, currentLayerIndex), floatingSelection);
 
             redoStack.clear();
-            undoStack.push(state);
+            undoStack.push(entry);
             if (undoStack.size() > MAX_HISTORY_SIZE) {
                 undoStack.removeLast(); // Keep the stack size within the limit
             }
@@ -65,17 +77,27 @@ public class HistoryManager implements HistoryManagement {
      * @return The previous state of layers before the last action.
      */
     public LayerState undo(List<Layer> currentLayers, int currentLayerIndex) {
-        if (!undoStack.isEmpty()) {
-            // Save current state to redo stack
-            CompressedLayerState currentState = compressLayers(currentLayers, currentLayerIndex);
-            redoStack.push(currentState);
+        return undo(currentLayers, currentLayerIndex, null);
+    }
 
-            // Pop previous state from undo stack and decompress it
-            CompressedLayerState previousState = undoStack.pop();
+    /**
+     * Undo the last action and return the previous state of layers and floating selection.
+     * The current floating selection is kept in the redo stack so that a redo restores it.
+     *
+     * @param currentLayers     The current layers to be modified.
+     * @param currentLayerIndex The index of the current layer.
+     * @param floatingSelection The floating paste active now, or null.
+     * @return The previous state of layers before the last action.
+     */
+    public LayerState undo(List<Layer> currentLayers, int currentLayerIndex, Selection floatingSelection) {
+        if (!undoStack.isEmpty()) {
+            redoStack.push(new HistoryEntry(compressLayers(currentLayers, currentLayerIndex), floatingSelection));
+
+            HistoryEntry previous = undoStack.pop();
             notifyUndoRedoStateChanged();
-            return decompressLayers(previousState);
+            return toLayerState(previous);
         }
-        return new LayerState(new ArrayList<>(currentLayers), currentLayerIndex);
+        return new LayerState(new ArrayList<>(currentLayers), currentLayerIndex, floatingSelection);
     }
 
     /**
@@ -86,17 +108,71 @@ public class HistoryManager implements HistoryManagement {
      * @return The next state of layers after redoing the last undone action.
      */
     public LayerState redo(List<Layer> currentLayers, int currentLayerIndex) {
-        if (!redoStack.isEmpty()) {
-            // Save current state to undo stack
-            CompressedLayerState currentState = compressLayers(currentLayers, currentLayerIndex);
-            undoStack.push(currentState);
+        return redo(currentLayers, currentLayerIndex, null);
+    }
 
-            // Pop next state from redo stack and decompress it
-            CompressedLayerState nextState = redoStack.pop();
+    /**
+     * Redo the last undone action and return the next state of layers and floating selection.
+     *
+     * @param currentLayers     The current layers to be modified.
+     * @param currentLayerIndex The index of the current layer.
+     * @param floatingSelection The floating paste active now, or null.
+     * @return The next state of layers after redoing the last undone action.
+     */
+    public LayerState redo(List<Layer> currentLayers, int currentLayerIndex, Selection floatingSelection) {
+        if (!redoStack.isEmpty()) {
+            undoStack.push(new HistoryEntry(compressLayers(currentLayers, currentLayerIndex), floatingSelection));
+
+            HistoryEntry next = redoStack.pop();
             notifyUndoRedoStateChanged();
-            return decompressLayers(nextState);
+            return toLayerState(next);
         }
-        return new LayerState(new ArrayList<>(currentLayers), currentLayerIndex);
+        return new LayerState(new ArrayList<>(currentLayers), currentLayerIndex, floatingSelection);
+    }
+
+    /**
+     * Links the newest undo entry to the paste that created it.
+     *
+     * @param pasted The floating selection created by that paste.
+     */
+    public void linkLatestUndoEntryToPaste(Selection pasted) {
+        if (!undoStack.isEmpty()) {
+            undoStack.peek().pastedSelection = pasted;
+        }
+    }
+
+    /**
+     * Removes the newest undo entry if it was created by the given paste. This keeps a discarded
+     * floating paste from leaving a no-op undo step behind. Nothing is removed if other edits
+     * were recorded after the paste.
+     *
+     * @param pasted The floating selection being discarded.
+     */
+    public void discardPasteUndoEntry(Selection pasted) {
+        if (pasted != null && !undoStack.isEmpty() && undoStack.peek().pastedSelection == pasted) {
+            undoStack.pop();
+            notifyUndoRedoStateChanged();
+        }
+    }
+
+    private static LayerState toLayerState(HistoryEntry entry) {
+        LayerState decompressed = decompressLayers(entry.layers);
+        return new LayerState(decompressed.getLayers(), decompressed.getCurrentLayerIndex(), entry.floatingSelection);
+    }
+
+    /**
+     * A snapshot of the layers plus the floating paste that was active with them.
+     * The floating selection is held by reference, so it must not be mutated while stored here.
+     */
+    private static final class HistoryEntry {
+        private final CompressedLayerState layers;
+        private final Selection floatingSelection;
+        private Selection pastedSelection;
+
+        private HistoryEntry(CompressedLayerState layers, Selection floatingSelection) {
+            this.layers = layers;
+            this.floatingSelection = floatingSelection;
+        }
     }
 
     /**

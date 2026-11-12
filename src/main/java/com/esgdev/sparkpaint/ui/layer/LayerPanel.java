@@ -13,6 +13,8 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.datatransfer.Transferable;
 import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.function.Consumer;
@@ -39,6 +41,9 @@ public class LayerPanel extends JPanel implements LayerChangeListener {
 
         layerList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         layerList.setFixedCellHeight(36); // Set a reasonable cell height
+        // Shadow the list's built-in Ctrl+A (selectAll) so the key reaches the Edit menu's Select All accelerator
+        layerList.getInputMap(JComponent.WHEN_FOCUSED)
+                .put(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK), "none");
 
         layerList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {

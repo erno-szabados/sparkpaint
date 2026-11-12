@@ -616,11 +616,28 @@ public class DrawingCanvas extends JPanel implements
     public void deleteCurrentSelection() {
         Selection selection = selectionManager.getSelection();
         if (selection != null) {
-            if (!selection.isActive()) {
+            if (selection.isFloating()) {
+                ((HistoryManager) historyManager).discardPasteUndoEntry(selection);
+            } else if (!selection.isActive()) {
                 selectionManager.deleteSelectionAreaFromCurrentLayer();
             }
             selectionManager.clearSelection();
         }
+    }
+
+    /**
+     * Links the newest undo step to the paste that created it, so discarding the paste can remove it.
+     */
+    public void linkLatestUndoStepToPaste(Selection pasted) {
+        ((HistoryManager) historyManager).linkLatestUndoEntryToPaste(pasted);
+    }
+
+    /**
+     * Discards a floating paste that was never committed to a layer, including its undo step.
+     */
+    public void discardFloatingPaste(Selection pasted) {
+        ((HistoryManager) historyManager).discardPasteUndoEntry(pasted);
+        clearSelection();
     }
 
     @Override
@@ -743,38 +760,55 @@ public class DrawingCanvas extends JPanel implements
 
     @Override
     public LayerState undo() {
+        Selection before = floatingSelectionOrNull();
         boolean wasUndoable = historyManager.canUndo();
-        LayerState state = ((HistoryManager) historyManager).undo(layerManager.getLayers(), layerManager.getCurrentLayerIndex());
+        LayerState state = ((HistoryManager) historyManager).undo(layerManager.getLayers(), layerManager.getCurrentLayerIndex(), before);
         if (wasUndoable) {
             setDirty(true);
         }
         layerManager.setLayers(state.getLayers());
         layerManager.setCurrentLayerIndex(state.getCurrentLayerIndex());
-
-        Selection selection = selectionManager.getSelection();
-        if (selection != null) {
-            selection.clearOutline();
-        }
-        repaint();
+        applyHistorySelection(before, state.getFloatingSelection());
         return state;
     }
 
     @Override
     public LayerState redo() {
+        Selection before = floatingSelectionOrNull();
         boolean wasRedoable = historyManager.canRedo();
-        LayerState state = ((HistoryManager) historyManager).redo(layerManager.getLayers(), layerManager.getCurrentLayerIndex());
+        LayerState state = ((HistoryManager) historyManager).redo(layerManager.getLayers(), layerManager.getCurrentLayerIndex(), before);
         if (wasRedoable) {
             setDirty(true);
         }
         layerManager.setLayers(state.getLayers());
         layerManager.setCurrentLayerIndex(state.getCurrentLayerIndex());
+        applyHistorySelection(before, state.getFloatingSelection());
+        return state;
+    }
 
+    private Selection floatingSelectionOrNull() {
         Selection selection = selectionManager.getSelection();
-        if (selection != null) {
-            selection.clearOutline();
+        return selection != null && selection.isFloating() ? selection : null;
+    }
+
+    /**
+     * Sets the selection after an undo or redo step. A floating paste that was stored in the
+     * history is restored as is. Otherwise the floating paste being left behind is dropped,
+     * and any other selection loses its outline as before.
+     */
+    private void applyHistorySelection(Selection before, Selection restored) {
+        if (restored != null) {
+            selectionManager.setSelection(restored);
+        } else if (before != null) {
+            // The floating paste now lives in the redo/undo stack, so drop it rather than clear its outline
+            selectionManager.setSelection(null);
+        } else {
+            Selection selection = selectionManager.getSelection();
+            if (selection != null) {
+                selection.clearOutline();
+            }
         }
         repaint();
-        return state;
     }
 
     @Override
