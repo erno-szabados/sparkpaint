@@ -1,13 +1,16 @@
 package com.esgdev.sparkpaint.engine;
 
+import com.esgdev.sparkpaint.engine.layer.Layer;
 import com.esgdev.sparkpaint.engine.tools.ToolManager;
 import org.junit.Before;
 import org.junit.Test;
 
 import javax.swing.JPanel;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -208,5 +211,16 @@ public class UndoRedoScenarioTest {
         canvas.deleteCurrentLayer();
 
         assertFalse(canvas.canUndo());
+    }
+
+    @Test
+    public void undoAfterScaleDownRestoresCanvasSize() {
+        canvas.saveToUndoStack();
+        canvas.setLayers(Collections.singletonList(new Layer(20, 20)));
+        canvas.setPreferredSize(new Dimension(20, 20));
+
+        canvas.undo();
+
+        assertEquals(new Dimension(40, 40), canvas.getPreferredSize());
     }
 }
