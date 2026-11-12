@@ -11,6 +11,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.io.IOException;
 
 /**
@@ -44,14 +45,26 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener, Clipboard
         cutItem = new JMenuItem("Cut");
         cutItem.setMnemonic('T'); // Shortcut for accessibility (Alt+T)
         // Update action listeners to use selectionManager and clipboardManager
-        cutItem.addActionListener(e -> canvas.cutSelection());
+        cutItem.addActionListener(e -> {
+            try {
+                canvas.cutSelection();
+            } catch (IOException ex) {
+                showClipboardError(mainFrame, "Error cutting selection: ", ex);
+            }
+        });
         cutItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_X, InputEvent.CTRL_MASK)); // Ctrl+X
         add(cutItem);
 
         // Create and add Copy item
         copyItem = new JMenuItem("Copy");
         copyItem.setMnemonic('C'); // Shortcut for accessibility (Alt+C)
-        copyItem.addActionListener(e -> canvas.copySelection());
+        copyItem.addActionListener(e -> {
+            try {
+                canvas.copySelection();
+            } catch (IOException ex) {
+                showClipboardError(mainFrame, "Error copying selection: ", ex);
+            }
+        });
         copyItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_MASK)); // Ctrl+C
         add(copyItem);
 
@@ -61,12 +74,8 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener, Clipboard
         pasteItem.addActionListener(e -> {
             try {
                 canvas.pasteSelection();
-            } catch (Exception ex) {
-                mainFrame.setStatusMessage("Error pasting clipboard content!");
-                JOptionPane.showMessageDialog(mainFrame,
-                        "Error pasting clipboard content!: " + ex.getMessage(),
-                        "Clipboard Error",
-                        JOptionPane.ERROR_MESSAGE);
+            } catch (IOException | UnsupportedFlavorException ex) {
+                showClipboardError(mainFrame, "Error pasting clipboard content!: ", ex);
             }
         });
 
@@ -247,6 +256,21 @@ public class EditMenu extends JMenu implements UndoRedoChangeListener, Clipboard
             }
         });
         return loadPaletteItem;
+    }
+
+    /**
+     * Shows a clipboard error to the user and updates the status bar.
+     *
+     * @param mainFrame The main frame of the application.
+     * @param prefix    The message prefix describing the failed action.
+     * @param ex        The exception that caused the failure.
+     */
+    private static void showClipboardError(MainFrame mainFrame, String prefix, Exception ex) {
+        mainFrame.setStatusMessage(prefix.trim());
+        JOptionPane.showMessageDialog(mainFrame,
+                prefix + ex.getMessage(),
+                "Clipboard Error",
+                JOptionPane.ERROR_MESSAGE);
     }
 
     private void handleUndo(ActionEvent e) {

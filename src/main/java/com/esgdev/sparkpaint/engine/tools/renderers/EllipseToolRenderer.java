@@ -124,41 +124,23 @@ public class EllipseToolRenderer extends BaseRenderer {
     private void applyTransparency(BufferedImage image, Rectangle bounds,
                                    boolean transparentFill, boolean transparentOutline,
                                    float lineThickness, boolean isFilled, Shape clip) {
-        // Check for null parameters
-        if (image == null || bounds == null) {
-            System.err.println("Null parameter in applyTransparency");
-            return;
+        // Create mask for transparency
+        BufferedImage maskImage = createMask(image.getWidth(), image.getHeight(), clip);
+        Graphics2D maskG2d = maskImage.createGraphics();
+        configureGraphics(maskG2d, Color.WHITE, lineThickness);
+
+        // Draw mask for transparent parts
+        if (transparentFill && isFilled) {
+            maskG2d.fillOval(bounds.x, bounds.y, bounds.width, bounds.height);
         }
 
-        try {
-            // Create mask for transparency
-            BufferedImage maskImage = createMask(image.getWidth(), image.getHeight(), clip);
-            Graphics2D maskG2d = maskImage.createGraphics();
-            configureGraphics(maskG2d, Color.WHITE, lineThickness);
-
-            // Draw mask for transparent parts
-            if (transparentFill && isFilled) {
-                maskG2d.fillOval(bounds.x, bounds.y, bounds.width, bounds.height);
-            }
-
-            if (transparentOutline) {
-                maskG2d.drawOval(bounds.x, bounds.y, bounds.width, bounds.height);
-            }
-
-            maskG2d.dispose();
-
-            // Add padding around bounds to account for stroke width
-            int padding = (int) Math.ceil(lineThickness);
-            int minX = Math.max(0, bounds.x - padding);
-            int minY = Math.max(0, bounds.y - padding);
-            int maxX = Math.min(image.getWidth(), bounds.x + bounds.width + padding);
-            int maxY = Math.min(image.getHeight(), bounds.y + bounds.height + padding);
-
-            // Apply transparency mask using base class method
-            applyTransparencyMask(image, maskImage, clip);
-        } catch (Exception e) {
-            System.err.println("Exception in applyTransparency: " + e.getMessage());
-            e.printStackTrace();
+        if (transparentOutline) {
+            maskG2d.drawOval(bounds.x, bounds.y, bounds.width, bounds.height);
         }
+
+        maskG2d.dispose();
+
+        // Apply transparency mask using base class method
+        applyTransparencyMask(image, maskImage, clip);
     }
 }

@@ -123,13 +123,8 @@ public class FillPreview {
         // Generate the mask if needed
         if (smartGradientMask == null || lastMaskClickPoint == null ||
                 !lastMaskClickPoint.equals(ctx.adjustedClickPoint)) {
-
-            try {
-                generateMaskForGradient(ctx, epsilon);
-                lastMaskClickPoint = new Point(ctx.adjustedClickPoint);
-            } catch (Exception ex) {
-                System.err.println("Error in preview: " + ex.getMessage());
-            }
+            generateMaskForGradient(ctx, epsilon);
+            lastMaskClickPoint = new Point(ctx.adjustedClickPoint);
         }
 
         // Draw gradient direction indicators
@@ -158,13 +153,8 @@ public class FillPreview {
         // Generate the mask if needed
         if (smartGradientMask == null || lastMaskClickPoint == null ||
                 !lastMaskClickPoint.equals(ctx.adjustedClickPoint)) {
-
-            try {
-                generateMaskForGradient(ctx, epsilon);
-                lastMaskClickPoint = new Point(ctx.adjustedClickPoint);
-            } catch (Exception ex) {
-                System.err.println("Error in preview: " + ex.getMessage());
-            }
+            generateMaskForGradient(ctx, epsilon);
+            lastMaskClickPoint = new Point(ctx.adjustedClickPoint);
         }
 
         // Draw gradient direction indicators

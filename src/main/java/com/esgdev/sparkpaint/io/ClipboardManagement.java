@@ -11,13 +11,17 @@ public interface ClipboardManagement {
 
     /**
      * Cuts the current selection and places it on the clipboard.
+     *
+     * @throws IOException if the selection could not be copied to the clipboard; the selection is left unchanged
      */
-    void cutSelection();
+    void cutSelection() throws IOException;
 
     /**
      * Copies the current selection to the clipboard.
+     *
+     * @throws IOException if there is an error accessing the clipboard
      */
-    void copySelection();
+    void copySelection() throws IOException;
 
     /**
      * Pastes content from the clipboard to the canvas.

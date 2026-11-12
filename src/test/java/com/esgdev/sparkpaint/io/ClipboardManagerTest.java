@@ -15,6 +15,7 @@ package com.esgdev.sparkpaint.io;
             import java.awt.datatransfer.Clipboard;
             import java.awt.datatransfer.DataFlavor;
             import java.awt.image.BufferedImage;
+            import java.io.IOException;
             import java.util.ArrayList;
             import java.util.List;
 
@@ -53,7 +54,7 @@ package com.esgdev.sparkpaint.io;
                 }
 
                 @Test
-                public void testCutSelection() {
+                public void testCutSelection() throws Exception {
                     // Setup
                     when(mockSelection.hasOutline()).thenReturn(true);
 
@@ -70,7 +71,7 @@ package com.esgdev.sparkpaint.io;
                 }
 
                 @Test
-                public void testCutSelectionWithNoSelection() {
+                public void testCutSelectionWithNoSelection() throws Exception {
                     // Setup
                     when(mockCanvas.getSelection()).thenReturn(null);
 
@@ -82,7 +83,7 @@ package com.esgdev.sparkpaint.io;
                 }
 
                 @Test
-                public void testCutSelectionWithInvalidBounds() {
+                public void testCutSelectionWithInvalidBounds() throws Exception {
                     // Setup
                     when(mockSelection.getBounds()).thenReturn(new Rectangle(0, 0, 0, 0));
 
@@ -94,7 +95,7 @@ package com.esgdev.sparkpaint.io;
                 }
 
                 @Test
-                public void testCopySelection() {
+                public void testCopySelection() throws Exception {
                     // Setup
                     when(mockSelection.hasOutline()).thenReturn(true);
 
@@ -110,7 +111,26 @@ package com.esgdev.sparkpaint.io;
                 }
 
                 @Test
-                public void testCopySelectionWithNoSelection() {
+                public void testCutSelectionKeepsSelectionWhenCopyFails() throws Exception {
+                    try (MockedStatic<ImageSelection> imageSelectionMock = mockStatic(ImageSelection.class)) {
+                        imageSelectionMock.when(() -> ImageSelection.copyImage(selectionImage))
+                                .thenThrow(new IOException("clipboard unavailable"));
+
+                        try {
+                            clipboardManager.cutSelection();
+                            fail("Expected IOException when the clipboard write fails");
+                        } catch (IOException expected) {
+                            // Expected
+                        }
+
+                        // The pixels must not be deleted when nothing reached the clipboard
+                        verify(mockCanvas, never()).deleteSelectionAreaFromCurrentLayer();
+                        verify(mockSelection, never()).clearOutline();
+                    }
+                }
+
+                @Test
+                public void testCopySelectionWithNoSelection() throws Exception {
                     // Setup
                     when(mockCanvas.getSelection()).thenReturn(null);
 

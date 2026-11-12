@@ -299,13 +299,6 @@ public class LineTool implements DrawingTool {
                 ? selection.getContent()
                 : canvas.getCurrentLayerImage();
 
-        // Early exit if we can't get a valid target image
-        if (targetImage == null) {
-            System.err.println("Target image is null in finalizeLine");
-            resetPoints();
-            return;
-        }
-
         Graphics2D g2d;
         List<Point> adjustedPoints = new ArrayList<>(polylinePoints);
 
@@ -317,12 +310,6 @@ public class LineTool implements DrawingTool {
 
         if (selection != null && selection.hasOutline()) {
             g2d = canvas.getDrawingGraphics();
-            if (g2d == null) {
-                System.err.println("Graphics context is null in finalizeLine");
-                resetPoints();
-                return;
-            }
-
             selection.setModified(true);
 
             // Adjust points relative to selection
@@ -333,11 +320,6 @@ public class LineTool implements DrawingTool {
             }
         } else {
             g2d = (Graphics2D) targetImage.getGraphics();
-            if (g2d == null) {
-                System.err.println("Graphics context is null in finalizeLine");
-                resetPoints();
-                return;
-            }
         }
 
         if (mode == LineMode.FILLED_CURVE) {

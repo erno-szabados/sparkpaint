@@ -131,65 +131,53 @@ public class RectangleToolRenderer extends BaseRenderer {
     private void applyTransparency(BufferedImage image, Rectangle bounds,
                                    boolean transparentFill, boolean transparentOutline,
                                    float lineThickness, boolean isFilled, Shape clip) {
-        // Check for null parameters
-        if (image == null || bounds == null) {
-            System.err.println("Null parameter in applyTransparency");
-            return;
+        BufferedImage maskImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D maskG2d = maskImage.createGraphics();
+
+        // Configure graphics
+        maskG2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+
+        // Apply the same clip as the original graphics
+        if (clip != null) {
+            maskG2d.setClip(clip);
         }
 
-        try {
-            // Create mask for transparency
-            BufferedImage maskImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
-            Graphics2D maskG2d = maskImage.createGraphics();
+        // Draw mask for transparent parts
+        if (transparentFill && isFilled) {
+            maskG2d.setColor(Color.WHITE);
+            maskG2d.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
+        }
 
-            // Configure graphics
-            maskG2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                    useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+        if (transparentOutline) {
+            maskG2d.setColor(Color.WHITE);
+            maskG2d.setStroke(new BasicStroke(lineThickness));
+            maskG2d.drawRect(bounds.x, bounds.y, bounds.width, bounds.height);
+        }
 
-            // Apply the same clip as the original graphics
-            if (clip != null) {
-                maskG2d.setClip(clip);
-            }
+        maskG2d.dispose();
 
-            // Draw mask for transparent parts
-            if (transparentFill && isFilled) {
-                maskG2d.setColor(Color.WHITE);
-                maskG2d.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
-            }
+        // Add padding around bounds to account for stroke width
+        int padding = (int) Math.ceil(lineThickness);
+        int minX = Math.max(0, bounds.x - padding);
+        int minY = Math.max(0, bounds.y - padding);
+        int maxX = Math.min(image.getWidth(), bounds.x + bounds.width + padding);
+        int maxY = Math.min(image.getHeight(), bounds.y + bounds.height + padding);
 
-            if (transparentOutline) {
-                maskG2d.setColor(Color.WHITE);
-                maskG2d.setStroke(new BasicStroke(lineThickness));
-                maskG2d.drawRect(bounds.x, bounds.y, bounds.width, bounds.height);
-            }
-
-            maskG2d.dispose();
-
-            // Add padding around bounds to account for stroke width
-            int padding = (int) Math.ceil(lineThickness);
-            int minX = Math.max(0, bounds.x - padding);
-            int minY = Math.max(0, bounds.y - padding);
-            int maxX = Math.min(image.getWidth(), bounds.x + bounds.width + padding);
-            int maxY = Math.min(image.getHeight(), bounds.y + bounds.height + padding);
-
-            // Apply transparency mask
-            for (int y = minY; y < maxY; y++) {
-                for (int x = minX; x < maxX; x++) {
-                    // Check if this pixel is within clip region
-                    if (clip == null || clip.contains(x, y)) {
-                        int maskRGB = maskImage.getRGB(x, y);
-                        // Only process pixels where the mask is non-zero
-                        if ((maskRGB & 0xFF000000) != 0) {
-                            // Set full transparency (alpha = 0)
-                            int newRGB = image.getRGB(x, y) & 0x00FFFFFF;
-                            image.setRGB(x, y, newRGB);
-                        }
+        // Apply transparency mask
+        for (int y = minY; y < maxY; y++) {
+            for (int x = minX; x < maxX; x++) {
+                // Check if this pixel is within clip region
+                if (clip == null || clip.contains(x, y)) {
+                    int maskRGB = maskImage.getRGB(x, y);
+                    // Only process pixels where the mask is non-zero
+                    if ((maskRGB & 0xFF000000) != 0) {
+                        // Set full transparency (alpha = 0)
+                        int newRGB = image.getRGB(x, y) & 0x00FFFFFF;
+                        image.setRGB(x, y, newRGB);
                     }
                 }
             }
-        } catch (Exception e) {
-            System.err.println("Exception in applyTransparency: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 }

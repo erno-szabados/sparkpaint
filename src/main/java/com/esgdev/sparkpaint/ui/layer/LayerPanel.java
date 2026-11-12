@@ -12,11 +12,13 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.IOException;
 import java.util.function.Consumer;
 
 public class LayerPanel extends JPanel implements LayerChangeListener {
@@ -421,7 +423,10 @@ public class LayerPanel extends JPanel implements LayerChangeListener {
                     try {
                         canvas.pasteSelection();
                         return true;
-                    } catch (Exception e) {
+                    } catch (IOException | UnsupportedFlavorException e) {
+                        JOptionPane.showMessageDialog(LayerPanel.this,
+                                "Error pasting: " + e.getMessage(),
+                                "Paste Error", JOptionPane.ERROR_MESSAGE);
                         return false;
                     }
                 }
@@ -448,7 +453,10 @@ public class LayerPanel extends JPanel implements LayerChangeListener {
                         statusMessageHandler.setStatusMessage("Layer reordered");
                     }
                     return success;
-                } catch (Exception e) {
+                } catch (IOException | UnsupportedFlavorException e) {
+                    JOptionPane.showMessageDialog(LayerPanel.this,
+                            "Error reordering layer: " + e.getMessage(),
+                            "Layer Error", JOptionPane.ERROR_MESSAGE);
                     return false;
                 }
             }

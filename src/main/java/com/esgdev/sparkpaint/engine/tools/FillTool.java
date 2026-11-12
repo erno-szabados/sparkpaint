@@ -268,55 +268,45 @@ public class FillTool implements DrawingTool {
 
             // Apply the gradient using the renderer
             if (fillMode == FillMode.SMART_LINEAR) {
-                try {
-                    // Check if click point is within bounds
-                    int width = targetImage.getWidth();
-                    int height = targetImage.getHeight();
+                // Check if click point is within bounds
+                int width = targetImage.getWidth();
+                int height = targetImage.getHeight();
 
-                    // Ensure all points are within bounds
-                    adjustedClickPoint.x = Math.max(0, Math.min(width - 1, adjustedClickPoint.x));
-                    adjustedClickPoint.y = Math.max(0, Math.min(height - 1, adjustedClickPoint.y));
-                    adjustedStart.x = Math.max(0, Math.min(width - 1, adjustedStart.x));
-                    adjustedStart.y = Math.max(0, Math.min(height - 1, adjustedStart.y));
-                    adjustedEnd.x = Math.max(0, Math.min(width - 1, adjustedEnd.x));
-                    adjustedEnd.y = Math.max(0, Math.min(height - 1, adjustedEnd.y));
+                // Ensure all points are within bounds
+                adjustedClickPoint.x = Math.max(0, Math.min(width - 1, adjustedClickPoint.x));
+                adjustedClickPoint.y = Math.max(0, Math.min(height - 1, adjustedClickPoint.y));
+                adjustedStart.x = Math.max(0, Math.min(width - 1, adjustedStart.x));
+                adjustedStart.y = Math.max(0, Math.min(height - 1, adjustedStart.y));
+                adjustedEnd.x = Math.max(0, Math.min(width - 1, adjustedEnd.x));
+                adjustedEnd.y = Math.max(0, Math.min(height - 1, adjustedEnd.y));
 
-                    // Get target color at initial click point
-                    int targetRGB = targetImage.getRGB(adjustedClickPoint.x, adjustedClickPoint.y);
-                    Color targetColor = new Color(targetRGB, true);
+                // Get target color at initial click point
+                int targetRGB = targetImage.getRGB(adjustedClickPoint.x, adjustedClickPoint.y);
+                Color targetColor = new Color(targetRGB, true);
 
-                    gradientRenderer.applySmartLinear(targetImage, adjustedClickPoint.x, adjustedClickPoint.y,
-                            targetColor, adjustedStart, adjustedEnd, epsilon, clipPath);
-                } catch (Exception ex) {
-                    // Log error and recover gracefully
-                    System.err.println("Error applying smart gradient fill: " + ex.getMessage());
-                }
+                gradientRenderer.applySmartLinear(targetImage, adjustedClickPoint.x, adjustedClickPoint.y,
+                        targetColor, adjustedStart, adjustedEnd, epsilon, clipPath);
             } else if (fillMode == FillMode.CIRCULAR_GRADIENT) {
                 gradientRenderer.applyCircularGradient(targetImage, adjustedStart, adjustedEnd, clipPath);
             } else if (fillMode == FillMode.SMART_CIRCULAR) {
-                try {
-                    // Check if click point is within bounds
-                    int width = targetImage.getWidth();
-                    int height = targetImage.getHeight();
+                // Check if click point is within bounds
+                int width = targetImage.getWidth();
+                int height = targetImage.getHeight();
 
-                    // Ensure all points are within bounds
-                    adjustedClickPoint.x = Math.max(0, Math.min(width - 1, adjustedClickPoint.x));
-                    adjustedClickPoint.y = Math.max(0, Math.min(height - 1, adjustedClickPoint.y));
-                    adjustedStart.x = Math.max(0, Math.min(width - 1, adjustedStart.x));
-                    adjustedStart.y = Math.max(0, Math.min(height - 1, adjustedStart.y));
-                    adjustedEnd.x = Math.max(0, Math.min(width - 1, adjustedEnd.x));
-                    adjustedEnd.y = Math.max(0, Math.min(height - 1, adjustedEnd.y));
+                // Ensure all points are within bounds
+                adjustedClickPoint.x = Math.max(0, Math.min(width - 1, adjustedClickPoint.x));
+                adjustedClickPoint.y = Math.max(0, Math.min(height - 1, adjustedClickPoint.y));
+                adjustedStart.x = Math.max(0, Math.min(width - 1, adjustedStart.x));
+                adjustedStart.y = Math.max(0, Math.min(height - 1, adjustedStart.y));
+                adjustedEnd.x = Math.max(0, Math.min(width - 1, adjustedEnd.x));
+                adjustedEnd.y = Math.max(0, Math.min(height - 1, adjustedEnd.y));
 
-                    // Get target color at initial click point
-                    int targetRGB = targetImage.getRGB(adjustedClickPoint.x, adjustedClickPoint.y);
-                    Color targetColor = new Color(targetRGB, true);
+                // Get target color at initial click point
+                int targetRGB = targetImage.getRGB(adjustedClickPoint.x, adjustedClickPoint.y);
+                Color targetColor = new Color(targetRGB, true);
 
-                    gradientRenderer.applySmartCircular(targetImage, adjustedClickPoint.x, adjustedClickPoint.y,
-                            targetColor, adjustedStart, adjustedEnd, epsilon, clipPath);
-                } catch (Exception ex) {
-                    // Log error and recover gracefully
-                    System.err.println("Error applying smart circular gradient fill: " + ex.getMessage());
-                }
+                gradientRenderer.applySmartCircular(targetImage, adjustedClickPoint.x, adjustedClickPoint.y,
+                        targetColor, adjustedStart, adjustedEnd, epsilon, clipPath);
             } else {
                 gradientRenderer.applyLinearGradient(targetImage, adjustedStart, adjustedEnd, clipPath);
             }

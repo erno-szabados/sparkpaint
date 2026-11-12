@@ -7,11 +7,13 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
@@ -211,11 +213,17 @@ public class HistoryManager implements HistoryManagement {
         List<Layer> layers = new ArrayList<>();
 
         for (CompressedLayer compressedLayer : compressedState.getCompressedLayers()) {
-            BufferedImage image = decompressImage(
-                    compressedLayer.getCompressedData(),
-                    compressedLayer.getWidth(),
-                    compressedLayer.getHeight()
-            );
+            BufferedImage image;
+            try {
+                image = decompressImage(
+                        compressedLayer.getCompressedData(),
+                        compressedLayer.getWidth(),
+                        compressedLayer.getHeight()
+                );
+            } catch (IOException e) {
+                // Undo/redo data is produced in memory, so corruption here is a programming error
+                throw new IllegalStateException("Corrupt in-memory undo data", e);
+            }
             Layer layer = new Layer(image);
             layer.setVisible(compressedLayer.isVisible());
             layer.setName(compressedLayer.getName());
@@ -338,8 +346,9 @@ public class HistoryManager implements HistoryManagement {
      * @param width          The width of the image.
      * @param height         The height of the image.
      * @return The decompressed BufferedImage.
+     * @throws IOException if the compressed data is corrupt.
      */
-    public static BufferedImage decompressImage(byte[] compressedData, int width, int height) {
+    public static BufferedImage decompressImage(byte[] compressedData, int width, int height) throws IOException {
         inflater.reset();
         inflater.setInput(compressedData);
 
@@ -347,8 +356,8 @@ public class HistoryManager implements HistoryManagement {
         byte[] rawData = new byte[width * height * 4]; // 4 bytes per pixel (ARGB)
         try {
             inflater.inflate(rawData);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to decompress image data", e);
+        } catch (DataFormatException e) {
+            throw new IOException("Failed to decompress image data", e);
         }
 
         // Directly wrap the decompressed data into a ByteBuffer
