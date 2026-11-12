@@ -253,109 +253,76 @@ public class LineToolRenderer extends BaseRenderer {
      * Draw a line by setting alpha=0 for pixels along the line path.
      */
     private void drawTransparentLine(BufferedImage image, Graphics2D g2d, Point p1, Point p2, float lineThickness) {
-        // Check for null parameters
-        if (image == null || g2d == null || p1 == null || p2 == null) {
-            System.err.println("Null parameter in drawTransparentLine");
-            return;
-        }
+        // Create a temporary mask image for the line
+        BufferedImage maskImage = createMask(image.getWidth(), image.getHeight(), g2d.getClip());
+        Graphics2D maskG2d = maskImage.createGraphics();
 
-        try {
-            // Create a temporary mask image for the line
-            BufferedImage maskImage = createMask(image.getWidth(), image.getHeight(), g2d.getClip());
-            Graphics2D maskG2d = maskImage.createGraphics();
+        // Set up the mask with the same stroke settings
+        configureGraphics(maskG2d, lineThickness);
 
-            // Set up the mask with the same stroke settings
-            configureGraphics(maskG2d, lineThickness);
+        // Draw white line on mask
+        maskG2d.drawLine(p1.x, p1.y, p2.x, p2.y);
+        maskG2d.dispose();
 
-            // Draw white line on mask
-            maskG2d.drawLine(p1.x, p1.y, p2.x, p2.y);
-            maskG2d.dispose();
+        // Calculate bounds of affected area for efficiency
+        int lineWidth = (int) Math.ceil(lineThickness);
+        int minX = Math.max(0, Math.min(p1.x, p2.x) - lineWidth);
+        int minY = Math.max(0, Math.min(p1.y, p2.y) - lineWidth);
+        int maxX = Math.min(image.getWidth(), Math.max(p1.x, p2.x) + lineWidth);
+        int maxY = Math.min(image.getHeight(), Math.max(p1.y, p2.y) + lineWidth);
 
-            // Calculate bounds of affected area for efficiency
-            int lineWidth = (int) Math.ceil(lineThickness);
-            int minX = Math.max(0, Math.min(p1.x, p2.x) - lineWidth);
-            int minY = Math.max(0, Math.min(p1.y, p2.y) - lineWidth);
-            int maxX = Math.min(image.getWidth(), Math.max(p1.x, p2.x) + lineWidth);
-            int maxY = Math.min(image.getHeight(), Math.max(p1.y, p2.y) + lineWidth);
-
-            // Apply transparency to pixels where the mask is non-zero
-            applyTransparencyMaskWithBounds(image, maskImage, g2d.getClip(), minX, minY, maxX, maxY);
-        } catch (Exception e) {
-            System.err.println("Exception in drawTransparentLine: " + e.getMessage());
-            e.printStackTrace();
-        }
+        // Apply transparency to pixels where the mask is non-zero
+        applyTransparencyMaskWithBounds(image, maskImage, g2d.getClip(), minX, minY, maxX, maxY);
     }
 
     /**
      * Draw a path outline by setting alpha=0 for pixels along the path.
      */
     private void drawTransparentPath(BufferedImage image, Graphics2D g2d, Path2D path, float lineThickness) {
-        // Check for null parameters
-        if (image == null || g2d == null || path == null) {
-            System.err.println("Null parameter in drawTransparentPath");
-            return;
-        }
+        // Create a temporary mask image for the path outline
+        BufferedImage maskImage = createMask(image.getWidth(), image.getHeight(), g2d.getClip());
+        Graphics2D maskG2d = maskImage.createGraphics();
 
-        try {
-            // Create a temporary mask image for the path outline
-            BufferedImage maskImage = createMask(image.getWidth(), image.getHeight(), g2d.getClip());
-            Graphics2D maskG2d = maskImage.createGraphics();
+        // Set up the mask with the same stroke settings
+        configureGraphics(maskG2d, lineThickness);
 
-            // Set up the mask with the same stroke settings
-            configureGraphics(maskG2d, lineThickness);
+        // Draw white path outline on mask
+        maskG2d.draw(path);
+        maskG2d.dispose();
 
-            // Draw white path outline on mask
-            maskG2d.draw(path);
-            maskG2d.dispose();
+        // Get path bounds
+        Rectangle bounds = path.getBounds();
+        int padding = (int) Math.ceil(lineThickness);
+        int minX = Math.max(0, bounds.x - padding);
+        int minY = Math.max(0, bounds.y - padding);
+        int maxX = Math.min(image.getWidth(), bounds.x + bounds.width + padding);
+        int maxY = Math.min(image.getHeight(), bounds.y + bounds.height + padding);
 
-            // Get path bounds
-            Rectangle bounds = path.getBounds();
-            int padding = (int) Math.ceil(lineThickness);
-            int minX = Math.max(0, bounds.x - padding);
-            int minY = Math.max(0, bounds.y - padding);
-            int maxX = Math.min(image.getWidth(), bounds.x + bounds.width + padding);
-            int maxY = Math.min(image.getHeight(), bounds.y + bounds.height + padding);
-
-            // Apply transparency to pixels where the mask is non-zero
-            applyTransparencyMaskWithBounds(image, maskImage, g2d.getClip(), minX, minY, maxX, maxY);
-        } catch (Exception e) {
-            System.err.println("Exception in drawTransparentPath: " + e.getMessage());
-            e.printStackTrace();
-        }
+        // Apply transparency to pixels where the mask is non-zero
+        applyTransparencyMaskWithBounds(image, maskImage, g2d.getClip(), minX, minY, maxX, maxY);
     }
 
     /**
      * Fill a path by setting alpha=0 for pixels inside the path.
      */
     private void fillTransparentPath(BufferedImage image, Graphics2D g2d, Path2D path) {
-        // Check for null parameters
-        if (image == null || g2d == null || path == null) {
-            System.err.println("Null parameter in fillTransparentPath");
-            return;
-        }
+        // Create a temporary mask image for the path
+        BufferedImage maskImage = createMask(image.getWidth(), image.getHeight(), g2d.getClip());
+        Graphics2D maskG2d = maskImage.createGraphics();
 
-        try {
-            // Create a temporary mask image for the path
-            BufferedImage maskImage = createMask(image.getWidth(), image.getHeight(), g2d.getClip());
-            Graphics2D maskG2d = maskImage.createGraphics();
+        // Fill the path with white on the mask
+        maskG2d.fill(path);
+        maskG2d.dispose();
 
-            // Fill the path with white on the mask
-            maskG2d.fill(path);
-            maskG2d.dispose();
+        // Get path bounds
+        Rectangle bounds = path.getBounds();
+        int minX = Math.max(0, bounds.x);
+        int minY = Math.max(0, bounds.y);
+        int maxX = Math.min(image.getWidth(), bounds.x + bounds.width);
+        int maxY = Math.min(image.getHeight(), bounds.y + bounds.height);
 
-            // Get path bounds
-            Rectangle bounds = path.getBounds();
-            int minX = Math.max(0, bounds.x);
-            int minY = Math.max(0, bounds.y);
-            int maxX = Math.min(image.getWidth(), bounds.x + bounds.width);
-            int maxY = Math.min(image.getHeight(), bounds.y + bounds.height);
-
-            // Apply transparency to pixels where the mask is non-zero
-            applyTransparencyMaskWithBounds(image, maskImage, g2d.getClip(), minX, minY, maxX, maxY);
-        } catch (Exception e) {
-            System.err.println("Exception in fillTransparentPath: " + e.getMessage());
-            e.printStackTrace();
-        }
+        // Apply transparency to pixels where the mask is non-zero
+        applyTransparencyMaskWithBounds(image, maskImage, g2d.getClip(), minX, minY, maxX, maxY);
     }
 
     /**

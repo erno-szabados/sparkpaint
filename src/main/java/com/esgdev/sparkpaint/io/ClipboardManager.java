@@ -25,7 +25,7 @@ public class ClipboardManager implements ClipboardManagement {
        // this.selectionManager = canvas.getSelectionManager();
     }
 
-    public void cutSelection() {
+    public void cutSelection() throws IOException {
         Selection selection = canvas.getSelection();
         if (selection == null) return;
 
@@ -48,7 +48,7 @@ public class ClipboardManager implements ClipboardManagement {
         notifyClipboardStateChanged();
     }
 
-    public void copySelection() {
+    public void copySelection() throws IOException {
         Selection selection = canvas.getSelection();
         if (selection == null) return;
 
@@ -59,11 +59,7 @@ public class ClipboardManager implements ClipboardManagement {
             return;
         }
         BufferedImage selectionImage = canvas.getSelection().getContent();
-        try {
-            ImageSelection.copyImage(selectionImage);
-        } catch (IOException e) {
-            //throw new RuntimeException(e);
-        }
+        ImageSelection.copyImage(selectionImage);
         selection.setActive(true);
         notifyClipboardStateChanged();
     }
@@ -126,7 +122,8 @@ public class ClipboardManager implements ClipboardManagement {
             }
             return false;
 
-        } catch (Exception e) {
+        } catch (HeadlessException | IllegalStateException e) {
+            // Clipboard is unavailable (headless or locked by another application)
             return false;
         }
     }

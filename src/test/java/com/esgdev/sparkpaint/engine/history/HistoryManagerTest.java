@@ -7,6 +7,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -131,7 +132,7 @@ public class HistoryManagerTest {
     }
 
     @Test
-    public void compressDecompressImagePreservesContent() {
+    public void compressDecompressImagePreservesContent() throws IOException {
         // Create a test image with specific content
         BufferedImage original = new BufferedImage(100, 100, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = original.createGraphics();
@@ -146,6 +147,12 @@ public class HistoryManagerTest {
         // Check a sample pixel
         assertEquals("Pixel color should be preserved after compression/decompression",
                 original.getRGB(50, 50), decompressed.getRGB(50, 50));
+    }
+
+    @Test(expected = IOException.class)
+    public void decompressImageRejectsCorruptData() throws IOException {
+        // Bytes without a valid zlib header must surface as IOException so file loads can report them
+        HistoryManager.decompressImage(new byte[]{1, 2, 3, 4}, 100, 100);
     }
 
     @Test

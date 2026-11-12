@@ -149,6 +149,20 @@ public class FileManagerTest {
         assertEquals(testPath, fileManager.getCurrentFilePath());
     }
 
+    @Test
+    public void testSaveToUnopenablePathThrowsIOException() {
+        File directoryTarget = new File(pngFile.getParentFile(), "not-a-file-target");
+        assertTrue(directoryTarget.mkdirs());
+        try {
+            fileManager.saveToFile(directoryTarget, testLayers);
+            fail("Should have thrown an IOException");
+        } catch (IOException e) {
+            // Expected: the file cannot be opened for writing
+        } finally {
+            directoryTarget.delete();
+        }
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void testCreateFlattenedImageWithEmptyLayers() throws IOException {
         fileManager.saveToFile(pngFile, new ArrayList<>());

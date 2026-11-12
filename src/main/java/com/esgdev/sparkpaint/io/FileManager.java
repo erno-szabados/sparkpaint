@@ -4,9 +4,11 @@ import com.esgdev.sparkpaint.engine.history.LayerState;
 import com.esgdev.sparkpaint.engine.layer.Layer;
 
 import javax.imageio.ImageIO;
+import javax.imageio.stream.ImageOutputStream;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -40,11 +42,32 @@ public class FileManager implements FileManagement {
             flattened = convertToRGB(flattened);
         }
 
-        if (!ImageIO.write(flattened, formatName, file)) {
+        if (!writeImage(flattened, formatName, file)) {
             throw new IOException("No appropriate writer found for format: " + formatName);
         }
 
         currentFilePath = file.getAbsolutePath();
+    }
+
+    /**
+     * Writes an image to a file. The file is opened here, rather than by ImageIO, so that
+     * open failures (e.g. permission denied) are thrown as IOException instead of being
+     * printed to the console by the JDK.
+     *
+     * @param image      The image to write.
+     * @param formatName The image format name.
+     * @param file       The target file.
+     * @return true if a writer for the format was found and the image was written.
+     * @throws IOException If the file cannot be opened or written.
+     */
+    private boolean writeImage(BufferedImage image, String formatName, File file) throws IOException {
+        try (FileOutputStream out = new FileOutputStream(file);
+             ImageOutputStream imageOut = ImageIO.createImageOutputStream(out)) {
+            if (imageOut == null) {
+                return false;
+            }
+            return ImageIO.write(image, formatName, imageOut);
+        }
     }
 
     /**
@@ -183,7 +206,7 @@ public class FileManager implements FileManagement {
                 File outputFile = new File(directory, fileNamePrefix + "_" + sanitizedLayerName + ".png");
 
                 // Write layer as PNG
-                if (ImageIO.write(layer.getImage(), "png", outputFile)) {
+                if (writeImage(layer.getImage(), "png", outputFile)) {
                     exportedCount++;
                 }
             }

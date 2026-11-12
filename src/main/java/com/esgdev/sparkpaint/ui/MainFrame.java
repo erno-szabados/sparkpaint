@@ -10,6 +10,8 @@ import java.awt.event.ComponentEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.io.IOException;
 
 
 public class MainFrame extends JFrame {
@@ -178,7 +180,10 @@ public class MainFrame extends JFrame {
                 try {
                     canvas.pasteSelection();
                     return true; // Consume the event
-                } catch (Exception ex) {
+                } catch (IOException | UnsupportedFlavorException ex) {
+                    JOptionPane.showMessageDialog(this,
+                            "Paste failed: " + ex.getMessage(),
+                            "Paste Error", JOptionPane.ERROR_MESSAGE);
                     setStatusMessage("Paste failed: " + ex.getMessage());
                 }
             }

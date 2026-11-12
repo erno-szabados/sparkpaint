@@ -70,44 +70,39 @@ public class PencilToolRenderer extends BaseRenderer {
             return;
         }
 
-        try {
-            // Create a mask for the line
-            BufferedImage maskImage = new BufferedImage(
-                    targetImage.getWidth(), targetImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
-            Graphics2D maskG2d = maskImage.createGraphics();
+        // Create a mask for the line
+        BufferedImage maskImage = new BufferedImage(
+                targetImage.getWidth(), targetImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D maskG2d = maskImage.createGraphics();
 
-            // Configure mask graphics
-            maskG2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                    useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
-            maskG2d.setStroke(new BasicStroke(thickness));
-            maskG2d.setColor(Color.WHITE);
+        // Configure mask graphics
+        maskG2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                useAntiAliasing ? RenderingHints.VALUE_ANTIALIAS_ON : RenderingHints.VALUE_ANTIALIAS_OFF);
+        maskG2d.setStroke(new BasicStroke(thickness));
+        maskG2d.setColor(Color.WHITE);
 
-            // Draw line on mask
-            maskG2d.drawLine(p1.x, p1.y, p2.x, p2.y);
-            maskG2d.dispose();
+        // Draw line on mask
+        maskG2d.drawLine(p1.x, p1.y, p2.x, p2.y);
+        maskG2d.dispose();
 
-            // Get bounds of affected area with padding for stroke width
-            int padding = (int) Math.ceil(thickness);
-            int minX = Math.max(0, Math.min(p1.x, p2.x) - padding);
-            int minY = Math.max(0, Math.min(p1.y, p2.y) - padding);
-            int maxX = Math.min(targetImage.getWidth(), Math.max(p1.x, p2.x) + padding);
-            int maxY = Math.min(targetImage.getHeight(), Math.max(p1.y, p2.y) + padding);
+        // Get bounds of affected area with padding for stroke width
+        int padding = (int) Math.ceil(thickness);
+        int minX = Math.max(0, Math.min(p1.x, p2.x) - padding);
+        int minY = Math.max(0, Math.min(p1.y, p2.y) - padding);
+        int maxX = Math.min(targetImage.getWidth(), Math.max(p1.x, p2.x) + padding);
+        int maxY = Math.min(targetImage.getHeight(), Math.max(p1.y, p2.y) + padding);
 
-            // Apply transparency to each pixel on the line
-            for (int y = minY; y < maxY; y++) {
-                for (int x = minX; x < maxX; x++) {
-                    int maskRGB = maskImage.getRGB(x, y);
-                    // Only process pixels where the mask is non-zero
-                    if ((maskRGB & 0xFF000000) != 0) {
-                        // Set full transparency (alpha = 0)
-                        int newRGB = targetImage.getRGB(x, y) & 0x00FFFFFF;
-                        targetImage.setRGB(x, y, newRGB);
-                    }
+        // Apply transparency to each pixel on the line
+        for (int y = minY; y < maxY; y++) {
+            for (int x = minX; x < maxX; x++) {
+                int maskRGB = maskImage.getRGB(x, y);
+                // Only process pixels where the mask is non-zero
+                if ((maskRGB & 0xFF000000) != 0) {
+                    // Set full transparency (alpha = 0)
+                    int newRGB = targetImage.getRGB(x, y) & 0x00FFFFFF;
+                    targetImage.setRGB(x, y, newRGB);
                 }
             }
-        } catch (Exception ex) {
-            System.err.println("Error drawing transparent line: " + ex.getMessage());
-            ex.printStackTrace();
         }
     }
 }

@@ -70,11 +70,9 @@ public class HelpMenu extends JMenu {
 
             // Apply the center alignment to the entire document
             doc.setParagraphAttributes(0, doc.getLength(), centerStyle, true);
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (BadLocationException e) {
+            throw new IllegalStateException("Invalid about dialog text", e);
         }
-
-        // Add components to panel
         contentPanel.add(nameLabel);
         contentPanel.add(Box.createVerticalStrut(10));
         contentPanel.add(versionLabel);
@@ -120,9 +118,8 @@ public class HelpMenu extends JMenu {
         try {
             String manualContent = loadManualContent();
             displayFormattedManual(textPane, manualContent);
-        } catch (Exception e) {
+        } catch (IOException e) {
             textPane.setText("Error loading manual: " + e.getMessage());
-            e.printStackTrace();
         }
 
         // Add scrolling capability
@@ -228,7 +225,7 @@ public class HelpMenu extends JMenu {
                 }
             }
         } catch (BadLocationException e) {
-            e.printStackTrace();
+            throw new IllegalStateException("Invalid manual document text", e);
         }
     }
 }

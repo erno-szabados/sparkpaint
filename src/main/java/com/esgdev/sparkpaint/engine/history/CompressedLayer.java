@@ -69,16 +69,12 @@ public class CompressedLayer implements Serializable {
     }
 
     public Layer toLayer() throws IOException {
-        try {
-            BufferedImage image = HistoryManager.decompressImage(compressedData, width, height);
+        BufferedImage image = HistoryManager.decompressImage(compressedData, width, height);
 
-            Layer layer = new Layer(image);
-            layer.setVisible(visible);
-            layer.setName(name != null ? name : "Layer");
+        Layer layer = new Layer(image);
+        layer.setVisible(visible);
+        layer.setName(name != null ? name : "Layer");
 
-            return layer;
-        } catch (Exception e) {
-            throw new IOException("Failed to decompress layer image", e);
-        }
+        return layer;
     }
 }

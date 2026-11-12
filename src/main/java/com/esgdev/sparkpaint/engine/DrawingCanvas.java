@@ -834,12 +834,12 @@ public class DrawingCanvas extends JPanel implements
     /// ClipboardManagement interface
 
     @Override
-    public void cutSelection() {
+    public void cutSelection() throws IOException {
         clipboardManager.cutSelection();
     }
 
     @Override
-    public void copySelection() {
+    public void copySelection() throws IOException {
         clipboardManager.copySelection();
     }
 
