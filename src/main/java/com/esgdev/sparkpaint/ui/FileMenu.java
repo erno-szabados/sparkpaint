@@ -4,6 +4,7 @@ import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.history.LayerState;
 import com.esgdev.sparkpaint.engine.layer.Layer;
 import com.esgdev.sparkpaint.io.SparkPaintFileFormat;
+import com.esgdev.sparkpaint.ui.helpers.MemoryDialogs;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -75,15 +76,25 @@ public class FileMenu extends JMenu {
         dialog.setVisible(true);
 
         if (dialog.isApproved()) {
+            if (!MemoryDialogs.verifyAllocation(mainFrame, "New Image",
+                    dialog.getImageWidth(), dialog.getImageHeight(), 1)) {
+                mainFrame.setStatusMessage("New image cancelled");
+                return;
+            }
             if (!confirmDiscardChanges("creating a new image")) {
                 mainFrame.setStatusMessage("New image cancelled");
                 return;
             }
-            mainFrame.getCanvas().createNewCanvas(
-                    dialog.getImageWidth(),
-                    dialog.getImageHeight(),
-                    dialog.getBackgroundColor()
-            );
+            try {
+                mainFrame.getCanvas().createNewCanvas(
+                        dialog.getImageWidth(),
+                        dialog.getImageHeight(),
+                        dialog.getBackgroundColor()
+                );
+            } catch (OutOfMemoryError e) {
+                MemoryDialogs.showOutOfMemory(mainFrame, "create the new image");
+                return;
+            }
             mainFrame.getCanvas().resetCurrentFilePath();
             mainFrame.pack();  // Adjust frame size to new canvas size
 
@@ -129,6 +140,9 @@ public class FileMenu extends JMenu {
                         "Error opening file: " + ex.getMessage(),
                         "Open Error",
                         JOptionPane.ERROR_MESSAGE);
+            } catch (OutOfMemoryError ex) {
+                mainFrame.setStatusMessage("Error opening file!");
+                MemoryDialogs.showOutOfMemory(mainFrame, "open the file");
             }
         } else {
             mainFrame.setStatusMessage("Open cancelled");

@@ -563,6 +563,12 @@ To scale an image:
 
 Both resizing and scaling options help you adjust the size of your artwork to fit your needs.
 
+#### Image Size Limits
+
+SparkPaint supports images up to **4000 × 4000 pixels**. This limit applies to new images, opened files, resizing, scaling, pasting, and adding or duplicating layers.
+
+Each image uses about 4 bytes per pixel in memory, and operations need extra temporary space. Before an operation that would need more memory than is available, SparkPaint refuses it and shows a message explaining that there is not enough memory. Your image is left unchanged in that case. Try a smaller size, close other applications, or increase the memory available to Java (for example, with `-Xmx`).
+
 ## Clipboard
 
 The clipboard functionality in our application allows users to cut, copy, and paste selections within the drawing canvas.

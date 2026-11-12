@@ -7,6 +7,7 @@ import com.esgdev.sparkpaint.engine.layer.LayerManager;
 import com.esgdev.sparkpaint.ui.DrawingToolbar;
 import com.esgdev.sparkpaint.ui.IconLoader;
 import com.esgdev.sparkpaint.ui.StatusMessageHandler;
+import com.esgdev.sparkpaint.ui.helpers.MemoryDialogs;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -18,7 +19,9 @@ import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.util.List;
 import java.util.function.Consumer;
 
 public class LayerPanel extends JPanel implements LayerChangeListener {
@@ -271,7 +274,15 @@ public class LayerPanel extends JPanel implements LayerChangeListener {
      * Adds a new layer to the layer manager and refreshes the layer list.
      */
     private void addLayer() {
-        canvas.addNewLayer();
+        if (!verifyLayerAllocation("Add Layer", canvasReferenceLayer())) {
+            return;
+        }
+        try {
+            canvas.addNewLayer();
+        } catch (OutOfMemoryError e) {
+            MemoryDialogs.showOutOfMemory(this, "add a layer");
+            return;
+        }
         refreshLayerList();
         statusMessageHandler.setStatusMessage("New layer added");
     }
@@ -280,13 +291,45 @@ public class LayerPanel extends JPanel implements LayerChangeListener {
      * Duplicates the current layer and refreshes the layer list.
      */
     private void duplicateLayer() {
-        boolean success = canvas.duplicateCurrentLayer();
+        List<Layer> layers = canvas.getLayers();
+        int index = canvas.getCurrentLayerIndex();
+        if (index < 0 || index >= layers.size() || !verifyLayerAllocation("Duplicate Layer", layers.get(index))) {
+            return;
+        }
+        boolean success;
+        try {
+            success = canvas.duplicateCurrentLayer();
+        } catch (OutOfMemoryError e) {
+            MemoryDialogs.showOutOfMemory(this, "duplicate the layer");
+            return;
+        }
         if (success) {
             refreshLayerList();
             statusMessageHandler.setStatusMessage("Layer duplicated");
         } else {
             statusMessageHandler.setStatusMessage("Failed to duplicate layer");
         }
+    }
+
+    /**
+     * Returns the first layer, whose size defines the canvas size, or null if there are no layers.
+     */
+    private Layer canvasReferenceLayer() {
+        List<Layer> layers = canvas.getLayers();
+        return layers.isEmpty() ? null : layers.get(0);
+    }
+
+    /**
+     * Checks that one more layer of the reference layer's size fits in the memory budget.
+     * A null reference (no layers yet) is allowed, since there is nothing to size against.
+     */
+    private boolean verifyLayerAllocation(String title, Layer reference) {
+        if (reference == null) {
+            return true;
+        }
+        BufferedImage image = reference.getImage();
+        return MemoryDialogs.verifyAllocation(this, title, image.getWidth(), image.getHeight(),
+                canvas.getLayerCount() + 1);
     }
 
     /**

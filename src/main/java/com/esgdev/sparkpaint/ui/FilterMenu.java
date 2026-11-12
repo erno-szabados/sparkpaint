@@ -3,6 +3,7 @@ package com.esgdev.sparkpaint.ui;
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
 import com.esgdev.sparkpaint.engine.filters.OrderedDitheringFilter;
 import com.esgdev.sparkpaint.engine.layer.Layer;
+import com.esgdev.sparkpaint.ui.helpers.MemoryDialogs;
 
 import javax.swing.*;
 import java.awt.*;
@@ -72,26 +73,36 @@ public class FilterMenu extends JMenu {
             }
         }
 
-        // Save state for undo
-        canvas.saveToUndoStack();
+        // Dithering holds the source layer, the dithered image, and the replacement layer
+        if (!MemoryDialogs.verifyAllocation(mainFrame, "Ordered Dithering",
+                currentLayer.getImage().getWidth(), currentLayer.getImage().getHeight(), layers.size() + 1)) {
+            return;
+        }
 
-        // Apply the dithering filter
-        BufferedImage originalImage = currentLayer.getImage();
-        BufferedImage ditheredImage = OrderedDitheringFilter.apply(originalImage, palette);
+        try {
+            // Save state for undo
+            canvas.saveToUndoStack();
 
-        // Create a new layer with the dithered image
-        Layer newLayer = new Layer(ditheredImage.getWidth(), ditheredImage.getHeight());
-        Graphics2D g2d = newLayer.getImage().createGraphics();
-        g2d.drawImage(ditheredImage, 0, 0, null);
-        g2d.dispose();
+            // Apply the dithering filter
+            BufferedImage originalImage = currentLayer.getImage();
+            BufferedImage ditheredImage = OrderedDitheringFilter.apply(originalImage, palette);
 
-        // Replace the current layer with the new layer
-        newLayer.setVisible(currentLayer.isVisible());
-        layers.set(currentLayerIndex, newLayer);
+            // Create a new layer with the dithered image
+            Layer newLayer = new Layer(ditheredImage.getWidth(), ditheredImage.getHeight());
+            Graphics2D g2d = newLayer.getImage().createGraphics();
+            g2d.drawImage(ditheredImage, 0, 0, null);
+            g2d.dispose();
 
-        // Update canvas
-        canvas.setLayers(layers);
-        canvas.repaint();
-        mainFrame.setStatusMessage("Applied ordered dithering to current layer");
+            // Replace the current layer with the new layer
+            newLayer.setVisible(currentLayer.isVisible());
+            layers.set(currentLayerIndex, newLayer);
+
+            // Update canvas
+            canvas.setLayers(layers);
+            canvas.repaint();
+            mainFrame.setStatusMessage("Applied ordered dithering to current layer");
+        } catch (OutOfMemoryError ex) {
+            MemoryDialogs.showOutOfMemory(mainFrame, "apply ordered dithering");
+        }
     }
 }
