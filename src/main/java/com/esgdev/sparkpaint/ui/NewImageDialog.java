@@ -1,6 +1,7 @@
 package com.esgdev.sparkpaint.ui;
 
         import com.esgdev.sparkpaint.engine.DrawingCanvas;
+        import com.esgdev.sparkpaint.engine.ImageLimits;
         import javax.swing.*;
         import java.awt.*;
 
@@ -106,9 +107,9 @@ package com.esgdev.sparkpaint.ui;
                         if (imageWidth <= 0 || imageHeight <= 0) {
                             throw new NumberFormatException();
                         }
-                        if (imageWidth > 3000 || imageHeight > 3000) {
+                        if (imageWidth > ImageLimits.MAX_DIMENSION || imageHeight > ImageLimits.MAX_DIMENSION) {
                             JOptionPane.showMessageDialog(this,
-                                "Width and height must be less than or equal to 10000 pixels.",
+                                "Width and height must be at most " + ImageLimits.MAX_DIMENSION + " pixels.",
                                 "Invalid Input",
                                 JOptionPane.ERROR_MESSAGE);
                             return;

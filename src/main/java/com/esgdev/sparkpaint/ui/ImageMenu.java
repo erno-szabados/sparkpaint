@@ -1,9 +1,11 @@
 package com.esgdev.sparkpaint.ui;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
+import com.esgdev.sparkpaint.engine.ImageLimits;
 import com.esgdev.sparkpaint.engine.layer.Layer;
 import com.esgdev.sparkpaint.ui.PaletteGeneratorDialog;
 import com.esgdev.sparkpaint.ui.helpers.ImageScalingWorker;
+import com.esgdev.sparkpaint.ui.helpers.MemoryDialogs;
 
 import javax.swing.*;
 import java.awt.*;
@@ -129,14 +131,14 @@ public class ImageMenu extends JMenu {
         // Width input
         JPanel widthPanel = new JPanel();
         JLabel widthLabel = new JLabel("Width:");
-        JSpinner widthSpinner = new JSpinner(new SpinnerNumberModel(originalWidth, 1, 10000, 1));
+        JSpinner widthSpinner = new JSpinner(new SpinnerNumberModel(originalWidth, 1, ImageLimits.MAX_DIMENSION, 1));
         widthPanel.add(widthLabel);
         widthPanel.add(widthSpinner);
 
         // Height input
         JPanel heightPanel = new JPanel();
         JLabel heightLabel = new JLabel("Height:");
-        JSpinner heightSpinner = new JSpinner(new SpinnerNumberModel(originalHeight, 1, 10000, 1));
+        JSpinner heightSpinner = new JSpinner(new SpinnerNumberModel(originalHeight, 1, ImageLimits.MAX_DIMENSION, 1));
         heightPanel.add(heightLabel);
         heightPanel.add(heightSpinner);
 
@@ -172,32 +174,38 @@ public class ImageMenu extends JMenu {
             int newWidth = (Integer) widthSpinner.getValue();
             int newHeight = (Integer) heightSpinner.getValue();
 
-            // Save for undo
-            canvas.saveToUndoStack();
-
-            // Create resized layers
-            List<Layer> resizedLayers = new ArrayList<>();
-            for (Layer layer : layers) {
-                Layer newLayer = new Layer(newWidth, newHeight);
-                Graphics2D g = newLayer.getImage().createGraphics();
-                g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-
-                // Center the original image in the new canvas
-                int x = (newWidth - originalWidth) / 2;
-                int y = (newHeight - originalHeight) / 2;
-                g.drawImage(layer.getImage(), x, y, null);
-                g.dispose();
-
-                newLayer.setVisible(layer.isVisible());
-                resizedLayers.add(newLayer);
+            // Old and new layers coexist until the canvas is switched over
+            if (!MemoryDialogs.verifyAllocation(mainFrame, "Resize Image", newWidth, newHeight, 2 * layers.size())) {
+                return;
             }
 
-            // Update canvas with new layers
-            canvas.saveToUndoStack();
-            canvas.setLayers(resizedLayers);
-            canvas.setPreferredSize(new Dimension(newWidth, newHeight));
-            canvas.revalidate();
-            canvas.repaint();
+            try {
+                // Build the new layers before saving undo or changing the canvas, so an
+                // OutOfMemoryError leaves the current image and undo history untouched.
+                List<Layer> resizedLayers = new ArrayList<>();
+                for (Layer layer : layers) {
+                    Layer newLayer = new Layer(newWidth, newHeight);
+                    Graphics2D g = newLayer.getImage().createGraphics();
+                    g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+
+                    // Center the original image in the new canvas
+                    int x = (newWidth - originalWidth) / 2;
+                    int y = (newHeight - originalHeight) / 2;
+                    g.drawImage(layer.getImage(), x, y, null);
+                    g.dispose();
+
+                    newLayer.setVisible(layer.isVisible());
+                    resizedLayers.add(newLayer);
+                }
+
+                canvas.saveToUndoStack();
+                canvas.setLayers(resizedLayers);
+                canvas.setPreferredSize(new Dimension(newWidth, newHeight));
+                canvas.revalidate();
+                canvas.repaint();
+            } catch (OutOfMemoryError ex) {
+                MemoryDialogs.showOutOfMemory(mainFrame, "resize the image");
+            }
         }
     }
 
@@ -276,10 +284,12 @@ public class ImageMenu extends JMenu {
             int newWidth = originalWidth * widthScale / 100;
             int newHeight = originalHeight * heightScale / 100;
 
-            // Save for undo
-            canvas.saveToUndoStack();
+            // Old and new layers coexist until the scaling worker switches the canvas over
+            if (!MemoryDialogs.verifyAllocation(mainFrame, "Scale Image", newWidth, newHeight, 2 * layers.size())) {
+                return;
+            }
 
-            // Use the ImageScalingWorker to perform the scaling in the background
+            // Undo is saved by the worker on success, so a failed scale leaves no undo entry
             ImageScalingWorker worker = new ImageScalingWorker(mainFrame, canvas, newWidth, newHeight);
             worker.start();
         }

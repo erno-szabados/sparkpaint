@@ -114,11 +114,17 @@ public class ImageScalingWorker extends SwingWorker<List<Layer>, Integer> {
             canvas.setPreferredSize(new Dimension(newWidth, newHeight));
             canvas.revalidate();
             canvas.repaint();
+        } catch (OutOfMemoryError e) {
+            MemoryDialogs.showOutOfMemory(progressDialog, "scale the image");
         } catch (InterruptedException | ExecutionException e) {
-            JOptionPane.showMessageDialog(progressDialog,
-                    "Error scaling image: " + e.getMessage(),
-                    "Scaling Error",
-                    JOptionPane.ERROR_MESSAGE);
+            if (e.getCause() instanceof OutOfMemoryError) {
+                MemoryDialogs.showOutOfMemory(progressDialog, "scale the image");
+            } else {
+                JOptionPane.showMessageDialog(progressDialog,
+                        "Error scaling image: " + e.getMessage(),
+                        "Scaling Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
         } finally {
             progressDialog.dispose();
         }

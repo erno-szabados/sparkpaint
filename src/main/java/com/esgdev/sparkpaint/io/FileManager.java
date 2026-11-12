@@ -1,9 +1,11 @@
 package com.esgdev.sparkpaint.io;
 
+import com.esgdev.sparkpaint.engine.ImageLimits;
 import com.esgdev.sparkpaint.engine.history.LayerState;
 import com.esgdev.sparkpaint.engine.layer.Layer;
-
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.ImageOutputStream;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -12,6 +14,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -113,6 +116,7 @@ public class FileManager implements FileManagement {
      * @throws IOException If an error occurs during loading.
      */
     public LayerState loadFromFile(File file) throws IOException {
+        verifyImageHeader(file);
         BufferedImage loadedImage = ImageIO.read(file);
         if (loadedImage == null) {
             throw new IOException("Failed to load image: " + file.getName());
@@ -126,6 +130,29 @@ public class FileManager implements FileManagement {
 
         currentFilePath = file.getAbsolutePath();
         return new LayerState(layers, 0);
+    }
+
+    /**
+     * Reads the image dimensions from the file header and checks them against {@link ImageLimits},
+     * so oversized images are refused before the full pixel data is decoded.
+     */
+    private static void verifyImageHeader(File file) throws IOException {
+        try (ImageInputStream input = ImageIO.createImageInputStream(file)) {
+            if (input == null) {
+                return;
+            }
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
+            if (!readers.hasNext()) {
+                return; // ImageIO.read reports unsupported formats
+            }
+            ImageReader reader = readers.next();
+            try {
+                reader.setInput(input);
+                ImageLimits.verify(reader.getWidth(0), reader.getHeight(0), 1);
+            } finally {
+                reader.dispose();
+            }
+        }
     }
 
     // In FileManager.java, add this method

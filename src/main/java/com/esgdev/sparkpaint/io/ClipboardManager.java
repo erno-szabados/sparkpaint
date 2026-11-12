@@ -1,6 +1,7 @@
 package com.esgdev.sparkpaint.io;
 
 import com.esgdev.sparkpaint.engine.DrawingCanvas;
+import com.esgdev.sparkpaint.engine.ImageLimits;
 import com.esgdev.sparkpaint.engine.selection.Selection;
 import com.esgdev.sparkpaint.engine.tools.DrawingTool;
 import com.esgdev.sparkpaint.engine.tools.ToolManager;
@@ -65,8 +66,20 @@ public class ClipboardManager implements ClipboardManagement {
     }
 
     public void pasteSelection() throws IOException, UnsupportedFlavorException {
+        try {
+            pasteClipboardImage();
+        } catch (OutOfMemoryError e) {
+            throw new IOException("Not enough memory to paste the image.", e);
+        }
+    }
+
+    private void pasteClipboardImage() throws IOException, UnsupportedFlavorException {
         BufferedImage pastedImage = ImageSelection.pasteImage();
         if (pastedImage != null) {
+            // The pasted image plus the existing layers (or one new layer if there are none)
+            int existingLayers = Math.max(1, canvas.getLayers().size());
+            ImageLimits.verify(pastedImage.getWidth(), pastedImage.getHeight(), existingLayers + 1);
+
             // Ensure we have a canvas with layers
             if (canvas.getLayers().isEmpty()) {
                 canvas.createNewCanvas(DrawingCanvas.DEFAULT_CANVAS_WIDTH, DrawingCanvas.DEFAULT_CANVAS_HEIGHT, canvas.getCanvasBackground());

@@ -1,5 +1,6 @@
 package com.esgdev.sparkpaint.io;
 
+import com.esgdev.sparkpaint.engine.ImageLimits;
 import com.esgdev.sparkpaint.engine.history.CompressedLayer;
 import com.esgdev.sparkpaint.engine.history.CompressedLayerState;
 import com.esgdev.sparkpaint.engine.history.LayerState;
@@ -65,8 +66,11 @@ public class SparkPaintFileFormat {
                 throw new IOException("Unsupported file version");
             }
 
-            // Read payload length
+            // Read payload length, rejecting lengths that cannot fit in the file before allocating
             int dataLength = dis.readInt();
+            if (dataLength < 0 || dataLength > file.length()) {
+                throw new IOException("Invalid file format");
+            }
 
             // Read layer data
             byte[] layerData = new byte[dataLength];
@@ -83,6 +87,10 @@ public class SparkPaintFileFormat {
             // Deserialize layer data
             try (ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(layerData))) {
                 CompressedLayerState compressedState = (CompressedLayerState) ois.readObject();
+                List<CompressedLayer> compressedLayers = compressedState.getCompressedLayers();
+                for (CompressedLayer compressedLayer : compressedLayers) {
+                    ImageLimits.verify(compressedLayer.getWidth(), compressedLayer.getHeight(), compressedLayers.size());
+                }
                 return compressedState.toLayerState();
             }
         }
