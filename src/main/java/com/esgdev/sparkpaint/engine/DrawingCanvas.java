@@ -49,6 +49,8 @@ public class DrawingCanvas extends JPanel implements
 
     private final List<CanvasPropertyChangeListener> propertyChangeListeners = new ArrayList<>();
     private final List<CanvasChangeListener> canvasChangeListeners = new ArrayList<>(); // New list
+    private final List<DirtyStateListener> dirtyStateListeners = new ArrayList<>();
+    private boolean dirty;
     private HistoryManagement historyManager;
     private SelectionManagement selectionManager;
     private ClipboardManagement clipboardManager;
@@ -180,6 +182,7 @@ public class DrawingCanvas extends JPanel implements
         notifyFillColorChanged();
         zoomFactor = 1.0f;
         clearHistory();
+        setDirty(false);
         setPreferredSize(new Dimension(width, height));
         revalidate();
         repaint();
@@ -260,6 +263,36 @@ public class DrawingCanvas extends JPanel implements
 
     public void addCanvasChangeListener(CanvasChangeListener listener) {
         canvasChangeListeners.add(listener);
+    }
+
+    public void addDirtyStateListener(DirtyStateListener listener) {
+        dirtyStateListeners.add(listener);
+    }
+
+    /**
+     * Returns whether the canvas has edits that have not been saved.
+     *
+     * @return true if there are unsaved changes
+     */
+    public boolean isDirty() {
+        return dirty;
+    }
+
+    /**
+     * Marks the canvas as saved, clearing the unsaved-changes flag.
+     */
+    public void markClean() {
+        setDirty(false);
+    }
+
+    private void setDirty(boolean newValue) {
+        if (dirty == newValue) {
+            return;
+        }
+        dirty = newValue;
+        for (DirtyStateListener listener : dirtyStateListeners) {
+            listener.onDirtyStateChanged(dirty);
+        }
     }
 
     public void removeCanvasChangeListener(CanvasChangeListener listener) {
@@ -682,6 +715,7 @@ public class DrawingCanvas extends JPanel implements
         revalidate();
         repaint();
         clearHistory();
+        setDirty(false);
 
         return layerState;
     }
@@ -721,12 +755,17 @@ public class DrawingCanvas extends JPanel implements
 
         // Pass these to the historyManager's detailed method
         ((HistoryManager) historyManager).saveToUndoStack(layers, currentLayerIndex);
+        setDirty(true);
     }
 
     @Override
     public LayerState undo() {
         Selection before = floatingSelectionOrNull();
+        boolean wasUndoable = historyManager.canUndo();
         LayerState state = ((HistoryManager) historyManager).undo(layerManager.getLayers(), layerManager.getCurrentLayerIndex(), before);
+        if (wasUndoable) {
+            setDirty(true);
+        }
         layerManager.setLayers(state.getLayers());
         layerManager.setCurrentLayerIndex(state.getCurrentLayerIndex());
         applyHistorySelection(before, state.getFloatingSelection());
@@ -736,7 +775,11 @@ public class DrawingCanvas extends JPanel implements
     @Override
     public LayerState redo() {
         Selection before = floatingSelectionOrNull();
+        boolean wasRedoable = historyManager.canRedo();
         LayerState state = ((HistoryManager) historyManager).redo(layerManager.getLayers(), layerManager.getCurrentLayerIndex(), before);
+        if (wasRedoable) {
+            setDirty(true);
+        }
         layerManager.setLayers(state.getLayers());
         layerManager.setCurrentLayerIndex(state.getCurrentLayerIndex());
         applyHistorySelection(before, state.getFloatingSelection());

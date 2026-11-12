@@ -67,7 +67,7 @@ public class FileMenu extends JMenu {
         save.addActionListener(e -> handleSave());
         saveAs.addActionListener(e -> handleSaveAs());
         exportLayers.addActionListener(e -> handleExportLayers());
-        exit.addActionListener(e -> handleExit());
+        exit.addActionListener(e -> exit());
     }
 
     private void handleNewFile() {
@@ -75,6 +75,10 @@ public class FileMenu extends JMenu {
         dialog.setVisible(true);
 
         if (dialog.isApproved()) {
+            if (!confirmDiscardChanges("creating a new image")) {
+                mainFrame.setStatusMessage("New image cancelled");
+                return;
+            }
             mainFrame.getCanvas().createNewCanvas(
                     dialog.getImageWidth(),
                     dialog.getImageHeight(),
@@ -100,6 +104,11 @@ public class FileMenu extends JMenu {
 
         if (fileChooser.showOpenDialog(mainFrame) == JFileChooser.APPROVE_OPTION) {
             File file = fileChooser.getSelectedFile();
+
+            if (!confirmDiscardChanges("opening another file")) {
+                mainFrame.setStatusMessage("Open cancelled");
+                return;
+            }
 
             try {
                 DrawingCanvas canvas = mainFrame.getCanvas();
@@ -127,54 +136,90 @@ public class FileMenu extends JMenu {
     }
 
 
-    private void handleSave() {
+    /**
+     * Saves to the current file, or falls back to Save As when there is no current file.
+     *
+     * @return true only if the file was saved
+     */
+    private boolean handleSave() {
         DrawingCanvas canvas = mainFrame.getCanvas();
         String currentPath = canvas.getCurrentFilePath();
 
         if (currentPath == null) {
-            handleSaveAs();
-        } else {
-            try {
-                // Check if we're about to flatten layers
-                boolean isSparkPaintFormat = currentPath.toLowerCase().endsWith("." + SPARKPAINT_FILE_EXTENSION);
-                boolean hasMultipleLayers = canvas.getLayerCount() > 1;
+            return handleSaveAs();
+        }
+        try {
+            // Check if we're about to flatten layers
+            boolean isSparkPaintFormat = currentPath.toLowerCase().endsWith("." + SPARKPAINT_FILE_EXTENSION);
+            boolean hasMultipleLayers = canvas.getLayerCount() > 1;
 
-                if (!isSparkPaintFormat && hasMultipleLayers) {
-                    int result = JOptionPane.showConfirmDialog(mainFrame,
-                            "This format doesn't support layers. Your layers will be flattened." +
-                                    "\nUse 'Save As...' and select SparkPaint format to preserve layers." +
-                                    "\n\nContinue with flattened save?",
-                            "Layers Will Be Lost",
-                            JOptionPane.YES_NO_OPTION);
-                    if (result != JOptionPane.YES_OPTION) {
-                        handleSaveAs(); // Let user choose SparkPaint format instead
-                        return;
-                    }
+            if (!isSparkPaintFormat && hasMultipleLayers) {
+                int result = JOptionPane.showConfirmDialog(mainFrame,
+                        "This format doesn't support layers. Your layers will be flattened." +
+                                "\nUse 'Save As...' and select SparkPaint format to preserve layers." +
+                                "\n\nContinue with flattened save?",
+                        "Layers Will Be Lost",
+                        JOptionPane.YES_NO_OPTION);
+                if (result != JOptionPane.YES_OPTION) {
+                    return handleSaveAs(); // Let user choose SparkPaint format instead
                 }
-
-                // Choose appropriate save method
-                if (isSparkPaintFormat) {
-                    SparkPaintFileFormat.saveToFile(
-                            new File(currentPath),
-                            canvas.getLayers(),
-                            canvas.getCurrentLayerIndex()
-                    );
-                } else {
-                    canvas.saveToFile(new File(currentPath));
-                }
-                mainFrame.setStatusMessage("Saved to: " + currentPath);
-            } catch (IOException ex) {
-                mainFrame.setStatusMessage("Error saving file!");
-                JOptionPane.showMessageDialog(mainFrame,
-                        "Error saving file: " + ex.getMessage(),
-                        "Save Error",
-                        JOptionPane.ERROR_MESSAGE);
             }
+
+            // Choose appropriate save method
+            if (isSparkPaintFormat) {
+                SparkPaintFileFormat.saveToFile(
+                        new File(currentPath),
+                        canvas.getLayers(),
+                        canvas.getCurrentLayerIndex()
+                );
+            } else {
+                canvas.saveToFile(new File(currentPath));
+            }
+            canvas.markClean();
+            mainFrame.setStatusMessage("Saved to: " + currentPath);
+            return true;
+        } catch (IOException ex) {
+            mainFrame.setStatusMessage("Error saving file!");
+            JOptionPane.showMessageDialog(mainFrame,
+                    "Error saving file: " + ex.getMessage(),
+                    "Save Error",
+                    JOptionPane.ERROR_MESSAGE);
+            return false;
         }
     }
 
+    /**
+     * Asks the user to save unsaved changes before they are discarded.
+     *
+     * @param action describes the pending action, used in the prompt
+     * @return true if it is safe to proceed, false if the user cancelled or the save failed
+     */
+    private boolean confirmDiscardChanges(String action) {
+        if (!mainFrame.getCanvas().isDirty()) {
+            return true;
+        }
+        String[] options = {"Save", "Don't Save", "Cancel"};
+        int choice = JOptionPane.showOptionDialog(mainFrame,
+                "You have unsaved changes. Save them before " + action + "?",
+                "Unsaved Changes",
+                JOptionPane.YES_NO_CANCEL_OPTION,
+                JOptionPane.WARNING_MESSAGE,
+                null,
+                options,
+                options[0]);
+        if (choice == 0) {
+            return handleSave();
+        }
+        return choice == 1;
+    }
 
-    private void handleSaveAs() {
+
+    /**
+     * Prompts for a file and saves the canvas there.
+     *
+     * @return true only if the file was saved
+     */
+    private boolean handleSaveAs() {
         JFileChooser fileChooser = new JFileChooser();
 
         // Add both filters with descriptive names
@@ -216,7 +261,7 @@ public class FileMenu extends JMenu {
                         JOptionPane.YES_NO_OPTION);
                 if (result != JOptionPane.YES_OPTION) {
                     mainFrame.setStatusMessage("Save cancelled");
-                    return;
+                    return false;
                 }
             }
 
@@ -229,21 +274,26 @@ public class FileMenu extends JMenu {
                             mainFrame.getCanvas().getCurrentLayerIndex()
                     );
                     mainFrame.getCanvas().setCurrentFilePath(file.getAbsolutePath());
+                    mainFrame.getCanvas().markClean();
                     mainFrame.setStatusMessage("Project saved with layers to: " + file.getAbsolutePath());
                 } else {
                     // Regular save with flattened image
                     mainFrame.getCanvas().saveToFile(file);
+                    mainFrame.getCanvas().markClean();
                     mainFrame.setStatusMessage("Image saved as: " + file.getAbsolutePath());
                 }
+                return true;
             } catch (IOException ex) {
                 mainFrame.setStatusMessage("Error saving file!");
                 JOptionPane.showMessageDialog(mainFrame,
                         "Error saving file: " + ex.getMessage(),
                         "Save Error",
                         JOptionPane.ERROR_MESSAGE);
+                return false;
             }
         } else {
             mainFrame.setStatusMessage("Save cancelled");
+            return false;
         }
     }
 
@@ -322,7 +372,12 @@ public class FileMenu extends JMenu {
     }
 
 
-    private void handleExit() {
-        System.exit(0);  // Basic implementation - might want to add save prompts later
+    /**
+     * Exits the application after confirming that unsaved changes are handled.
+     */
+    public void exit() {
+        if (confirmDiscardChanges("exiting")) {
+            System.exit(0);
+        }
     }
 }

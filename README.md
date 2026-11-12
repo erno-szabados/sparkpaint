@@ -69,4 +69,5 @@ SparkPaint is built using:
 - Java with Swing/AWT for the user interface
 - Java2D for image rendering and manipulation
 - Maven for project management
-- Claude 3.7 AI for code generation
+- Claude Sonnet 3.7 AI for code generation
+- Claude Haiku 5.5 AI for assistance

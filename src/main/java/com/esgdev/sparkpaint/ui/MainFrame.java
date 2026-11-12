@@ -8,11 +8,16 @@ import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.KeyEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 
 public class MainFrame extends JFrame {
 
+    private static final String BASE_TITLE = "SparkPaint Pixel Editor";
+
     private DrawingCanvas canvas;
+    private FileMenu fileMenu;
     private JLabel statusMessage;
     private JLabel cursorPositionLabel;
     private ColorPalette palette;
@@ -21,8 +26,8 @@ public class MainFrame extends JFrame {
 
     public MainFrame() {
         // Set up the JFrame properties
-        super("SparkPaint Pixel Editor");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        super(BASE_TITLE);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setSize(1024, 768);
         setLocationRelativeTo(null); // Centers the window on the screen
         try {
@@ -37,6 +42,13 @@ public class MainFrame extends JFrame {
 
         // Initialize the main components
         initializeUI();
+
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                fileMenu.exit();
+            }
+        });
     }
 
     public DrawingCanvas getCanvas() {
@@ -45,6 +57,10 @@ public class MainFrame extends JFrame {
 
     public ColorPalette getColorPalette() {
         return palette;
+    }
+
+    private void updateTitle(boolean dirty) {
+        setTitle(dirty ? "* " + BASE_TITLE : BASE_TITLE);
     }
 
     // Method to initialize the UI components
@@ -57,10 +73,12 @@ public class MainFrame extends JFrame {
 
         // Add main canvas (at the center). Must precede menu, toolbar and tool settings!
         canvas = DrawingCanvas.create();
+        canvas.addDirtyStateListener(this::updateTitle);
 
         // Create and set up the menu bar
         JMenuBar menuBar = new JMenuBar();
-        menuBar.add(new FileMenu(this));
+        fileMenu = new FileMenu(this);
+        menuBar.add(fileMenu);
         menuBar.add(new EditMenu(this));
         menuBar.add(new ImageMenu(this));
         menuBar.add(new FilterMenu(this));
